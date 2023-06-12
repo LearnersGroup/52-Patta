@@ -1,0 +1,4 @@
+{
+    "mongoURI": "mongodb+srv://bako:bako@devconnectordbcluster.dr1oc5n.mongodb.net/",
+    "jwtSecret": "@123qwertY"
+}
