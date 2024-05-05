@@ -20,6 +20,11 @@ const UserSchema = new mongoose.Schema({
     date: {
         type: Date,
         default: Date.now
+    },
+    gameroom: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "game",
+        default: null
     }
 });
 

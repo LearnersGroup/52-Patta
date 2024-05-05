@@ -19,7 +19,6 @@ router.post(
         [
             check("roomname", "Room name is required").not().isEmpty(),
             check("player_count", "Player count is required").isInt(),
-            check("state", "initial game state not found").not().isEmpty(),
             check(
                 "roompass",
                 "Please enter a password with 6 or more characters"
@@ -38,7 +37,6 @@ router.post(
             roomname,
             roompass,
             player_count,
-            state,
         } = req.body;
 
         try {
@@ -55,7 +53,6 @@ router.post(
                 roomname: roomname,
                 roompass: roompass,
                 player_count: player_count,
-                state: state,
                 players: [req.user.id],
                 admin: req.user.id
             });
@@ -64,29 +61,11 @@ router.post(
             const salt = await bcrypt.genSalt(10);
             game.roompass = await bcrypt.hash(roompass, salt);
 
-            await game.save();
+            game.save().then(async room => await User.findOneAndUpdate({ _id: req.user.id }, { gameroom: room.id }))
 
-            // return jwt
-            const payload = {
-                user: {
-                    id: req.user.id,
-                },
-                game: {
-                    id: game.id
-                }
-            };
-
-            jwt.sign(
-                payload,
-                config.get("jwtSecret"),
-                { expiresIn: 360000 },
-                (err, token) => {
-                    if (err) throw err;
-                    res.json({ token });
-                }
-            );
-
-            // res.send("User registered");
+            return res
+                .status(200)
+                .json("room created successfully!!");
         } catch (error) {
             console.log(error.message);
             res.status(500).send("server error");

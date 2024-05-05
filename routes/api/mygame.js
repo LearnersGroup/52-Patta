@@ -1,29 +1,28 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/auth");
-const gameauth = require("../../middleware/game-auth");
 const Game = require("../../models/Game");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const config = require("config");
 const { check, validationResult } = require("express-validator");
+const User = require("../../models/User");
 
 // @route   GET api/mygame/
 // @desc    Get users game
 // @access  Private                                          // if token required then, Private
-router.get("/", [auth, gameauth], async (req, res) => {
+router.get("/", [auth], async (req, res) => {
     try {
         //find the game room
-        const game = await Game.findById(req.game.id)
-            .populate("admin", ["name"])
-            .populate("players", ["name"]);
+        let user = await User.findOne({ _id: req.user.id }).populate(
+            "gameroom",
+            ["roomname"]
+        );
 
-        if(!game) {
-            return res
-                .status(200)
-                .json({ msg: "Game room closed" });
+        if (!user?.gameroom) {
+            return res.status(200).json({ msg: "User not in any game-room" });
         }
-        res.json(game);
+        res.json(user.gameroom);
     } catch (error) {
         console.error(error.message);
         res.status(500).send("Server Error");
@@ -33,67 +32,50 @@ router.get("/", [auth, gameauth], async (req, res) => {
 // @route   DELETE api/mygame/
 // @desc    Leave the gameroom
 // @access  Private                                          // if token required then, Private
-router.delete("/", [auth, gameauth], async (req, res) => {
+router.delete("/", [auth], async (req, res) => {
     try {
         //find the game room
-        let game = await Game.findById(req.game.id)
+        let user = await User.findOne({ _id: req.user.id });
+        let game = await Game.findById(user.gameroom)
             .populate("admin", ["name"])
             .populate("players", ["name"]);
 
-        if(!game) {
-            return res
-                .status(200)
-                .json({ msg: "Not in a game room" });
+        if (!game) {
+            return res.status(200).json({ msg: "Not in a game room" });
         }
 
+        //remove gameroom of the user
+        await User.findOneAndUpdate({ _id: req.user.id }, { gameroom: null });
+
         //if user is admin close the game room
-        if(game.admin.id === req.user.id){
-            console.log("is admin")
-            await Game.findOneAndDelete({gameroom: req.game.gameroom});
-            console.log("game room deleted")
-            const payload = {
-                user: {
-                    id: req.user.id,
-                },
-            };
-    
-            return jwt.sign(
-                payload,
-                config.get("jwtSecret"),
-                { expiresIn: 360000 },
-                (err, token) => {
-                    if (err) throw err;
-                    res.json({ token });
-                }
+        console.log("is admin ", game.admin.id === req.user.id);
+        if (game.admin.id === req.user.id) {
+
+            game.players.map(
+                async (player) =>
+                    await User.findOneAndUpdate(
+                        { _id: player.id },
+                        { gameroom: null }
+                    )
             );
+            await Game.findOneAndDelete({ _id: game.id });
+            return res
+                .status(200)
+                .json({ msg: "Removed Admin & deleted room" });
         }
 
         //remove the user from players list
-        const updatedPlayers = game.players.filter((player)=> player.id != req.user.id);
+        const updatedPlayers = game.players.filter(
+            (player) => player.id != req.user.id
+        );
         console.log(updatedPlayers);
 
-        game = await Game.findOneAndUpdate(
-            { roomname: game.roomname },
+        await Game.findOneAndUpdate(
+            { _id: game.id },
             { players: updatedPlayers }
         );
-        
 
-        // return updated jwt
-        const payload = {
-            user: {
-                id: req.user.id,
-            },
-        };
-
-        return jwt.sign(
-            payload,
-            config.get("jwtSecret"),
-            { expiresIn: 360000 },
-            (err, token) => {
-                if (err) throw err;
-                res.json({ token });
-            }
-        );
+        return res.status(200).json({ msg: "Removed player from the room" });
     } catch (error) {
         console.error(error.message);
         res.status(500).send("Server Error");

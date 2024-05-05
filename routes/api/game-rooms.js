@@ -7,14 +7,15 @@ const jwt = require("jsonwebtoken");
 const config = require("config");
 const { check, validationResult } = require("express-validator");
 
-// @route   GET api/game-auth/
-// @desc    Get active game rooms
+// @route   GET api/game-room/
+// @desc    Get all active game rooms
 // @access  Private                                          // if token required then, Private
 router.get("/", auth, async (req, res) => {
     try {
         const games = await Game.find()
             .populate("admin", ["name"])
-            .populate("players", ["name"]);
+            .populate("players", ["name"])
+            .select("-roompass");
 
         if (!games) {
             return res
@@ -29,7 +30,7 @@ router.get("/", auth, async (req, res) => {
     }
 });
 
-// @route   POST api/game-auth/
+// @route   POST api/game-room/
 // @desc    join a game room
 // @access  Private                                          // if token required then, Private
 router.post(
@@ -62,6 +63,13 @@ router.post(
                     .json({ errors: [{ msg: "Room does not exists" }] });
             }
 
+            //Check if room full
+            if (game.players.length >= game.player_count) {
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: "Room is full" }] });
+            }
+
             //verify credentials
             const isMatch = await bcrypt.compare(roompass, game.roompass);
 
@@ -73,60 +81,22 @@ router.post(
 
             //verify player not already in the room
             const playerInRoom = game.players.includes(req.user.id);
-            console.log(playerInRoom)
             if (playerInRoom) {
-                const payload = {
-                    user: {
-                        id: req.user.id,
-                    },
-                    game: {
-                        id: game.id,
-                    },
-                };
-
-                return jwt.sign(
-                    payload,
-                    config.get("jwtSecret"),
-                    { expiresIn: 360000 },
-                    (err, token) => {
-                        if (err) throw err;
-                        res.json({ token });
-                    }
-                );
+                return res.status(200).json("Player Already in room");
             }
 
-            //add user to players list
-            if (game.players.length >= game.player_count) {
-                return res
-                    .status(400)
-                    .json({ errors: [{ msg: "Room is full" }] });
-            }
-
-            const updatedPlayers = [...game.players, req.user.id];
-            game = await Game.findOneAndUpdate(
-                { roomname: roomname },
-                { players: updatedPlayers }
+            //Update game room
+            let gameroom = await Game.findOneAndUpdate(
+                { _id: game.id },
+                { players: [...game.players, req.user.id] }
+            );
+            //Update user game-room
+            await User.findOneAndUpdate(
+                { _id: req.user.id },
+                { gameroom: gameroom.id }
             );
 
-            // return updated jwt
-            const payload = {
-                user: {
-                    id: req.user.id,
-                },
-                game: {
-                    id: game.id,
-                },
-            };
-
-            jwt.sign(
-                payload,
-                config.get("jwtSecret"),
-                { expiresIn: 360000 },
-                (err, token) => {
-                    if (err) throw err;
-                    res.json({ token });
-                }
-            );
+            return res.status(200).json("Player added in the room");
         } catch (error) {
             console.error(error.message);
             res.status(500).send("server error");

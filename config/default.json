@@ -1,4 +1,4 @@
 {
-    "mongoURI": "mongodb+srv://bako:bako@devconnectordbcluster.dr1oc5n.mongodb.net/",
+    "mongoURI": "mongodb+srv://bako:bako@devconnectordbcluster.dr1oc5n.mongodb.net/sequence_db",
     "jwtSecret": "@123qwertY"
 }

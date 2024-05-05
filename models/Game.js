@@ -24,7 +24,7 @@ const GameSchema = new mongoose.Schema({
     },
     state: {
         type: String,
-        required: true,
+        default: "State"
     }
 });
 
