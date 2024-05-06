@@ -25,22 +25,14 @@ const io = new Server(server, {
     },
 });
 
-// app.get("/", (req, res) => res.send("API running"));
-// app.get("/", (req, res) => {
-//     res.sendFile(__dirname + "/index.html");
-// });
-
 // Websockets
 io.on("connection", (socket) => {
     console.log("A user connected");
 
-    socket.on("move", (data, callback) => {
+    socket.on("move", (data) => {
         console.log(`Received message: ${data}`);
         //The received message is broadcasted to all connected clients using the emit() method of the io object.
         io.emit("message", data);
-        callback({
-            status: "ok"
-        })
     });
     //an event listener is set up for when a client disconnects.
     socket.on("disconnect", () => {
