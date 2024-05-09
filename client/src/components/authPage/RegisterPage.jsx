@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { user_login } from "../../api/apiHandler";
+import { user_login, user_register } from "../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
 
-export const AuthPage = () => {
-	const navigate = useNavigate();
+export const RegisterPage = () => {
+    const navigate = useNavigate();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [useremail, setUseremail] = useState("");
     const [errors, setErrors] = useState([]);
     const { login } = useAuth();
 
@@ -14,8 +15,7 @@ export const AuthPage = () => {
         e.preventDefault();
         setErrors([]);
         try {
-            const { token } = await user_login(username, password);
-
+            const { token } = await user_register(username, useremail, password);
             if (token) {
                 await login({ token });
             }
@@ -38,6 +38,15 @@ export const AuthPage = () => {
                     />
                 </div>
                 <div>
+                    <label htmlFor="useremail">User email:</label>
+                    <input
+                        id="useremail"
+                        type="text"
+                        value={useremail}
+                        onChange={(e) => setUseremail(e.target.value)}
+                    />
+                </div>
+                <div>
                     <label htmlFor="password">Password:</label>
                     <input
                         id="password"
@@ -46,18 +55,17 @@ export const AuthPage = () => {
                         onChange={(e) => setPassword(e.target.value)}
                     />
                 </div>
-                <button type="submit">Login</button>
+                <button type="submit">Register</button>
                 {errors.length !== 0 &&
                     errors.map((err) => <div key={err.path}>{err.msg}</div>)}
                 <div>
-                    <p>Do not have a account?</p>
-                    <button onClick={() => navigate("/register")}>
-                        create a account
-                    </button>
+                    <p>Already registered?</p>
+                    <button onClick={() => navigate('/login')}>go to login</button>
                 </div>
+                
             </form>
         </div>
     );
 };
 
-export default AuthPage;
+export default RegisterPage;
