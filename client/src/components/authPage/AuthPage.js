@@ -1,21 +1,29 @@
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { user_login } from "../../api/apiHandler";
 
 export const AuthPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState([]);
   const { login } = useAuth();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    // Here you would usually send a request to your backend to authenticate the user
-    // For the sake of this example, we're using a mock authentication
-    if (username === "test" && password === "test") {
-      // Replace with actual authentication logic
-      await login({ username });
+    setErrors([])
+    try {
+      const {token} = await user_login(username, password);
+
+    if (token) {
+      await login({ token });
     } else {
       alert("Invalid username or password");
     }
+    } catch (error) {
+      console.log(error)
+      setErrors(error.errors)
+    }
+    
   };
 
   return (
@@ -40,6 +48,7 @@ export const AuthPage = () => {
           />
         </div>
         <button type="submit">Login</button>
+        {errors.length !== 0 && errors.map(err => <div key={err.path}>{err.msg}</div>)}
       </form>
     </div>
   );

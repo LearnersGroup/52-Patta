@@ -1,14 +1,15 @@
 const express = require("express");
+var cors = require('cors')
 const connectDB = require("./config/db");
 const { Server } = require("socket.io");
 const app = express();
 const http = require("http");
-// var expressWs = require('express-ws')(app);
 
 // Connect DB
 connectDB();
 
 // Init Middleware
+app.use(cors())
 app.use(express.json({ extended: false }));
 
 //define routes

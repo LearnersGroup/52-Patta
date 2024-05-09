@@ -47,6 +47,7 @@ const HomePage = () => {
             <Events events={fooEvents} />
             <ConnectionManager />
             <MyForm />
+            <button onClick={handleLogout}>Logout</button>
         </div>
     );
 };
