@@ -5,12 +5,23 @@ import { ConnectionManager } from "../websocket/ConnectionManager";
 import { MyForm } from "../websocket/MyForm";
 import { socket } from "../../socket";
 import { useAuth } from "../hooks/useAuth";
+import { useQuery } from "react-query";
+import { get_all_rooms, removeAuthToken } from "../../api/apiHandler";
+import AllGameRooms from "./AllGameRooms/AllGameRooms";
 
 const HomePage = () => {
+    //hooks
+    const { logout } = useAuth();
+    //other state
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [fooEvents, setFooEvents] = useState([]);
-    const { logout } = useAuth();
 
+    const handleLogout = () => {
+        removeAuthToken();
+        logout();
+    };
+
+    //websocket logic
     useEffect(() => {
         function onConnect() {
             setIsConnected(true);
@@ -36,18 +47,17 @@ const HomePage = () => {
         };
     }, []);
 
-    const handleLogout = () => {
-        logout();
-    };
-
     return (
-        <div>
-            <h1>HomePage</h1>
-            <ConnectionState isConnected={isConnected} />
-            <Events events={fooEvents} />
-            <ConnectionManager />
-            <MyForm />
+        <div className="home-page">
+            <h1 className="title">HomePage</h1>
             <button onClick={handleLogout}>Logout</button>
+            <AllGameRooms/>
+            <div className="webhooks">
+                <ConnectionState isConnected={isConnected} />
+                <Events events={fooEvents} />
+                <ConnectionManager />
+                <MyForm />
+            </div>
         </div>
     );
 };

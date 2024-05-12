@@ -1,3 +1,87 @@
 .App {
   text-align: center;
 }
+
+.home-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  align-items:stretch;
+  .title{
+    text-decoration: underline;
+  }
+  .webhooks{
+    margin-top: 28px;
+    width: 100vw;
+    border-top: 2px solid black;
+  }
+  .create-and-all-rooms{
+    margin-top: 28px;
+    border-top: 2px solid black;
+    .all-rooms {
+      display: flex;
+      flex-direction: column;
+      margin: 27px 5%;
+
+      .title-and-create-room{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+  }
+}
+
+
+// copied Table style
+// Define variables for table colors
+$table-bg-color: #ffffff; // White background
+$table-border-color: #dddddd; // Light gray border color
+$table-header-bg-color: #f2f2f2; // Light gray background for table header
+
+// Define the table styles
+$table-padding: 10px;
+$table-border-width: 1px;
+$table-border-style: solid;
+$table-border-radius: 5px;
+
+// Define the table header styles
+$table-header-font-color: #333333; // Dark gray font color for table header
+$table-header-font-weight: bold;
+
+// Define the table row styles
+$table-row-hover-bg-color: #f9f9f9; // Light gray background color on hover
+
+// Define the table cell styles
+$table-cell-padding: 8px;
+$table-cell-border-bottom-color: #dddddd; // Light gray border color for cell bottom
+
+// Define the table class
+.table {
+  border-collapse: collapse;
+  background-color: $table-bg-color;
+  border: $table-border-width $table-border-style $table-border-color;
+  border-radius: $table-border-radius;
+
+  th, td {
+    padding: $table-cell-padding;
+    border-bottom: $table-border-width $table-border-style $table-cell-border-bottom-color;
+    border-right: $table-border-width $table-border-style $table-border-color; // Add right border for each cell
+    text-align: left; // Align text to the left
+  }
+
+  th {
+    background-color: $table-header-bg-color;
+    color: $table-header-font-color;
+    font-weight: $table-header-font-weight;
+  }
+
+  tr:hover {
+    background-color: $table-row-hover-bg-color;
+  }
+
+  // Remove right border for the last cell in each row
+  td:last-child {
+    border-right: none;
+  }
+}

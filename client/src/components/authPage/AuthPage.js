@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { user_login } from "../../api/apiHandler";
+import { setAuthToken, user_login } from "../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
 
 export const AuthPage = () => {
@@ -18,6 +18,7 @@ export const AuthPage = () => {
 
             if (token) {
                 await login({ token });
+                setAuthToken(token);
             }
         } catch (error) {
             console.log(error);
