@@ -40,6 +40,14 @@ router.post(
         } = req.body;
 
         try {
+            //check if player already in room
+            let player = await User.findOne({ _id: req.user.id});
+            if( player['gameroom'] !== null && typeof(player['gameroom']) === "object"){
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: "Player Already in a room" }] });
+            }
+
             //check if game exists
             let game = await Game.findOne({ roomname: roomname });
 

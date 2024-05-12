@@ -63,6 +63,12 @@ router.post(
                     .json({ errors: [{ msg: "Room does not exists" }] });
             }
 
+            //verify player not already in the room
+            const playerInRoom = game.players.includes(req.user.id);
+            if (playerInRoom) {
+                return res.status(200).json("Player Already in room");
+            }
+
             //Check if room full
             if (game.players.length >= game.player_count) {
                 return res
@@ -77,12 +83,6 @@ router.post(
                 return res
                     .status(400)
                     .json({ errors: [{ msg: "Invalid Credentials" }] });
-            }
-
-            //verify player not already in the room
-            const playerInRoom = game.players.includes(req.user.id);
-            if (playerInRoom) {
-                return res.status(200).json("Player Already in room");
             }
 
             //Update game room

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 const AllGameRooms = () => {
     const navigate = useNavigate();
-    const [pass, setPass] = useState('');
+    const [pass, setPass] = useState("");
     //game-data
     const { data, status } = useQuery("all-game-rooms", get_all_rooms);
 
@@ -13,15 +13,15 @@ const AllGameRooms = () => {
         // pass
     };
 
-    const handleJoinRoom = async (roomname, roompass) => {
-        const response = await room_join(roomname, roompass)
-        if (response.status === 200){
-            console.log('Navigating...')
-            navigate('/game-room/')
-        }else{
-            alert('Unable to join room')
+    const handleJoinRoom = async (roomname, roompass, id) => {
+        const response = await room_join(roomname, roompass);
+        if (response.status === 200) {
+            console.log("Navigating...");
+            navigate(`/game-room/${id}`);
+        } else {
+            alert("Unable to join room");
         }
-    }
+    };
 
     return (
         <div className="create-and-all-rooms">
@@ -40,19 +40,35 @@ const AllGameRooms = () => {
                             <th>Players</th>
                             <th>Join</th>
                         </tr>
-                        {data.map((room) => (
-                            <tr key={room.id}>
+                        {data.map((room) => {
+                            return <tr key={room['_id']}>
                                 <td>{room.roomname}</td>
                                 <td>{room.admin.name}</td>
                                 <td>
                                     {room.players.length} / {room.player_count}
                                 </td>
                                 <td>
-                                    <input type="password" value={pass} onChange={(e) => setPass(e.target.value)}/>
-                                    <button onClick={()=>handleJoinRoom(room.roomname, pass)}>Join</button>
+                                    <input
+                                        type="password"
+                                        value={pass}
+                                        onChange={(e) =>
+                                            setPass(e.target.value)
+                                        }
+                                    />
+                                    <button
+                                        onClick={() =>
+                                            handleJoinRoom(
+                                                room.roomname,
+                                                pass,
+                                                room['_id']
+                                            )
+                                        }
+                                    >
+                                        Join
+                                    </button>
                                 </td>
-                            </tr>
-                        ))}
+                            </tr>;
+                        })}
                     </table>
                 )}
             </div>

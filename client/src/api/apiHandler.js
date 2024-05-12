@@ -58,9 +58,20 @@ export const room_join = async (roomname, roompass) => {
     }
 };
 
+export const room_leave = async () => {
+    try {
+        const response = await apiClient.delete("/mygame");
+        return response;
+    } catch (error) {
+        throw error.response.data;
+    }
+};
+
 export const get_all_rooms = async () => {
     try {
         const response = await apiClient.get("/game-rooms");
+        
+        // console.log(Object.keys(response.data[0]))
         return response.data;
     } catch (error) {
         throw error.response.data;

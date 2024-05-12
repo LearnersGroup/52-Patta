@@ -26,12 +26,11 @@ export default function App() {
                             }
                         />
                         <Route
-                            exact
                             path='game-room'
                         >
                             <Route
                                 path='new'
-                                index
+                                index={true}
                                 element={
                                     <ProtectedRoute>
                                         <CreateGamePage />
