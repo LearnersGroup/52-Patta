@@ -17,7 +17,7 @@ const AllGameRooms = () => {
         const response = await room_join(roomname, roompass)
         if (response.status === 200){
             console.log('Navigating...')
-            navigate('/game-room')
+            navigate('/game-room/')
         }else{
             alert('Unable to join room')
         }

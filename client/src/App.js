@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./components/homePage/HomePage";
 import AuthPage from "./components/authPage/AuthPage";
+import CreateGamePage from "./components/gamePage/CreateGamePage";
+import GamePage from "./components/gamePage/GamePage";
 import { ProtectedRoute } from "./components/utils/ProtectedRoute";
 import { AuthProvider } from "./components/hooks/useAuth";
 import RegisterPage from "./components/authPage/RegisterPage";
@@ -15,15 +17,38 @@ export default function App() {
                 <AuthProvider>
                     <Routes>
                         <Route
-                            path="/"
+                            exact
+                            path='/'
                             element={
                                 <ProtectedRoute>
                                     <HomePage />
                                 </ProtectedRoute>
                             }
                         />
-                        <Route path="/login" element={<AuthPage />} />
-                        <Route path="/register" element={<RegisterPage />} />
+                        <Route
+                            exact
+                            path='game-room'
+                        >
+                            <Route
+                                path='new'
+                                index
+                                element={
+                                    <ProtectedRoute>
+                                        <CreateGamePage />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path=':id'
+                                element={
+                                    <ProtectedRoute>
+                                        <GamePage />
+                                    </ProtectedRoute>
+                                }
+                            />
+                        </Route>
+                        <Route path='/login' element={<AuthPage />} />
+                        <Route path='/register' element={<RegisterPage />} />
                     </Routes>
                 </AuthProvider>
             </BrowserRouter>

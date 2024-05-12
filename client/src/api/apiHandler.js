@@ -52,7 +52,7 @@ export const room_join = async (roomname, roompass) => {
             roomname: roomname,
             roompass: roompass,
         });
-        return response.data;
+        return response;
     } catch (error) {
         throw error.response.data;
     }
