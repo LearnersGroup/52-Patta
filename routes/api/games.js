@@ -33,15 +33,12 @@ router.post(
         }
         console.log(req.body);
 
-        const {
-            roomname,
-            roompass,
-            player_count,
-        } = req.body;
+        const { roomname, roompass, player_count } = req.body;
 
         try {
             //check if player already in room
             let player = await User.findOne({ _id: req.user.id});
+            console.log(player['gameroom'])
             if( player['gameroom'] !== null && typeof(player['gameroom']) === "object"){
                 return res
                     .status(400)
@@ -62,18 +59,19 @@ router.post(
                 roompass: roompass,
                 player_count: player_count,
                 players: [req.user.id],
-                admin: req.user.id
+                admin: req.user.id,
             });
 
             //encrypt creds & store
             const salt = await bcrypt.genSalt(10);
             game.roompass = await bcrypt.hash(roompass, salt);
+            game = await game.save();
+            player = await User.findOneAndUpdate(
+                { _id: req.user.id },
+                { gameroom: game.id }
+            );
 
-            game.save().then(async room => await User.findOneAndUpdate({ _id: req.user.id }, { gameroom: room.id }))
-
-            return res
-                .status(200)
-                .json("room created successfully!!");
+            return res.status(200).json({ room_id: game.id });
         } catch (error) {
             console.log(error.message);
             res.status(500).send("server error");

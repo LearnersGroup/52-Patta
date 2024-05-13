@@ -10,7 +10,7 @@ const AllGameRooms = () => {
     const { data, status } = useQuery("all-game-rooms", get_all_rooms);
 
     const handleCreateGameRoom = () => {
-        // pass
+        navigate("/game-room/new");
     };
 
     const handleJoinRoom = async (roomname, roompass, id) => {
@@ -33,42 +33,49 @@ const AllGameRooms = () => {
                 {status === "error" && <p>Error fetching data</p>}
                 {status === "loading" && <p>Fetching data...</p>}
                 {status === "success" && (
-                    <table className="table">
-                        <tr>
-                            <th>Name</th>
-                            <th>Admin</th>
-                            <th>Players</th>
-                            <th>Join</th>
-                        </tr>
+                    data.length === 0? <div>No Active Game Rooms</div> :<table className="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Admin</th>
+                                <th>Players</th>
+                                <th>Join</th>
+                            </tr>
+                        </thead>
+                        <tbody>
                         {data.map((room) => {
-                            return <tr key={room['_id']}>
-                                <td>{room.roomname}</td>
-                                <td>{room.admin.name}</td>
-                                <td>
-                                    {room.players.length} / {room.player_count}
-                                </td>
-                                <td>
-                                    <input
-                                        type="password"
-                                        value={pass}
-                                        onChange={(e) =>
-                                            setPass(e.target.value)
-                                        }
-                                    />
-                                    <button
-                                        onClick={() =>
-                                            handleJoinRoom(
-                                                room.roomname,
-                                                pass,
-                                                room['_id']
-                                            )
-                                        }
-                                    >
-                                        Join
-                                    </button>
-                                </td>
-                            </tr>;
+                            return (
+                                <tr key={room["_id"]}>
+                                    <td>{room.roomname}</td>
+                                    <td>{room.admin.name}</td>
+                                    <td>
+                                        {room.players.length} /{" "}
+                                        {room.player_count}
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="password"
+                                            value={pass}
+                                            onChange={(e) =>
+                                                setPass(e.target.value)
+                                            }
+                                            />
+                                        <button
+                                            onClick={() =>
+                                                handleJoinRoom(
+                                                    room.roomname,
+                                                    pass,
+                                                    room["_id"]
+                                                    )
+                                                }
+                                                >
+                                            Join
+                                        </button>
+                                    </td>
+                                </tr>
+                            );
                         })}
+                        </tbody>
                     </table>
                 )}
             </div>

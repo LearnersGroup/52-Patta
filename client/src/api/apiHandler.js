@@ -40,7 +40,7 @@ export const room_register = async (roomname, roompass, player_count) => {
             roompass: roompass,
             player_count: player_count,
         });
-        return response.data;
+        return response;
     } catch (error) {
         throw error.response.data;
     }

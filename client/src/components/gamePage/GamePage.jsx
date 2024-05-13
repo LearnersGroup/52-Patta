@@ -4,7 +4,6 @@ import { room_leave } from "../../api/apiHandler";
 
 const GamePage = () => {
     let params = useParams();
-    console.log(params);
     const navigate = useNavigate();
 
     const handleLeave = async () => {
