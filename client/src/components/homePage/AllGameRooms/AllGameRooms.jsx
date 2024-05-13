@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 const AllGameRooms = () => {
     const navigate = useNavigate();
     const [pass, setPass] = useState("");
+    const [errors, setErrors] = useState([]);
     //game-data
     const { data, status } = useQuery("all-game-rooms", get_all_rooms);
 
@@ -14,12 +15,15 @@ const AllGameRooms = () => {
     };
 
     const handleJoinRoom = async (roomname, roompass, id) => {
-        const response = await room_join(roomname, roompass);
-        if (response.status === 200) {
-            console.log("Navigating...");
-            navigate(`/game-room/${id}`);
-        } else {
-            alert("Unable to join room");
+        try {
+            const response = await room_join(roomname, roompass);
+            if (response.status === 200) {
+                console.log("Navigating...");
+                navigate(`/game-room/${id}`);
+            }
+        } catch (error) {
+            console.log(error);
+            setErrors(error.errors);
         }
     };
 
@@ -32,52 +36,61 @@ const AllGameRooms = () => {
                 </div>
                 {status === "error" && <p>Error fetching data</p>}
                 {status === "loading" && <p>Fetching data...</p>}
-                {status === "success" && (
-                    data.length === 0? <div>No Active Game Rooms</div> :<table className="table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Admin</th>
-                                <th>Players</th>
-                                <th>Join</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {data.map((room) => {
-                            return (
-                                <tr key={room["_id"]}>
-                                    <td>{room.roomname}</td>
-                                    <td>{room.admin.name}</td>
-                                    <td>
-                                        {room.players.length} /{" "}
-                                        {room.player_count}
-                                    </td>
-                                    <td>
-                                        <input
-                                            type="password"
-                                            value={pass}
-                                            onChange={(e) =>
-                                                setPass(e.target.value)
-                                            }
-                                            />
-                                        <button
-                                            onClick={() =>
-                                                handleJoinRoom(
-                                                    room.roomname,
-                                                    pass,
-                                                    room["_id"]
-                                                    )
-                                                }
-                                                >
-                                            Join
-                                        </button>
-                                    </td>
+                {status === "success" &&
+                    (data.length === 0 ? (
+                        <div>No Active Game Rooms</div>
+                    ) : (
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Admin</th>
+                                    <th>Players</th>
+                                    <th>Join</th>
                                 </tr>
-                            );
-                        })}
-                        </tbody>
-                    </table>
-                )}
+                            </thead>
+                            <tbody>
+                                {data.map((room) => {
+                                    return (
+                                        <tr key={room["_id"]}>
+                                            <td>{room.roomname}</td>
+                                            <td>{room.admin.name}</td>
+                                            <td>
+                                                {room.players.length} /{" "}
+                                                {room.player_count}
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="password"
+                                                    value={pass}
+                                                    onChange={(e) =>
+                                                        setPass(e.target.value)
+                                                    }
+                                                />
+                                                <button
+                                                    onClick={() =>
+                                                        handleJoinRoom(
+                                                            room.roomname,
+                                                            pass,
+                                                            room["_id"]
+                                                        )
+                                                    }
+                                                >
+                                                    Join
+                                                </button>
+                                                {errors.length !== 0 &&
+                                                    errors.map((err) => (
+                                                        <div key={err.path}>
+                                                            {err.msg}
+                                                        </div>
+                                                    ))}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    ))}
             </div>
         </div>
     );
