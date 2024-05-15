@@ -11,7 +11,7 @@ import AllGameRooms from "./AllGameRooms/AllGameRooms";
 
 const HomePage = () => {
     //hooks
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
     //other state
     const [isConnected, setIsConnected] = useState(socket.connected);
     const [fooEvents, setFooEvents] = useState([]);
@@ -50,6 +50,7 @@ const HomePage = () => {
     return (
         <div className="home-page">
             <h1 className="title">HomePage</h1>
+            <p>Current User - {user.user_name}</p>
             <button onClick={handleLogout}>Logout</button>
             <AllGameRooms/>
             <div className="webhooks">

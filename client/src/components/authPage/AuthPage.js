@@ -14,10 +14,10 @@ export const AuthPage = () => {
         e.preventDefault();
         setErrors([]);
         try {
-            const { token } = await user_login(username, password);
+            const { token, user_name } = await user_login(username, password);
 
             if (token) {
-                await login({ token });
+                await login({ token, user_name });
                 setAuthToken(token);
             }
         } catch (error) {

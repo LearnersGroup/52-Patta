@@ -69,6 +69,14 @@ router.post(
                 return res.status(200).json("Player Already in room");
             }
 
+            //check if player already in room
+            let player = await User.findOne({ _id: req.user.id});
+            if( player['gameroom'] !== null && typeof(player['gameroom']) === "object"){
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: "Player Already in a room" }] });
+            }
+
             //Check if room full
             if (game.players.length >= game.player_count) {
                 return res
