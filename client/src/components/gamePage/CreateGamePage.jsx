@@ -12,8 +12,11 @@ const CreateGamePage = () => {
     const [playerCount, setPlayerCount] = useState(4);
 
     useEffect(()=>{
-        const goToGamePage = (room_id)=> {
+        const goToGamePage = (room_id, callback)=> {
             navigate(`/game-room/${room_id}`);
+            let res = {}
+            res.status = 200
+            callback(res)
         };
 
         socket.on("redirect-to-game-room", goToGamePage);

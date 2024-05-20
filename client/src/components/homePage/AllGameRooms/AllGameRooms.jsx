@@ -16,9 +16,12 @@ const AllGameRooms = () => {
         navigate("/game-room/new");
     };
 
-    useEffect(()=>{
-        const goToGamePage = (room_id)=> {
+    useEffect(() => {
+        const goToGamePage = (room_id, callback) => {
             navigate(`/game-room/${room_id}`);
+            let res = {};
+            res.status = 200
+            callback(res);
         };
 
         socket.on("redirect-to-game-room", goToGamePage);
@@ -26,14 +29,14 @@ const AllGameRooms = () => {
         return () => {
             socket.off("redirect-to-game-room", goToGamePage);
         };
-    },[])
+    }, []);
 
     const handleJoinRoom = async (roomname, roompass, id) => {
         let data = {
             roomname,
             roompass,
-            id
-        }
+            id,
+        };
         try {
             WsUserJoinRoom(data);
         } catch (error) {

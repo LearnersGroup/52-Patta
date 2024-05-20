@@ -46,7 +46,7 @@ const GamePage = () => {
             socket.off("room-message", onRoomMessage);
             socket.off("fetch-users-in-room", onFetchUsersInRoom);
         };
-    }, [roomData]);
+    }, []);
 
     return (
         <div>
