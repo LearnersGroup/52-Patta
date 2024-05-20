@@ -13,9 +13,15 @@ const AllGameRooms = () => {
     const { data, status } = useQuery("all-game-rooms", get_all_rooms);
 
     useEffect(()=>{
-        socket.on("redirect-to-game-room", (room_id)=>{
+        const goToGamePage = (room_id)=> {
             navigate(`/game-room/${room_id}`);
-        });
+        };
+
+        socket.on("redirect-to-game-room", goToGamePage);
+
+        return () => {
+            socket.off("redirect-to-game-room", goToGamePage);
+        };
     })
 
     const handleCreateGameRoom = () => {

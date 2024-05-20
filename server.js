@@ -48,6 +48,7 @@ io.on("connection", (socket) => {
 
             if (!game) {
                 callback("Room does not exists");
+                return
             }
 
             //verify player not already in the room
@@ -55,7 +56,8 @@ io.on("connection", (socket) => {
             if (playerInRoom) {
                 socket.join(roomname);
                 socket.emit("redirect-to-game-room", game.id);
-                socket.to(roomname).emit("room-message", `${socket.username} has joined!`)
+                io.broadcast.to(roomname).emit("room-message", `${socket.username} has joined!`)
+                io.broadcast.to(roomname).emit("fetch-users-in-room")
                 return;
             }
 
@@ -66,11 +68,13 @@ io.on("connection", (socket) => {
                 typeof player["gameroom"] === "object"
             ) {
                 callback("Player Already in a room");
+                return
             }
 
             //Check if room full
             if (game.players.length >= game.player_count) {
                 callback("Room is full");
+                return
             }
 
             //verify credentials
@@ -78,6 +82,7 @@ io.on("connection", (socket) => {
 
             if (!isMatch) {
                 callback("Invalid Credentials");
+                return
             }
 
             //Update game room
@@ -91,10 +96,11 @@ io.on("connection", (socket) => {
                 { gameroom: gameroom.id }
             );
             socket.join(roomname)
-            io.emit("redirect-to-game-room", game.id)
+            socket.emit("redirect-to-game-room", game.id)
             io.to(roomname).emit("room-message", `${socket.username} has joined!`)
             io.to(roomname).emit("fetch-users-in-room")
         } catch (error) {
+            callback(error);
             console.error(error.message);
         }
     });
