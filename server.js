@@ -8,7 +8,8 @@ const Game = require("./models/Game");
 const User = require("./models/User");
 const bcrypt = require("bcryptjs");
 const ws_auth_middleware = require("./middleware/ws_auth");
-const { userJoinRoom, userCreateRoom } = require("./ws_funcs");
+const { userJoinRoom, userCreateRoom } = require("./socket_handlers/game_room/");
+const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
 
 // Connect DB
 connectDB();
@@ -34,27 +35,16 @@ io.use(ws_auth_middleware);
 
 // Websockets
 io.on("connection", (socket) => {
-    console.log("A user connected");
+    //extras
+    onConnect(socket, io)();
+    socket.on("disconnect", onDisconnect(socket, io));
+    socket.on("username", setSocketUsername(socket, io));
+    socket.on("message", onMessage(socket, io));
 
-    socket.on("username", (username) => {
-        socket.username = username;
-        console.log("recieved user from middleware -> ", socket.user);
-    });
-
+    //game-room
     socket.on("user-join-room", userJoinRoom(socket, io));
     socket.on("user-create-room", userCreateRoom(socket, io));
-
-    socket.on("move", (data) => {
-        console.log(`Received message: ${data}`);
-        //The received message is broadcasted to all connected clients using the emit() method of the io object.
-        io.emit("message", data);
-    });
-    //an event listener is set up for when a client disconnects.
-    socket.on("disconnect", () => {
-        console.log("A user disconnected");
-    });
 });
 
 const PORT = process.env.PORT || 4000;
-
 server.listen(PORT, () => console.log(`server started on port ${PORT}`));

@@ -7,7 +7,7 @@ export function MyForm() {
   function onSubmit(event) {
     event.preventDefault();
 
-    socket.emit('move', value);
+    socket.emit('message', value);
   }
 
   return (
