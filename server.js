@@ -56,8 +56,8 @@ io.on("connection", (socket) => {
             if (playerInRoom) {
                 socket.join(roomname);
                 socket.emit("redirect-to-game-room", game.id);
-                io.broadcast.to(roomname).emit("room-message", `${socket.username} has joined!`)
-                io.broadcast.to(roomname).emit("fetch-users-in-room")
+                io.to(roomname).emit("room-message", `${socket.username} has joined!`)
+                io.to(roomname).emit("fetch-users-in-room")
                 return;
             }
 
