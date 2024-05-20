@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { room_register } from "../../api/apiHandler";
+import { WsUserCreateRoom } from "../../api/wsEmitters";
+import { socket } from "../../socket";
 
 const CreateGamePage = () => {
     const navigate = useNavigate();
@@ -9,12 +11,26 @@ const CreateGamePage = () => {
     const [errors, setErrors] = useState([]);
     const [playerCount, setPlayerCount] = useState(4);
 
-    const handleCreateRoom = async (name, pass, playerCount) => {
+    useEffect(()=>{
+        const goToGamePage = (room_id)=> {
+            navigate(`/game-room/${room_id}`);
+        };
+
+        socket.on("redirect-to-game-room", goToGamePage);
+
+        return () => {
+            socket.off("redirect-to-game-room", goToGamePage);
+        };
+    },[])
+
+    const handleCreateRoom = async (roomname, roompass, player_count) => {
+        let data = {
+            roomname,
+            roompass,
+            player_count,
+        };
         try {
-            const response = await room_register(name, pass, playerCount);
-            if (response.status === 200) {
-                navigate(`/game-room/${response.data.room_id}`);
-            }
+            WsUserCreateRoom(data);
         } catch (error) {
             console.log(error);
             setErrors(error.errors);

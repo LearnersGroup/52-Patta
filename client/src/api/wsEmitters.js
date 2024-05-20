@@ -9,6 +9,15 @@ export const WsUserJoinRoom = (data) => {
     socket.emit("user-join-room", data, callback);
 };
 
+export const WsUserCreateRoom = (data) => {
+    const callback = (err) => {
+        if (err) {
+            console.error("WS - create room err - ", err);
+        }
+    };
+    socket.emit("user-create-room", data, callback);
+};
+
 export const WsSendUserName = (username) => {
     const current_user = JSON.parse(localStorage.getItem("user"));
     socket.handshake = { auth : {}};

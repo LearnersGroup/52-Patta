@@ -8,6 +8,7 @@ const Game = require("./models/Game");
 const User = require("./models/User");
 const bcrypt = require("bcryptjs");
 const ws_auth_middleware = require("./middleware/ws_auth");
+const { userJoinRoom, userCreateRoom } = require("./ws_funcs");
 
 // Connect DB
 connectDB();
@@ -40,70 +41,8 @@ io.on("connection", (socket) => {
         console.log("recieved user from middleware -> ", socket.user);
     });
 
-    socket.on("user-join-room", async (data, callback) => {
-        const { roomname, roompass } = data;
-
-        try {
-            let game = await Game.findOne({ roomname: roomname });
-
-            if (!game) {
-                callback("Room does not exists");
-                return
-            }
-
-            //verify player not already in the room
-            const playerInRoom = game.players.includes(socket.user.id);
-            if (playerInRoom) {
-                socket.join(roomname);
-                socket.emit("redirect-to-game-room", game.id);
-                io.to(roomname).emit("room-message", `${socket.username} has joined!`)
-                io.to(roomname).emit("fetch-users-in-room")
-                return;
-            }
-
-            //check if player already in room
-            let player = await User.findOne({ _id: socket.user.id });
-            if (
-                player["gameroom"] !== null &&
-                typeof player["gameroom"] === "object"
-            ) {
-                callback("Player Already in a room");
-                return
-            }
-
-            //Check if room full
-            if (game.players.length >= game.player_count) {
-                callback("Room is full");
-                return
-            }
-
-            //verify credentials
-            const isMatch = await bcrypt.compare(roompass, game.roompass);
-
-            if (!isMatch) {
-                callback("Invalid Credentials");
-                return
-            }
-
-            //Update game room
-            let gameroom = await Game.findOneAndUpdate(
-                { _id: game.id },
-                { players: [...game.players, socket.user.id] }
-            );
-            //Update user game-room
-            await User.findOneAndUpdate(
-                { _id: socket.user.id },
-                { gameroom: gameroom.id }
-            );
-            socket.join(roomname)
-            socket.emit("redirect-to-game-room", game.id)
-            io.to(roomname).emit("room-message", `${socket.username} has joined!`)
-            io.to(roomname).emit("fetch-users-in-room")
-        } catch (error) {
-            callback(error);
-            console.error(error.message);
-        }
-    });
+    socket.on("user-join-room", userJoinRoom(socket, io));
+    socket.on("user-create-room", userCreateRoom(socket, io));
 
     socket.on("move", (data) => {
         console.log(`Received message: ${data}`);
