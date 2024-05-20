@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "react-query";
 import { get_all_rooms, room_join } from "../../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
+import { socket } from "../../../socket";
+import { WsUserJoinRoom } from "../../../api/wsEmitters";
 
 const AllGameRooms = () => {
     const navigate = useNavigate();
@@ -10,22 +12,41 @@ const AllGameRooms = () => {
     //game-data
     const { data, status } = useQuery("all-game-rooms", get_all_rooms);
 
+    useEffect(()=>{
+        socket.on("redirect-to-game-room", (room_id)=>{
+            navigate(`/game-room/${room_id}`);
+        });
+    })
+
     const handleCreateGameRoom = () => {
         navigate("/game-room/new");
     };
 
     const handleJoinRoom = async (roomname, roompass, id) => {
+        let data = {
+            roomname,
+            roompass,
+            id
+        }
         try {
-            const response = await room_join(roomname, roompass);
-            if (response.status === 200) {
-                console.log("Navigating...");
-                navigate(`/game-room/${id}`);
-            }
+            WsUserJoinRoom(data);
         } catch (error) {
             console.log(error);
             setErrors(error.errors);
         }
     };
+    // const handleJoinRoom = async (roomname, roompass, id) => {
+    //     try {
+    //         const response = await room_join(roomname, roompass);
+    //         if (response.status === 200) {
+    //             console.log("Navigating...");
+    //             navigate(`/game-room/${id}`);
+    //         }
+    //     } catch (error) {
+    //         console.log(error);
+    //         setErrors(error.errors);
+    //     }
+    // };
 
     return (
         <div className="create-and-all-rooms">

@@ -13,7 +13,6 @@ const CreateGamePage = () => {
         try {
             const response = await room_register(name, pass, playerCount);
             if (response.status === 200) {
-                console.log(response.room_id);
                 navigate(`/game-room/${response.data.room_id}`);
             }
         } catch (error) {

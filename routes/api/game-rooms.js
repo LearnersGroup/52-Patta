@@ -13,8 +13,7 @@ const { check, validationResult } = require("express-validator");
 router.get("/", auth, async (req, res) => {
     try {
         const games = await Game.find()
-            .populate("admin", ["name"])
-            .populate("players", ["name"])
+            .populate("admin", ["name", "_id"])
             .select("-roompass");
 
         if (!games) {
@@ -24,6 +23,28 @@ router.get("/", auth, async (req, res) => {
         }
 
         res.json(games);
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).send("Server Error");
+    }
+});
+
+// @route   GET api/game-room/players
+// @desc    Get all active game rooms
+// @access  Private                                          // if token required then, Private
+router.get("/players", auth, async (req, res) => {
+    try {
+        let game = await Game.findOne({ _id: req.query.id })
+            .populate("admin", ["name", "_id"])
+            .populate("players", ["name", "_id"])
+            .select("-roompass");
+        if (!game) {
+            return res
+                .status(400)
+                .json({ errors: [{ msg: "Room does not exists" }] });
+        }
+
+        res.status(200).json(game);
     } catch (error) {
         console.error(error.message);
         res.status(500).send("Server Error");
@@ -70,8 +91,11 @@ router.post(
             }
 
             //check if player already in room
-            let player = await User.findOne({ _id: req.user.id});
-            if( player['gameroom'] !== null && typeof(player['gameroom']) === "object"){
+            let player = await User.findOne({ _id: req.user.id });
+            if (
+                player["gameroom"] !== null &&
+                typeof player["gameroom"] === "object"
+            ) {
                 return res
                     .status(400)
                     .json({ errors: [{ msg: "Player Already in a room" }] });

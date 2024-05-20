@@ -86,3 +86,16 @@ export const get_current_game = async () => {
         throw error.response.data;
     }
 };
+
+export const get_all_user_in_room = async (room_id) => {
+    try {
+        const response = await apiClient.get("/game-rooms/players", {
+            params: {
+                id: room_id
+            }
+        });
+        return response.data;
+    } catch (error) {
+        throw error.response.data;
+    }
+};

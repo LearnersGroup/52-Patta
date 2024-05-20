@@ -8,6 +8,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useQuery } from "react-query";
 import { get_all_rooms, removeAuthToken } from "../../api/apiHandler";
 import AllGameRooms from "./AllGameRooms/AllGameRooms";
+import { WsSendUserName } from "../../api/wsEmitters";
 
 const HomePage = () => {
     //hooks
@@ -32,13 +33,13 @@ const HomePage = () => {
         }
 
         function onFooEvent(value) {
-            console.log(value);
             setFooEvents((previous) => [...previous, value]);
         }
 
         socket.on("connect", onConnect);
         socket.on("disconnect", onDisconnect);
         socket.on("message", onFooEvent);
+        WsSendUserName(user.user_name)
 
         return () => {
             socket.off("connect", onConnect);
