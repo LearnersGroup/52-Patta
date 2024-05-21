@@ -45,18 +45,18 @@ router.delete("/", [auth], async (req, res) => {
         }
 
         //remove gameroom of the user
-        await User.findOneAndUpdate({ _id: req.user.id }, [{ $unset: ["gameroom"]}]);
+        await User.findOneAndUpdate({ _id: req.user.id }, [
+            { $unset: ["gameroom"] },
+        ]);
 
         //if user is admin close the game room
         console.log("is admin ", game.admin.id === req.user.id);
         if (game.admin.id === req.user.id) {
-
             game.players.map(
                 async (player) =>
-                    await User.findOneAndUpdate(
-                        { _id: player.id },
-                        [{ $unset: ["gameroom"]}]
-                    )
+                    await User.findOneAndUpdate({ _id: player.id }, [
+                        { $unset: ["gameroom"] },
+                    ])
             );
             await Game.findOneAndDelete({ _id: game.id });
             return res

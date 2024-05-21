@@ -18,6 +18,8 @@ export const WsUserCreateRoom = (data) => {
     socket.emit("user-create-room", data, callback);
 };
 
+//CAUTION: do not touch fragile!
+//even though there is a middleware setup we need it, SOMEHOW!
 export const WsSendUserName = (username) => {
     const current_user = JSON.parse(localStorage.getItem("user"));
     socket.handshake = { auth : {}};
