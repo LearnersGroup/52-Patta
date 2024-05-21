@@ -8,7 +8,7 @@ const Game = require("./models/Game");
 const User = require("./models/User");
 const bcrypt = require("bcryptjs");
 const ws_auth_middleware = require("./middleware/ws_auth");
-const { userJoinRoom, userCreateRoom } = require("./socket_handlers/game_room/");
+const { userJoinRoom, userCreateRoom, userLeaveRoom } = require("./socket_handlers/game_room/");
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
 
 // Connect DB
@@ -44,6 +44,7 @@ io.on("connection", (socket) => {
     //game-room
     socket.on("user-join-room", userJoinRoom(socket, io));
     socket.on("user-create-room", userCreateRoom(socket, io));
+    socket.on("user-leave-room", userLeaveRoom(socket, io));
 });
 
 const PORT = process.env.PORT || 4000;

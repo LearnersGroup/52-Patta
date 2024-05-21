@@ -2,9 +2,18 @@ const Game = require("../../models/Game");
 const User = require("../../models/User");
 const bcrypt = require("bcryptjs");
 
-module.exports = (socket, io) => async (data, callback) => {
-    const { roomname, roompass } = data;
+function clearRoom(io, room, namespace = '/') {
+    let roomObj = io.nsps[namespace].adapter.rooms[room];
+    if (roomObj) {
+        // now kick everyone out of this room
+        Object.keys(roomObj.sockets).forEach(function(id) {
+            io.sockets.connected[id].emit("notification", "Room Closed! Admin has left");
+            io.sockets.connected[id].leave(room);
+        })
+    }
+}
 
+module.exports = (socket, io) => async (callback) => {
     try {
         //find the game room
         let user = await User.findOne({ _id: socket.user.id });
@@ -32,9 +41,13 @@ module.exports = (socket, io) => async (data, callback) => {
                     ])
             );
             await Game.findOneAndDelete({ _id: game.id });
-            return res
-                .status(200)
-                .json({ msg: "Removed Admin & deleted room" });
+            //redirecting all users to homePage
+            io.to(game.roomname).emit("redirect-to-home-page", async (res) => {
+                if (res.status === 200) {
+                    clearRoom(io, game.gameroom);
+                }
+            });
+            return;
         }
 
         //remove the user from players list
@@ -47,15 +60,15 @@ module.exports = (socket, io) => async (data, callback) => {
             { _id: game.id },
             { players: updatedPlayers }
         );
-        
-        await socket.leave(roomname);
-        socket.emit("redirect-to-game-room", game.id, (res) => {
+
+        await socket.leave(game.roomname);
+        socket.emit("redirect-to-home-page", (res) => {
             if (res.status === 200) {
-                io.to(roomname).emit(
+                io.to(game.roomname).emit(
                     "room-message",
-                    `${socket.username} has joined!`
+                    `${socket.username} has left!`
                 );
-                io.to(roomname).emit("fetch-users-in-room");
+                io.to(game.roomname).emit("fetch-users-in-room");
             }
         });
     } catch (error) {

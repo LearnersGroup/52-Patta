@@ -10,16 +10,27 @@ module.exports = (socket, io) => async (data, callback) => {
 
         if (!game) {
             callback("Room does not exists");
-            return
+            return;
         }
 
         //verify player not already in the room
         const playerInRoom = game.players.includes(socket.user.id);
         if (playerInRoom) {
             await socket.join(roomname);
-            socket.emit("redirect-to-game-room", game.id);
-            io.to(roomname).emit("room-message", `${socket.username} has joined!`)
-            io.to(roomname).emit("fetch-users-in-room")
+            socket.emit("redirect-to-game-room", game.id, (res) => {
+                if (res.status === 200) {
+                    io.to(roomname).emit(
+                        "room-message",
+                        `${socket.username} created ${roomname}!`
+                    );
+                    io.to(roomname).emit("fetch-users-in-room");
+                }
+            });
+            io.to(roomname).emit(
+                "room-message",
+                `${socket.username} has joined!`
+            );
+            io.to(roomname).emit("fetch-users-in-room");
             return;
         }
 
@@ -30,13 +41,13 @@ module.exports = (socket, io) => async (data, callback) => {
             typeof player["gameroom"] === "object"
         ) {
             callback("Player Already in a room");
-            return
+            return;
         }
 
         //Check if room full
         if (game.players.length >= game.player_count) {
             callback("Room is full");
-            return
+            return;
         }
 
         //verify credentials
@@ -44,7 +55,7 @@ module.exports = (socket, io) => async (data, callback) => {
 
         if (!isMatch) {
             callback("Invalid Credentials");
-            return
+            return;
         }
 
         //Update game room
@@ -57,14 +68,16 @@ module.exports = (socket, io) => async (data, callback) => {
             { _id: socket.user.id },
             { gameroom: gameroom.id }
         );
-        await socket.join(roomname)
+        await socket.join(roomname);
         socket.emit("redirect-to-game-room", game.id, (res) => {
-            if(res.status === 200){
-                io.to(roomname).emit("room-message", `${socket.username} has joined!`)
-                io.to(roomname).emit("fetch-users-in-room")
+            if (res.status === 200) {
+                io.to(roomname).emit(
+                    "room-message",
+                    `${socket.username} has joined!`
+                );
+                io.to(roomname).emit("fetch-users-in-room");
             }
-        })
-        
+        });
     } catch (error) {
         callback(error);
         console.error(error.message);

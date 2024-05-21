@@ -18,6 +18,15 @@ export const WsUserCreateRoom = (data) => {
     socket.emit("user-create-room", data, callback);
 };
 
+export const WsUserLeaveRoom = () => {
+    const callback = (err) => {
+        if (err) {
+            console.error("WS - leave room err - ", err);
+        }
+    };
+    socket.emit("user-leave-room", callback);
+};
+
 //CAUTION: do not touch fragile!
 //even though there is a middleware setup we need it, SOMEHOW!
 export const WsSendUserName = (username) => {

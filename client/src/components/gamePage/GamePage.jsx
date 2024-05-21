@@ -4,6 +4,7 @@ import { get_all_user_in_room, room_leave } from "../../api/apiHandler";
 import { useAuth } from "../hooks/useAuth";
 import { handleUserJoin } from "../../api/wsListners";
 import { socket } from "../../socket";
+import { WsUserLeaveRoom } from "../../api/wsEmitters";
 
 const GamePage = () => {
     const { user } = useAuth();
@@ -12,12 +13,20 @@ const GamePage = () => {
 
     const navigate = useNavigate();
 
+    //old REST call
+    // const handleLeave = async () => {
+    //     const { status } = await room_leave();
+    //     if (status === 200) {
+    //         navigate("/");
+    //     } else {
+    //         alert("Something went wrong while removing player");
+    //     }
+    // };
     const handleLeave = async () => {
-        const { status } = await room_leave();
-        if (status === 200) {
-            navigate("/");
-        } else {
-            alert("Something went wrong while removing player");
+        try {
+            WsUserLeaveRoom();
+        } catch (error) {
+            console.log(error);
         }
     };
     const getRoomDetails = async () => {
@@ -38,13 +47,21 @@ const GamePage = () => {
             const res = await getRoomDetails();
             setRoomData(res);
         };
+        const goToHomePage = (callback) => {
+            navigate(`/`);
+            let res = {};
+            res.status = 200
+            callback(res);
+        };
 
         socket.on("room-message", onRoomMessage);
         socket.on("fetch-users-in-room", onFetchUsersInRoom);
+        socket.on("redirect-to-home-page", goToHomePage);
 
         return () => {
             socket.off("room-message", onRoomMessage);
             socket.off("fetch-users-in-room", onFetchUsersInRoom);
+            socket.off("redirect-to-home-page", goToHomePage);
         };
     }, []);
 
