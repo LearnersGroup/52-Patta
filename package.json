@@ -7,7 +7,9 @@
     "start": "node server",
     "server": "nodemon server",
     "client": "npm start --prefix client",
-    "dev": "concurrently \"npm run server\" \"npm run client\""
+    "client1": "PORT=3001 npm start --prefix client",
+    "socket-dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "concurrently \"npm run server\" \"npm run client\" \"npm run client1\""
   },
   "author": "Prince Patel",
   "license": "ISC",
