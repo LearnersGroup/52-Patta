@@ -9,6 +9,7 @@ import { useQuery } from "react-query";
 import { get_all_rooms, removeAuthToken } from "../../api/apiHandler";
 import AllGameRooms from "./AllGameRooms/AllGameRooms";
 import { WsSendUserName } from "../../api/wsEmitters";
+import { Sq } from '@letele/playing-cards';
 
 const HomePage = () => {
     //hooks
@@ -54,12 +55,14 @@ const HomePage = () => {
             <p>Current User - {user.user_name}</p>
             <button onClick={handleLogout}>Logout</button>
             <AllGameRooms/>
+            <Sq style={{ height: '100px', width: '100px' }} />
             <div className="webhooks">
                 <ConnectionState isConnected={isConnected} />
                 <Events events={fooEvents} />
                 <ConnectionManager />
                 <MyForm />
             </div>
+
         </div>
     );
 };
