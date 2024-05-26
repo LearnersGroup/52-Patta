@@ -1,9 +1,14 @@
 import { removeAlert } from "../../redux/slices/alert";
 import React, { useContext, useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 const Alert = () => {
     const {alerts} = useSelector((state) => state.alert);
+    const dispatch = useDispatch();
+    
+    const handleClose = (alert) => {
+        dispatch(removeAlert(alert))
+    }
 
     return (
         alerts !== null &&
@@ -11,6 +16,7 @@ const Alert = () => {
         alerts.map((alert) => (
             <div key={alert.id} className={`alert ${alert.alertType}`}>
                 {alert.msg}
+                <button onClick={() => handleClose(alert.id)}>x</button>
             </div>
         ))
     );

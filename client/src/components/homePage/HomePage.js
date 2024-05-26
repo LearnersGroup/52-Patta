@@ -26,7 +26,7 @@ const HomePage = () => {
     };
 
     const handleClick = () => {
-        notify("test", "success", 100000)(dispatch)
+        notify("test", "success")(dispatch)
     };
 
     //websocket logic
