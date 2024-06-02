@@ -6,6 +6,7 @@ const config = require("config");
 const User = require("../../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+require('dotenv').config()
 
 // @route   GET api/auth
 // @desc    Test route
