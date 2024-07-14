@@ -27,6 +27,6 @@ jobs:
       - name: Pull image from docker hub
         run: docker pull prins203/52-patta-server:latest
       - name: Delete old container
-        run: docker rm -f prins203/52-patta-server
+        run: docker rm -f 52-patta-server-container
       - name: Run docker container
         run: docker run -d -p 80:80 --name 52-patta-server-container prins203/52-patta-server
