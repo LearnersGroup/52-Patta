@@ -7,7 +7,6 @@ module.exports = (socket, io) => async (data, callback) => {
 
     try {
         let game = await Game.findOne({ roomname: roomname });
-
         if (!game) {
             callback("Room does not exists");
             return;
@@ -57,7 +56,6 @@ module.exports = (socket, io) => async (data, callback) => {
             callback("Invalid Credentials");
             return;
         }
-
         //Update game room
         let gameroom = await Game.findOneAndUpdate(
             { _id: game.id },

@@ -6,6 +6,7 @@ const bcrypt = require("bcryptjs");
 const config = require("config");
 const User = require("../../models/User");
 const jwt = require("jsonwebtoken");
+require('dotenv').config()
 
 // @route   POST api/users
 // @desc    Register user
@@ -69,7 +70,7 @@ router.post(
 
             jwt.sign(
                 payload,
-                config.get("jwtSecret"),
+                process.env.JWT_SECRET,
                 { expiresIn: 360000 },
                 (err, token) => {
                     if (err) throw err;

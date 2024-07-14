@@ -10,6 +10,7 @@ const bcrypt = require("bcryptjs");
 const ws_auth_middleware = require("./middleware/ws_auth");
 const { userJoinRoom, userCreateRoom, userLeaveRoom } = require("./socket_handlers/game_room/");
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
+require('dotenv').config()
 
 // Connect DB
 connectDB();
