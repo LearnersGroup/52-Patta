@@ -19,4 +19,4 @@ COPY .env ./
 EXPOSE 4000
 
 # Start the application
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "server"]
