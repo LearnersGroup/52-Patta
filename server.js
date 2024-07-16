@@ -26,7 +26,7 @@ app.use("/api/games", require("./routes/api/games")); //create game-room
 app.use("/api/game-rooms", require("./routes/api/game-rooms")); //
 app.use("/api/mygame", require("./routes/api/mygame"));
 
-app.get('/healthcheck', (req, res) => {
+app.get('/', (req, res) => {
     res.status(200).send('52 Patta\'s Service is up');
 });
 
