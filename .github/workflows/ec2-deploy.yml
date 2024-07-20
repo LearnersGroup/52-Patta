@@ -25,7 +25,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Prune all images
-        run: docker image prune --all
+        run: yes | docker image prune --all
       - name: Pull image from docker hub
         run: docker pull prins203/52-patta-server:latest
       - name: Delete old container
