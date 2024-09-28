@@ -1,0 +1,37 @@
+name: 52patta Server Deploy Configuration
+
+on:
+  push: 
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Create .env file
+        run: echo "MONGO_URI=${{ secrets.MONGO_URI }} JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+      - name: Login to docker hub
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}       
+      - name: Build docker image
+        run: docker build -t prins203/52-patta-server .
+      - name: Publish image to docker hub
+        run: docker push prins203/52-patta-server:latest
+        
+  deploy:
+    needs: build
+    runs-on: self-hosted
+    steps:
+      - name: Docker Cleanup
+        run: |
+          docker image prune -a -f
+          docker container prune -f
+          docker volume prune -f
+          docker network prune -f
+          
+      - name: Pull image from docker hub
+        run: docker pull prins203/52-patta-server:latest
+      - name: Run docker container
+        run: docker run -d -p 80:4000 --name 52-patta-server-container prins203/52-patta-server

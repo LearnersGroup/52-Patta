@@ -1,4 +1,4 @@
-name: 52patta Server Deploy Configuration
+name: 52patta Client Deploy Configuration
 
 on:
   push: 
@@ -12,13 +12,15 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Create .env file
-        run: echo "MONGO_URI=${{ secrets.MONGO_URI }} JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+        run: echo "REACT_APP_WS_URL=${{ secrets.REACT_APP_WS_URL }} REACT_APP_BASE_URL="${REACT_APP_WS_URL}/api" >> .env
       - name: Login to docker hub
-        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}       
+        run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+      - name: go into client directory
+        run: cd client
       - name: Build docker image
-        run: docker build -t prins203/52-patta-server .
+        run: docker build -t prins203/52-patta-client .
       - name: Publish image to docker hub
-        run: docker push prins203/52-patta-server:latest
+        run: docker push prins203/52-patta-client:latest
         
   deploy:
     needs: build
@@ -32,8 +34,6 @@ jobs:
           docker network prune -f
           
       - name: Pull image from docker hub
-        run: docker pull prins203/52-patta-server:latest
-      - name: Delete old container
-        run: docker rm -f 52-patta-server-container
+        run: docker pull prins203/52-patta-client:latest
       - name: Run docker container
-        run: docker run -d -p 80:4000 --name 52-patta-server-container prins203/52-patta-server
+        run: docker run -d -p 80:4000 --name 52-patta-client-container prins203/52-patta-client
