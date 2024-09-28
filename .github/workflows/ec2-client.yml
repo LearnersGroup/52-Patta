@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'client/**'
+      - '.github/workflows/ec2-client.yml'
 
 jobs:
   build:
