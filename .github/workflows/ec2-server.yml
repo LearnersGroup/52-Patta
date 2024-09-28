@@ -1,9 +1,11 @@
 name: 52patta Server Deploy Configuration
 
 on:
-  push: 
+  push:
     branches:
       - main
+    paths-ignore:
+      - 'client/**'
 
 jobs:
   build:
