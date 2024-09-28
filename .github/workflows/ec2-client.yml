@@ -18,11 +18,11 @@ jobs:
         run: echo "REACT_APP_WS_URL=${{ secrets.REACT_APP_WS_URL }} REACT_APP_WS_URL=*** REACT_APP_BASE_URL=${REACT_APP_WS_URL}/api" >> .env
       - name: Login to docker hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
-      - name: go into client directory
-        run: ls
       - name: Build docker image
+        working-directory: client
         run: docker build -t prins203/52-patta-client .
       - name: Publish image to docker hub
+        working-directory: client
         run: docker push prins203/52-patta-client:latest
         
   deploy:
