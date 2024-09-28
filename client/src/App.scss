@@ -33,6 +33,35 @@
 }
 
 
+.alert {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  padding: 10px;
+  background-color: #333333;
+  color: #ffffff;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+
+  &.success {
+    background-color: #28a745;
+  }
+
+  &.error {
+    background-color: #dc3545;
+  }
+
+  &.warning {
+    background-color: #ffc107;
+  }
+
+  &.info {
+    background-color: #17a2b8;
+  }
+}
+
+
 // copied Table style
 // Define variables for table colors
 $table-bg-color: #ffffff; // White background
