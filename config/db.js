@@ -6,7 +6,8 @@ const connetDB = async () => {
         const dbName = process.env.MONGO_DB_NAME;
         const username = process.env.MONGO_USERNAME;
         const password = process.env.MONGO_PASSWORD;
-        const host = process.env.MONGO_HOST;
+        const encodedHost = process.env.MONGO_HOST;
+        const host = decodeURIComponent(encodedHost);
         
         await mongoose.connect(host, {
             dbName: dbName,

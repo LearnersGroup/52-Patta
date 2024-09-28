@@ -15,7 +15,12 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Create .env file
-        run: echo "MONGO_URI=\"${{ secrets.MONGO_URI }}\" JWT_SECRET=\"${{ secrets.JWT_SECRET }}\"" >> .env
+        run: |
+          echo "MONGO_DB_NAME=${{ secrets.MONGO_DB_NAME }}" >> .env
+          echo "MONGO_USERNAME=${{ secrets.MONGO_USERNAME }}" >> .env
+          echo "MONGO_PASSWORD=${{ secrets.MONGO_PASSWORD }}" >> .env
+          echo "MONGO_HOST=${{ secrets.MONGO_HOST }}" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
       - name: Login to docker hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}       
       - name: Build docker image
