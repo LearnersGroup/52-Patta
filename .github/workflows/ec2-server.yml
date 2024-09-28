@@ -16,6 +16,8 @@ jobs:
         uses: actions/checkout@v4
       - name: Create .env file
         run: echo "MONGO_URI=${{ secrets.MONGO_URI }} JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+      - name: print all files
+        run: ls -la
       - name: Login to docker hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}       
       - name: Build docker image
