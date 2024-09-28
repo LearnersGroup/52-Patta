@@ -36,6 +36,6 @@ jobs:
       - name: Pull image from docker hub
         run: docker pull prins203/52-patta-client:latest
       - name: Remove existing container
-        run: docker rm -f prins203/52-patta-client-container || true
+        run: docker rm -f 52-patta-client-container || true
       - name: Run docker container
         run: docker run -d -p 80:4000 --name 52-patta-client-container prins203/52-patta-client
