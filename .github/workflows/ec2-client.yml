@@ -15,6 +15,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Create .env file
+        working-directory: client
         run: echo "REACT_APP_WS_URL=${{ secrets.REACT_APP_WS_URL }} REACT_APP_WS_URL=*** REACT_APP_BASE_URL=${REACT_APP_WS_URL}/api" >> .env
       - name: Login to docker hub
         run: docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
