@@ -37,7 +37,4 @@ jobs:
       - name: Pull image from docker hub
         run: docker pull prins203/52-patta-client:latest
       - name: Run docker container
-        run: docker run -d -p 80:3000 --name 52-patta-client-container \
-          -e REACT_APP_WS_URL="${{ secrets.REACT_APP_WS_URL }}" \
-          -e REACT_APP_BASE_URL="${{ secrets.REACT_APP_WS_URL }}/api" \
-          prins203/52-patta-client
+        run: docker run -d -p 80:3000 --name 52-patta-client-container -e REACT_APP_WS_URL="${{ secrets.REACT_APP_WS_URL }}" -e REACT_APP_BASE_URL="${{ secrets.REACT_APP_WS_URL }}/api" prins203/52-patta-client
