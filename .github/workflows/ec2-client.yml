@@ -31,7 +31,7 @@ jobs:
     steps:
       - name: Docker Cleanup
         run: |
-          docker stop $(docker ps -q)
+          docker ps -q | xargs -r docker stop
           docker image prune -a -f
           docker container prune -f
           docker volume prune -f
