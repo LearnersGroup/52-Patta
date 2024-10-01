@@ -13,7 +13,7 @@ module.exports = (socket, io) => async (data, callback) => {
         }
 
         //verify player not already in the room
-        const playerInRoom = game.players.includes(socket.user.id);
+        const playerInRoom = game.players.some(player => player.playerId.id === socket.user.id);
         if (playerInRoom) {
             await socket.join(roomname);
             socket.emit("redirect-to-game-room", game.id, (res) => {
@@ -59,7 +59,7 @@ module.exports = (socket, io) => async (data, callback) => {
         //Update game room
         let gameroom = await Game.findOneAndUpdate(
             { _id: game.id },
-            { players: [...game.players, socket.user.id] }
+            { players: [...game.players, { playerId: socket.user.id }] }
         );
         //Update user game-room
         await User.findOneAndUpdate(

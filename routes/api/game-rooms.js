@@ -30,13 +30,13 @@ router.get("/", auth, async (req, res) => {
 });
 
 // @route   GET api/game-room/players
-// @desc    Get all active game rooms
+// @desc    Get state of the room
 // @access  Private                                          // if token required then, Private
 router.get("/players", auth, async (req, res) => {
     try {
         let game = await Game.findOne({ _id: req.query.id })
             .populate("admin", ["name", "_id"])
-            .populate("players", ["name", "_id"])
+            .populate("players.playerId", ["name", "_id"])
             .select("-roompass");
         if (!game) {
             return res
@@ -85,7 +85,7 @@ router.post(
             }
 
             //verify player not already in the room
-            const playerInRoom = game.players.includes(req.user.id);
+            const playerInRoom = game.players.some(player => player.playerId.id === req.user.id);
             if (playerInRoom) {
                 return res.status(200).json("Player Already in room");
             }
@@ -120,7 +120,7 @@ router.post(
             //Update game room
             let gameroom = await Game.findOneAndUpdate(
                 { _id: game.id },
-                { players: [...game.players, req.user.id] }
+                { players: [...game.players, { playerId: req.user.id }] }
             );
             //Update user game-room
             await User.findOneAndUpdate(

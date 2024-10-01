@@ -4,7 +4,7 @@ import { get_all_user_in_room, room_leave } from "../../api/apiHandler";
 import { useAuth } from "../hooks/useAuth";
 import { handleUserJoin } from "../../api/wsListners";
 import { socket } from "../../socket";
-import { WsUserLeaveRoom } from "../../api/wsEmitters";
+import { WsUserLeaveRoom, WsUserSendMsgRoom, WsUserToggleReady } from "../../api/wsEmitters";
 
 const GamePage = () => {
     const { user } = useAuth();
@@ -29,6 +29,23 @@ const GamePage = () => {
             console.log(error);
         }
     };
+
+    const handleMessageSend = async (message) => {
+        try {
+            WsUserSendMsgRoom(message);
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
+    const toggleReady = async () => {
+        try {
+            WsUserToggleReady();
+        } catch (err) {
+            console.log(err);
+        }
+    }
+
     const getRoomDetails = async () => {
         try {
             const res = await get_all_user_in_room(params.id);
@@ -40,6 +57,7 @@ const GamePage = () => {
     };
 
     useEffect(() => {
+        console.log(user)
         const onRoomMessage = (data) => {
             console.log(data);
         };
@@ -82,16 +100,16 @@ const GamePage = () => {
                         {roomData?.players?.map((player) => {
                             return (
                                 <tr key={player["_id"]}>
-                                    <td>{player.name}</td>
-                                    <td>Not Ready</td>
+                                    <td>{player.playerId?.name || "Unknown"}</td>
+                                    <td>{player.ready ? "Ready" : "Not Ready"}</td>
                                 </tr>
                             );
                         })}
                     </tbody>
                 </table>
             )}
-            <button onClick={() => navigate("/")}>Home</button>
             <button onClick={() => handleLeave()}>Leave</button>
+            <button onClick={() => toggleReady()}>Ready</button>
         </div>
     );
 };

@@ -19,7 +19,7 @@ module.exports = (socket, io) => async (callback) => {
         let user = await User.findOne({ _id: socket.user.id });
         let game = await Game.findById(user.gameroom)
             .populate("admin", ["name"])
-            .populate("players", ["name"]);
+            .populate("players.playerId", ["name"]);
 
         if (!game) {
             callback("Room does not exists");
@@ -36,7 +36,7 @@ module.exports = (socket, io) => async (callback) => {
         if (game.admin.id === socket.user.id) {
             game.players.map(
                 async (player) =>
-                    await User.findOneAndUpdate({ _id: player.id }, [
+                    await User.findOneAndUpdate({ _id: player.playerId.id }, [
                         { $unset: ["gameroom"] },
                     ])
             );
@@ -52,7 +52,7 @@ module.exports = (socket, io) => async (callback) => {
 
         //remove the user from players list
         const updatedPlayers = game.players.filter(
-            (player) => player.id != socket.user.id
+            (player) => player.playerId.id != socket.user.id
         );
         console.log(updatedPlayers);
 
