@@ -27,6 +27,24 @@ export const WsUserLeaveRoom = () => {
     socket.emit("user-leave-room", callback);
 };
 
+export const WsUserSendMsgRoom = (message) => {
+    const callback = (err) => {
+        if (err) {
+            console.error("WS - send msg err - ", err);
+        }
+    };
+    socket.emit("user-message-room", message, callback);
+}
+
+export const WsUserToggleReady = (data) => {
+    const callback = (err) => {
+        if (err) {
+            console.error("WS - toggle ready err - ", err);
+        }
+    };
+    socket.emit("user-toggle-ready", callback);
+}
+
 //CAUTION: do not touch fragile!
 //even though there is a middleware setup we need it, SOMEHOW!
 export const WsSendUserName = (username) => {

@@ -15,21 +15,20 @@ module.exports = (socket, io) => async (data, callback) => {
             callback("Player Already in a room");
             return
         }
-
         let game = await Game.findOne({ roomname: roomname });
         if (game) {
             callback("Gameroom Already exists");
             return
         }
-
+        
         game = new Game({
             roomname: roomname,
             roompass: roompass,
             player_count: player_count,
-            players: [socket.user.id],
+            players: [{playerId: socket.user.id}],
             admin: socket.user.id,
         });
-
+        
         //encrypt creds & store
         const salt = await bcrypt.genSalt(10);
         game.roompass = await bcrypt.hash(roompass, salt);

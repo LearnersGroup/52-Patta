@@ -58,7 +58,7 @@ router.post(
                 roomname: roomname,
                 roompass: roompass,
                 player_count: player_count,
-                players: [req.user.id],
+                players: [{ playerId: req.user.id }],
                 admin: req.user.id,
             });
 

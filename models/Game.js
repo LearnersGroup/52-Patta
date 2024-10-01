@@ -18,9 +18,19 @@ const GameSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    players: {
-        type: [mongoose.Schema.Types.ObjectId],
-        ref: "user" 
+    players: [{
+        playerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "user"
+        },
+        ready: {
+            type: Boolean,
+            default: false
+        }
+    }],
+    messages: {
+        type: [String],
+        default: []
     },
     state: {
         type: String,

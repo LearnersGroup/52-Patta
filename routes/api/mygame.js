@@ -38,7 +38,7 @@ router.delete("/", [auth], async (req, res) => {
         let user = await User.findOne({ _id: req.user.id });
         let game = await Game.findById(user.gameroom)
             .populate("admin", ["name"])
-            .populate("players", ["name"]);
+            .populate("players.playerId", ["name"]);
 
         if (!game) {
             return res.status(200).json({ msg: "Not in a game room" });
@@ -54,7 +54,7 @@ router.delete("/", [auth], async (req, res) => {
         if (game.admin.id === req.user.id) {
             game.players.map(
                 async (player) =>
-                    await User.findOneAndUpdate({ _id: player.id }, [
+                    await User.findOneAndUpdate({ _id: player.playerId.id }, [
                         { $unset: ["gameroom"] },
                     ])
             );
@@ -66,7 +66,7 @@ router.delete("/", [auth], async (req, res) => {
 
         //remove the user from players list
         const updatedPlayers = game.players.filter(
-            (player) => player.id != req.user.id
+            (player) => player.playerId.id != req.user.id
         );
         console.log(updatedPlayers);
 
