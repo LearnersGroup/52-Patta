@@ -16,7 +16,6 @@ router.get("/", auth, async (req, res) => {
         const user = await User.findById(req.user.id).select('-password');
         res.json(user);
     } catch (error) {
-        console.error(error.message);
         res.status(500).send("Server error")
     }
 });
@@ -27,7 +26,7 @@ router.get("/", auth, async (req, res) => {
 router.post(
     "/",
     [
-        check("email", "Please include a valid email").isEmail(),
+        check("email", "Please include a valid email").isEmail().normalizeEmail(),
         check(
             "password",
             "Please enter a password with 6 or more characters"
@@ -39,7 +38,6 @@ router.post(
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-        console.log(req.body);
 
         const { email, password } = req.body;
 
@@ -72,16 +70,14 @@ router.post(
             jwt.sign(
                 payload,
                 process.env.JWT_SECRET,
-                { expiresIn: 360000 },
+                { expiresIn: 3600 },
                 (err, token) => {
                     if (err) throw err;
                     res.json({ token: token, user_name: user.name });
                 }
             );
 
-            // res.send("User registered");
         } catch (error) {
-            console.log(error.message);
             res.status(500).send("server error");
         }
     }

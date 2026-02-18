@@ -14,12 +14,12 @@ require('dotenv').config()
 router.post(
     "/",
     [
-        check("name", "Name is required").not().isEmpty(),
-        check("email", "Please include a valid email").isEmail(),
+        check("name", "Name is required").not().isEmpty().trim().escape().isLength({ max: 50 }),
+        check("email", "Please include a valid email").isEmail().normalizeEmail(),
         check(
             "password",
             "Please enter a password with 6 or more characters"
-        ).isLength({ min: 6 }),
+        ).isLength({ min: 6, max: 128 }),
     ],
     async (req, res) => {
         const errors = validationResult(req);
@@ -27,7 +27,6 @@ router.post(
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-        console.log(req.body);
 
         const { name, email, password } = req.body;
 
@@ -71,16 +70,14 @@ router.post(
             jwt.sign(
                 payload,
                 process.env.JWT_SECRET,
-                { expiresIn: 360000 },
+                { expiresIn: 3600 },
                 (err, token) => {
                     if (err) throw err;
                     return res.json({ token });
                 }
             );
 
-            // res.send("User registered");
         } catch (error) {
-            console.log(error.message);
             res.status(500).send("server error");
         }
     }
