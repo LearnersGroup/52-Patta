@@ -17,6 +17,8 @@ const AllGameRooms = () => {
     };
 
     useEffect(() => {
+        if (!socket) return;
+
         const goToGamePage = (room_id, callback) => {
             navigate(`/game-room/${room_id}`);
             let res = {};
