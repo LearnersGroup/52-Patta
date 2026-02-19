@@ -1,12 +1,7 @@
 name: 52patta Client Deploy Configuration
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'client/**'
-      - '.github/workflows/ec2-client.yml'
+  workflow_dispatch:
 
 jobs:
   build:
