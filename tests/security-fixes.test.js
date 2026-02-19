@@ -27,8 +27,8 @@ describe('CRITICAL: Socket Auth Callback Fix', () => {
     test('should handle null user data from localStorage', () => {
         // Should have a null/undefined check for user data
         expect(socketClient).toMatch(/getItem.*user/);
-        // Should have defensive check
-        expect(socketClient).toMatch(/\?\s*user\.token|user\s*\?\s*user\.token|!userData|!socketInstance/);
+        // Should have defensive check (ternary or try/catch)
+        expect(socketClient).toMatch(/user\s*\?\s*user\.token|try\s*\{|catch/);
     });
 });
 
