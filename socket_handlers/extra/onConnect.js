@@ -1,3 +1,3 @@
 module.exports = (socket, io) => () => {
-    console.log("A user connected");
+    // Connection established
 }

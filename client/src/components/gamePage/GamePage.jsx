@@ -67,9 +67,11 @@ const GamePage = () => {
         };
         const goToHomePage = (callback) => {
             navigate(`/`);
-            let res = {};
-            res.status = 200
-            callback(res);
+            if (typeof callback === 'function') {
+                let res = {};
+                res.status = 200;
+                callback(res);
+            }
         };
 
         socket.on("room-message", onRoomMessage);

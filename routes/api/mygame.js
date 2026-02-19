@@ -2,10 +2,6 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/auth");
 const Game = require("../../models/Game");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const config = require("config");
-const { check, validationResult } = require("express-validator");
 const User = require("../../models/User");
 
 // @route   GET api/mygame/
@@ -24,7 +20,6 @@ router.get("/", [auth], async (req, res) => {
         }
         res.json(user.gameroom);
     } catch (error) {
-        console.error(error.message);
         res.status(500).send("Server Error");
     }
 });
@@ -50,14 +45,12 @@ router.delete("/", [auth], async (req, res) => {
         ]);
 
         //if user is admin close the game room
-        console.log("is admin ", game.admin.id === req.user.id);
         if (game.admin.id === req.user.id) {
-            game.players.map(
-                async (player) =>
-                    await User.findOneAndUpdate({ _id: player.playerId.id }, [
-                        { $unset: ["gameroom"] },
-                    ])
-            );
+            for (const player of game.players) {
+                await User.findOneAndUpdate({ _id: player.playerId.id }, [
+                    { $unset: ["gameroom"] },
+                ]);
+            }
             await Game.findOneAndDelete({ _id: game.id });
             return res
                 .status(200)
@@ -68,7 +61,6 @@ router.delete("/", [auth], async (req, res) => {
         const updatedPlayers = game.players.filter(
             (player) => player.playerId.id != req.user.id
         );
-        console.log(updatedPlayers);
 
         await Game.findOneAndUpdate(
             { _id: game.id },
@@ -77,7 +69,6 @@ router.delete("/", [auth], async (req, res) => {
 
         return res.status(200).json({ msg: "Removed player from the room" });
     } catch (error) {
-        console.error(error.message);
         res.status(500).send("Server Error");
     }
 });

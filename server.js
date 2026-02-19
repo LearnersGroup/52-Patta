@@ -1,5 +1,7 @@
 const express = require("express");
 var cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const connectDB = require("./config/db");
 const { Server } = require("socket.io");
 const app = express();
@@ -12,12 +14,39 @@ const { userJoinRoom, userCreateRoom, userLeaveRoom, userToggleReady } = require
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
 require('dotenv').config()
 
+// Validate required environment variables
+const requiredEnvVars = ['JWT_SECRET', 'MONGO_HOST'];
+for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+        console.error(`Missing required environment variable: ${envVar}`);
+        process.exit(1);
+    }
+}
+
 // Connect DB
 connectDB();
 
+// Allowed origins for CORS
+const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',')
+    : ['http://localhost:3000', 'http://localhost:3001'];
+
 // Init Middleware
-app.use(cors());
-app.use(express.json({ extended: false }));
+app.use(helmet());
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true
+}));
+app.use(express.json({ extended: false, limit: '10kb' }));
+
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20, // limit each IP to 20 requests per window
+    message: { errors: [{ msg: "Too many requests, please try again later" }] }
+});
+app.use("/api/auth", authLimiter);
+app.use("/api/users", authLimiter);
 
 //define routes
 app.use("/api/users", require("./routes/api/users")); //create user
@@ -33,7 +62,8 @@ app.get('/', (req, res) => {
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: "*",
+        origin: allowedOrigins,
+        credentials: true,
     },
 });
 io.use(ws_auth_middleware);
@@ -51,8 +81,9 @@ io.on("connection", (socket) => {
     socket.on("user-create-room", userCreateRoom(socket, io));
     socket.on("user-leave-room", userLeaveRoom(socket, io));
     socket.on("user-toggle-ready", userToggleReady(socket, io));
-    // socket.on("user-message-room", userLeaveRoom(socket, io));
 });
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => console.log(`server started on port ${PORT}`));
+
+module.exports = { app, server, io };

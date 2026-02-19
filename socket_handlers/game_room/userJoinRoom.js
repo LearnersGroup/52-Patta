@@ -5,6 +5,11 @@ const bcrypt = require("bcryptjs");
 module.exports = (socket, io) => async (data, callback) => {
     const { roomname, roompass } = data;
 
+    if (!roomname || typeof roomname !== 'string') {
+        callback("Room name is required");
+        return;
+    }
+
     try {
         let game = await Game.findOne({ roomname: roomname });
         if (!game) {
@@ -13,23 +18,18 @@ module.exports = (socket, io) => async (data, callback) => {
         }
 
         //verify player not already in the room
-        const playerInRoom = game.players.some(player => player.playerId.id === socket.user.id);
+        const playerInRoom = game.players.some(player => player.playerId.toString() === socket.user.id);
         if (playerInRoom) {
             await socket.join(roomname);
             socket.emit("redirect-to-game-room", game.id, (res) => {
                 if (res.status === 200) {
                     io.to(roomname).emit(
                         "room-message",
-                        `${socket.username} created ${roomname}!`
+                        `${socket.username} has reconnected!`
                     );
                     io.to(roomname).emit("fetch-users-in-room");
                 }
             });
-            io.to(roomname).emit(
-                "room-message",
-                `${socket.username} has joined!`
-            );
-            io.to(roomname).emit("fetch-users-in-room");
             return;
         }
 
@@ -43,8 +43,17 @@ module.exports = (socket, io) => async (data, callback) => {
             return;
         }
 
-        //Check if room full
-        if (game.players.length >= game.player_count) {
+        //Check if room full - use atomic operation to prevent race condition
+        const updatedGame = await Game.findOneAndUpdate(
+            {
+                _id: game.id,
+                $expr: { $lt: [{ $size: "$players" }, "$player_count"] }
+            },
+            { $push: { players: { playerId: socket.user.id } } },
+            { new: true }
+        );
+
+        if (!updatedGame) {
             callback("Room is full");
             return;
         }
@@ -53,18 +62,19 @@ module.exports = (socket, io) => async (data, callback) => {
         const isMatch = await bcrypt.compare(roompass, game.roompass);
 
         if (!isMatch) {
+            // Rollback: remove the player we just added
+            await Game.findOneAndUpdate(
+                { _id: game.id },
+                { $pull: { players: { playerId: socket.user.id } } }
+            );
             callback("Invalid Credentials");
             return;
         }
-        //Update game room
-        let gameroom = await Game.findOneAndUpdate(
-            { _id: game.id },
-            { players: [...game.players, { playerId: socket.user.id }] }
-        );
+
         //Update user game-room
         await User.findOneAndUpdate(
             { _id: socket.user.id },
-            { gameroom: gameroom.id }
+            { gameroom: updatedGame.id }
         );
         await socket.join(roomname);
         socket.emit("redirect-to-game-room", game.id, (res) => {
@@ -77,7 +87,7 @@ module.exports = (socket, io) => async (data, callback) => {
             }
         });
     } catch (error) {
-        callback(error);
-        console.error(error.message);
+        if (callback) callback("An error occurred");
+        console.error("Join room error");
     }
 };

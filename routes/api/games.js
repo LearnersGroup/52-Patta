@@ -1,11 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { check, validationResult } = require("express-validator");
-const gravatar = require("gravatar");
 const bcrypt = require("bcryptjs");
-const config = require("config");
 const User = require("../../models/User");
-const jwt = require("jsonwebtoken");
 const Game = require("../../models/Game");
 const auth = require("../../middleware/auth");
 
@@ -17,12 +14,12 @@ router.post(
     [
         auth,
         [
-            check("roomname", "Room name is required").not().isEmpty(),
-            check("player_count", "Player count is required").isInt(),
+            check("roomname", "Room name is required").not().isEmpty().trim().escape().isLength({ max: 50 }),
+            check("player_count", "Player count is required").isInt({ min: 2, max: 10 }),
             check(
                 "roompass",
                 "Please enter a password with 6 or more characters"
-            ).isLength({ min: 6 }),
+            ).isLength({ min: 6, max: 128 }),
         ],
     ],
     async (req, res) => {
@@ -31,14 +28,12 @@ router.post(
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
-        console.log(req.body);
 
         const { roomname, roompass, player_count } = req.body;
 
         try {
             //check if player already in room
             let player = await User.findOne({ _id: req.user.id});
-            console.log(player['gameroom'])
             if( player['gameroom'] !== null && typeof(player['gameroom']) === "object"){
                 return res
                     .status(400)
@@ -73,7 +68,6 @@ router.post(
 
             return res.status(200).json({ room_id: game.id });
         } catch (error) {
-            console.log(error.message);
             res.status(500).send("server error");
         }
     }

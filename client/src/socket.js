@@ -6,8 +6,11 @@ const URL =
 
 export const socket = io(URL, {
     auth: (cb) => {
-        cb(()=>({
-            token: JSON.parse(localStorage.getItem("user")).token
-        }))
+        try {
+            const user = JSON.parse(localStorage.getItem("user"));
+            cb({ token: user ? user.token : null });
+        } catch {
+            cb({ token: null });
+        }
     }
 });

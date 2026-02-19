@@ -8,7 +8,7 @@ const connetDB = async () => {
         const password = process.env.MONGO_PASSWORD;
         const encodedHost = process.env.MONGO_HOST;
         const host = decodeURIComponent(encodedHost);
-        
+
         await mongoose.connect(host, {
             dbName: dbName,
             user: username,
@@ -18,7 +18,7 @@ const connetDB = async () => {
         });
         console.log('MongoDB Connected!')
     } catch (error) {
-        console.log(error.message);
+        console.error('MongoDB connection failed');
         process.exit(1);                // exit process with failure;
     }
 }

@@ -2,9 +2,8 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/auth");
 const Game = require("../../models/Game");
+const User = require("../../models/User");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const config = require("config");
 const { check, validationResult } = require("express-validator");
 
 // @route   GET api/game-room/
@@ -24,7 +23,6 @@ router.get("/", auth, async (req, res) => {
 
         res.json(games);
     } catch (error) {
-        console.error(error.message);
         res.status(500).send("Server Error");
     }
 });
@@ -34,7 +32,12 @@ router.get("/", auth, async (req, res) => {
 // @access  Private                                          // if token required then, Private
 router.get("/players", auth, async (req, res) => {
     try {
-        let game = await Game.findOne({ _id: req.query.id })
+        const id = req.query.id;
+        if (!id || typeof id !== 'string' || !id.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(400).json({ errors: [{ msg: "Valid room ID is required" }] });
+        }
+
+        let game = await Game.findOne({ _id: id })
             .populate("admin", ["name", "_id"])
             .populate("players.playerId", ["name", "_id"])
             .select("-roompass");
@@ -46,7 +49,6 @@ router.get("/players", auth, async (req, res) => {
 
         res.status(200).json(game);
     } catch (error) {
-        console.error(error.message);
         res.status(500).send("Server Error");
     }
 });
@@ -59,11 +61,11 @@ router.post(
     [
         auth,
         [
-            check("roomname", "Room name is required").not().isEmpty(),
+            check("roomname", "Room name is required").not().isEmpty().trim().escape(),
             check(
                 "roompass",
                 "Please enter a password with 6 or more characters"
-            ).isLength({ min: 6 }),
+            ).isLength({ min: 6, max: 128 }),
         ],
     ],
     async (req, res) => {
@@ -85,7 +87,7 @@ router.post(
             }
 
             //verify player not already in the room
-            const playerInRoom = game.players.some(player => player.playerId.id === req.user.id);
+            const playerInRoom = game.players.some(player => player.playerId.toString() === req.user.id);
             if (playerInRoom) {
                 return res.status(200).json("Player Already in room");
             }
@@ -101,13 +103,6 @@ router.post(
                     .json({ errors: [{ msg: "Player Already in a room" }] });
             }
 
-            //Check if room full
-            if (game.players.length >= game.player_count) {
-                return res
-                    .status(400)
-                    .json({ errors: [{ msg: "Room is full" }] });
-            }
-
             //verify credentials
             const isMatch = await bcrypt.compare(roompass, game.roompass);
 
@@ -117,20 +112,30 @@ router.post(
                     .json({ errors: [{ msg: "Invalid Credentials" }] });
             }
 
-            //Update game room
-            let gameroom = await Game.findOneAndUpdate(
-                { _id: game.id },
-                { players: [...game.players, { playerId: req.user.id }] }
+            //Update game room atomically with capacity check
+            const updatedGame = await Game.findOneAndUpdate(
+                {
+                    _id: game.id,
+                    $expr: { $lt: [{ $size: "$players" }, "$player_count"] }
+                },
+                { $push: { players: { playerId: req.user.id } } },
+                { new: true }
             );
+
+            if (!updatedGame) {
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: "Room is full" }] });
+            }
+
             //Update user game-room
             await User.findOneAndUpdate(
                 { _id: req.user.id },
-                { gameroom: gameroom.id }
+                { gameroom: updatedGame.id }
             );
 
             return res.status(200).json("Player added in the room");
         } catch (error) {
-            console.error(error.message);
             res.status(500).send("server error");
         }
     }

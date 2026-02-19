@@ -1,17 +1,5 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
-const bcrypt = require("bcryptjs");
-
-function clearRoom(io, room, namespace = '/') {
-    let roomObj = io.nsps[namespace].adapter.rooms[room];
-    if (roomObj) {
-        // now kick everyone out of this room
-        Object.keys(roomObj.sockets).forEach(function(id) {
-            io.sockets.connected[id].emit("notification", "Room Closed! Admin has left");
-            io.sockets.connected[id].leave(room);
-        })
-    }
-}
 
 module.exports = (socket, io) => async (callback) => {
     try {
@@ -32,21 +20,15 @@ module.exports = (socket, io) => async (callback) => {
         ]);
 
         //if user is admin close the game room
-        console.log("is admin ", game.admin.id === socket.user.id);
         if (game.admin.id === socket.user.id) {
-            game.players.map(
-                async (player) =>
-                    await User.findOneAndUpdate({ _id: player.playerId.id }, [
-                        { $unset: ["gameroom"] },
-                    ])
-            );
+            for (const player of game.players) {
+                await User.findOneAndUpdate({ _id: player.playerId.id }, [
+                    { $unset: ["gameroom"] },
+                ]);
+            }
             await Game.findOneAndDelete({ _id: game.id });
             //redirecting all users to homePage
-            io.to(game.roomname).emit("redirect-to-home-page", async (res) => {
-                if (res.status === 200) {
-                    clearRoom(io, game.gameroom);
-                }
-            });
+            io.to(game.roomname).emit("redirect-to-home-page");
             return;
         }
 
@@ -54,7 +36,6 @@ module.exports = (socket, io) => async (callback) => {
         const updatedPlayers = game.players.filter(
             (player) => player.playerId.id != socket.user.id
         );
-        console.log(updatedPlayers);
 
         await Game.findOneAndUpdate(
             { _id: game.id },
@@ -72,7 +53,7 @@ module.exports = (socket, io) => async (callback) => {
             }
         });
     } catch (error) {
-        callback(error);
-        console.error(error.message);
+        if (callback) callback("An error occurred");
+        console.error("Leave room error");
     }
 };
