@@ -5,6 +5,7 @@ const URL =
     process.env.NODE_ENV === "production" ? undefined : process.env.REACT_APP_WS_URL || 'http://localhost:4000';
 
 export const socket = io(URL, {
+    autoConnect: false,
     auth: (cb) => {
         try {
             const user = JSON.parse(localStorage.getItem("user"));
@@ -14,3 +15,13 @@ export const socket = io(URL, {
         }
     }
 });
+
+// Auto-connect if the user is already logged in (e.g. on page refresh)
+try {
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user && user.token) {
+        socket.connect();
+    }
+} catch {
+    // no-op
+}
