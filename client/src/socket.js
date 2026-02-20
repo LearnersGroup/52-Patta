@@ -25,3 +25,6 @@ try {
 } catch {
     // no-op
 }
+
+// Convenience getter used by components that need null-safe access
+export const getSocket = () => socket;
