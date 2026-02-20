@@ -14,17 +14,35 @@ const { userJoinRoom, userCreateRoom, userLeaveRoom, userToggleReady } = require
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
 require('dotenv').config()
 
-// Validate required environment variables
-const requiredEnvVars = ['JWT_SECRET', 'MONGO_HOST'];
-for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-        console.error(`Missing required environment variable: ${envVar}`);
-        process.exit(1);
-    }
+function setupSocketHandlers(io) {
+    io.on("connection", (socket) => {
+        //extras
+        onConnect(socket, io)();
+        socket.on("disconnect", onDisconnect(socket, io));
+        socket.on("username", setSocketUsername(socket, io));
+        socket.on("message", onMessage(socket, io));
+
+        //game-room
+        socket.on("user-join-room", userJoinRoom(socket, io));
+        socket.on("user-create-room", userCreateRoom(socket, io));
+        socket.on("user-leave-room", userLeaveRoom(socket, io));
+        socket.on("user-toggle-ready", userToggleReady(socket, io));
+    });
 }
 
-// Connect DB
-connectDB();
+if (require.main === module) {
+    // Validate required environment variables
+    const requiredEnvVars = ['JWT_SECRET', 'MONGO_HOST'];
+    for (const envVar of requiredEnvVars) {
+        if (!process.env[envVar]) {
+            console.error(`Missing required environment variable: ${envVar}`);
+            process.exit(1);
+        }
+    }
+
+    // Connect DB
+    connectDB();
+}
 
 // Allowed origins for CORS
 const allowedOrigins = process.env.CORS_ORIGINS
@@ -69,21 +87,11 @@ const io = new Server(server, {
 io.use(ws_auth_middleware);
 
 // Websockets
-io.on("connection", (socket) => {
-    //extras
-    onConnect(socket, io)();
-    socket.on("disconnect", onDisconnect(socket, io));
-    socket.on("username", setSocketUsername(socket, io));
-    socket.on("message", onMessage(socket, io));
+setupSocketHandlers(io);
 
-    //game-room
-    socket.on("user-join-room", userJoinRoom(socket, io));
-    socket.on("user-create-room", userCreateRoom(socket, io));
-    socket.on("user-leave-room", userLeaveRoom(socket, io));
-    socket.on("user-toggle-ready", userToggleReady(socket, io));
-});
+if (require.main === module) {
+    const PORT = process.env.PORT || 4000;
+    server.listen(PORT, () => console.log(`server started on port ${PORT}`));
+}
 
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`server started on port ${PORT}`));
-
-module.exports = { app, server, io };
+module.exports = { app, server, io, setupSocketHandlers };
