@@ -10,7 +10,8 @@
     "client1": "PORT=3001 npm start --prefix client",
     "socket-dev": "concurrently \"npm run server\" \"npm run client\" \"npm run client1\"",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "test": "jest --forceExit --detectOpenHandles"
+    "test": "jest --forceExit --detectOpenHandles",
+    "test:integration": "vitest run --config vitest.config.js"
   },
   "author": "Prince Patel",
   "license": "ISC",
@@ -32,7 +33,10 @@
   "devDependencies": {
     "concurrently": "^8.1.0",
     "jest": "^30.2.0",
+    "mongodb-memory-server": "^11.0.1",
     "nodemon": "^2.0.22",
-    "sass": "^1.76.0"
+    "sass": "^1.76.0",
+    "socket.io-client": "^4.8.3",
+    "vitest": "^3.2.4"
   }
 }
