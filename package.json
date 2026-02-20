@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server",
-    "server": "nodemon server",
+    "server": "nodemon dev-server-mock",
     "client": "npm start --prefix client",
     "client1": "PORT=3001 npm start --prefix client",
     "socket-dev": "concurrently \"npm run server\" \"npm run client\" \"npm run client1\"",
@@ -31,7 +31,7 @@
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
-    "concurrently": "^8.1.0",
+    "concurrently": "^8.2.2",
     "jest": "^30.2.0",
     "mongodb-memory-server": "^11.0.1",
     "nodemon": "^2.0.22",
