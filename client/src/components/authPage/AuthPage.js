@@ -4,7 +4,7 @@ import { setAuthToken, user_login } from "../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
 
 export const AuthPage = () => {
-	const navigate = useNavigate();
+    const navigate = useNavigate();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [errors, setErrors] = useState([]);
@@ -27,36 +27,69 @@ export const AuthPage = () => {
     };
 
     return (
-        <div>
-            <form onSubmit={handleLogin}>
-                <div>
-                    <label htmlFor="username">Username:</label>
-                    <input
-                        id="username"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                    />
+        <div className="auth-page">
+            <div className="auth-card">
+                <div className="auth-logo">
+                    <span className="suit suit-spade">♠</span>
+                    <span className="suit suit-heart">♥</span>
+                    <h1>52-Patta</h1>
+                    <span className="suit suit-diamond">♦</span>
+                    <span className="suit suit-club">♣</span>
                 </div>
-                <div>
-                    <label htmlFor="password">Password:</label>
-                    <input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                </div>
-                <button type="submit">Login</button>
-                {errors.length !== 0 &&
-                    errors.map((err) => <div key={err.path}>{err.msg}</div>)}
-                <div>
-                    <p>Do not have a account?</p>
-                    <button onClick={() => navigate("/register")}>
-                        create a account
+                <p className="auth-tagline">The Classic Indian Card Game</p>
+
+                <h2 className="auth-title">Sign In</h2>
+
+                <form className="auth-form" onSubmit={handleLogin}>
+                    <div className="form-group">
+                        <label htmlFor="username">Username</label>
+                        <input
+                            id="username"
+                            type="text"
+                            className="form-input"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Enter your username"
+                            autoComplete="username"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            id="password"
+                            type="password"
+                            className="form-input"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter your password"
+                            autoComplete="current-password"
+                        />
+                    </div>
+
+                    {errors.length !== 0 && (
+                        <div className="form-errors">
+                            {errors.map((err) => (
+                                <p key={err.path} className="form-error">{err.msg}</p>
+                            ))}
+                        </div>
+                    )}
+
+                    <button type="submit" className="btn-primary btn-full">
+                        Login
                     </button>
-                </div>
-            </form>
+
+                    <div className="auth-switch">
+                        <span>Don't have an account?</span>
+                        <button
+                            type="button"
+                            className="btn-link"
+                            onClick={() => navigate("/register")}
+                        >
+                            Create Account
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

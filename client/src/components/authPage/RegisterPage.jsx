@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
-import { user_login, user_register } from "../../api/apiHandler";
+import { user_register } from "../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
 
 export const RegisterPage = () => {
@@ -26,44 +26,81 @@ export const RegisterPage = () => {
     };
 
     return (
-        <div>
-            <form onSubmit={handleLogin}>
-                <div>
-                    <label htmlFor="username">Username:</label>
-                    <input
-                        id="username"
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                    />
+        <div className="auth-page">
+            <div className="auth-card">
+                <div className="auth-logo">
+                    <span className="suit suit-heart">♥</span>
+                    <span className="suit suit-diamond">♦</span>
+                    <h1>52-Patta</h1>
+                    <span className="suit suit-spade">♠</span>
+                    <span className="suit suit-club">♣</span>
                 </div>
-                <div>
-                    <label htmlFor="useremail">User email:</label>
-                    <input
-                        id="useremail"
-                        type="text"
-                        value={useremail}
-                        onChange={(e) => setUseremail(e.target.value)}
-                    />
-                </div>
-                <div>
-                    <label htmlFor="password">Password:</label>
-                    <input
-                        id="password"
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                    />
-                </div>
-                <button type="submit">Register</button>
-                {errors.length !== 0 &&
-                    errors.map((err) => <div key={err.path}>{err.msg}</div>)}
-                <div>
-                    <p>Already registered?</p>
-                    <button onClick={() => navigate('/login')}>go to login</button>
-                </div>
-                
-            </form>
+                <p className="auth-tagline">The Classic Indian Card Game</p>
+
+                <h2 className="auth-title">Create Account</h2>
+
+                <form className="auth-form" onSubmit={handleLogin}>
+                    <div className="form-group">
+                        <label htmlFor="username">Username</label>
+                        <input
+                            id="username"
+                            type="text"
+                            className="form-input"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="Choose a username"
+                            autoComplete="username"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="useremail">Email</label>
+                        <input
+                            id="useremail"
+                            type="email"
+                            className="form-input"
+                            value={useremail}
+                            onChange={(e) => setUseremail(e.target.value)}
+                            placeholder="Enter your email"
+                            autoComplete="email"
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="password">Password</label>
+                        <input
+                            id="password"
+                            type="password"
+                            className="form-input"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Choose a password"
+                            autoComplete="new-password"
+                        />
+                    </div>
+
+                    {errors.length !== 0 && (
+                        <div className="form-errors">
+                            {errors.map((err) => (
+                                <p key={err.path} className="form-error">{err.msg}</p>
+                            ))}
+                        </div>
+                    )}
+
+                    <button type="submit" className="btn-primary btn-full">
+                        Register
+                    </button>
+
+                    <div className="auth-switch">
+                        <span>Already have an account?</span>
+                        <button
+                            type="button"
+                            className="btn-link"
+                            onClick={() => navigate("/login")}
+                        >
+                            Sign In
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

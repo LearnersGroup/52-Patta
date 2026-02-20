@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { get_all_user_in_room, room_leave } from "../../api/apiHandler";
+import { useNavigate, useParams } from "react-router-dom";
+import { get_all_user_in_room } from "../../api/apiHandler";
 import { useAuth } from "../hooks/useAuth";
-import { handleUserJoin } from "../../api/wsListners";
 import { socket } from "../../socket";
 import { WsUserLeaveRoom, WsUserSendMsgRoom, WsUserToggleReady } from "../../api/wsEmitters";
 
@@ -10,18 +9,8 @@ const GamePage = () => {
     const { user } = useAuth();
     let params = useParams();
     const [roomData, setRoomData] = useState(null);
-
     const navigate = useNavigate();
 
-    //old REST call
-    // const handleLeave = async () => {
-    //     const { status } = await room_leave();
-    //     if (status === 200) {
-    //         navigate("/");
-    //     } else {
-    //         alert("Something went wrong while removing player");
-    //     }
-    // };
     const handleLeave = async () => {
         try {
             WsUserLeaveRoom();
@@ -36,7 +25,7 @@ const GamePage = () => {
         } catch (err) {
             console.log(err);
         }
-    }
+    };
 
     const toggleReady = async () => {
         try {
@@ -44,7 +33,7 @@ const GamePage = () => {
         } catch (err) {
             console.log(err);
         }
-    }
+    };
 
     const getRoomDetails = async () => {
         try {
@@ -57,7 +46,7 @@ const GamePage = () => {
     };
 
     useEffect(() => {
-        console.log(user)
+        console.log(user);
         const onRoomMessage = (data) => {
             console.log(data);
         };
@@ -67,7 +56,7 @@ const GamePage = () => {
         };
         const goToHomePage = (callback) => {
             navigate(`/`);
-            if (typeof callback === 'function') {
+            if (typeof callback === "function") {
                 let res = {};
                 res.status = 200;
                 callback(res);
@@ -85,33 +74,75 @@ const GamePage = () => {
         };
     }, []);
 
+    const players = roomData?.players ?? [];
+
     return (
-        <div>
-            <p>GamePage-{params.id}</p>
-            {roomData === null || roomData.players.length === 0 ? (
-                <div>No Active Game Rooms</div>
-            ) : (
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {roomData?.players?.map((player) => {
-                            return (
-                                <tr key={player["_id"]}>
-                                    <td>{player.playerId?.name || "Unknown"}</td>
-                                    <td>{player.ready ? "Ready" : "Not Ready"}</td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            )}
-            <button onClick={() => handleLeave()}>Leave</button>
-            <button onClick={() => toggleReady()}>Ready</button>
+        <div className="game-page">
+            <div className="game-header">
+                <div className="game-title-block">
+                    <div className="game-room-label">♠ Game Room</div>
+                    <div className="game-room-id">{params.id}</div>
+                </div>
+                <div className="game-actions">
+                    <button className="btn-ready" onClick={toggleReady}>
+                        Ready
+                    </button>
+                    <button className="btn-danger" onClick={handleLeave}>
+                        Leave
+                    </button>
+                </div>
+            </div>
+
+            <div className="players-card">
+                <div className="players-header">
+                    <h3>Players</h3>
+                    <span className="players-count-badge">
+                        {players.length} in room
+                    </span>
+                </div>
+
+                {players.length === 0 ? (
+                    <div className="players-empty">
+                        Waiting for players to join...
+                    </div>
+                ) : (
+                    <table className="players-table">
+                        <thead>
+                            <tr>
+                                <th>Player</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {players.map((player) => {
+                                const name = player.playerId?.name || "Unknown";
+                                const initial = name.charAt(0).toUpperCase();
+                                return (
+                                    <tr key={player["_id"]}>
+                                        <td>
+                                            <div className="player-name-cell">
+                                                <div className="player-avatar">
+                                                    {initial}
+                                                </div>
+                                                {name}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span
+                                                className={`status-badge ${
+                                                    player.ready ? "ready" : "not-ready"
+                                                }`}
+                                            >
+                                                {player.ready ? "Ready" : "Not Ready"}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                )}
+            </div>
         </div>
     );
 };

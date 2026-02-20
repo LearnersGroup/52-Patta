@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useQuery } from "react-query";
-import { get_all_rooms, room_join } from "../../../api/apiHandler";
+import { get_all_rooms } from "../../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../../../socket";
 import { WsUserJoinRoom } from "../../../api/wsEmitters";
@@ -9,7 +9,6 @@ const AllGameRooms = () => {
     const navigate = useNavigate();
     const [pass, setPass] = useState("");
     const [errors, setErrors] = useState([]);
-    //game-data
     const { data, status } = useQuery("all-game-rooms", get_all_rooms);
 
     const handleCreateGameRoom = () => {
@@ -22,7 +21,7 @@ const AllGameRooms = () => {
         const goToGamePage = (room_id, callback) => {
             navigate(`/game-room/${room_id}`);
             let res = {};
-            res.status = 200
+            res.status = 200;
             callback(res);
         };
 
@@ -34,11 +33,7 @@ const AllGameRooms = () => {
     }, []);
 
     const handleJoinRoom = async (roomname, roompass, id) => {
-        let data = {
-            roomname,
-            roompass,
-            id,
-        };
+        let data = { roomname, roompass, id };
         try {
             WsUserJoinRoom(data);
         } catch (error) {
@@ -46,84 +41,89 @@ const AllGameRooms = () => {
             setErrors(error.errors);
         }
     };
-    // const handleJoinRoom = async (roomname, roompass, id) => {
-    //     try {
-    //         const response = await room_join(roomname, roompass);
-    //         if (response.status === 200) {
-    //             console.log("Navigating...");
-    //             navigate(`/game-room/${id}`);
-    //         }
-    //     } catch (error) {
-    //         console.log(error);
-    //         setErrors(error.errors);
-    //     }
-    // };
 
     return (
-        <div className="create-and-all-rooms">
-            <div className="all-rooms">
-                <div className="title-and-create-room">
-                    <h3>All Active Rooms</h3>
-                    <button onClick={handleCreateGameRoom}>Create Room</button>
-                </div>
-                {status === "error" && <p>Error fetching data</p>}
-                {status === "loading" && <p>Fetching data...</p>}
-                {status === "success" &&
-                    (data.length === 0 ? (
-                        <div>No Active Game Rooms</div>
-                    ) : (
-                        <table className="table">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Admin</th>
-                                    <th>Players</th>
-                                    <th>Join</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.map((room) => {
-                                    return (
-                                        <tr key={room["_id"]}>
-                                            <td>{room.roomname}</td>
-                                            <td>{room.admin.name}</td>
-                                            <td>
-                                                {room.players.length} /{" "}
-                                                {room.player_count}
-                                            </td>
-                                            <td>
-                                                <input
-                                                    type="password"
-                                                    value={pass}
-                                                    onChange={(e) =>
-                                                        setPass(e.target.value)
-                                                    }
-                                                />
-                                                <button
-                                                    onClick={() =>
-                                                        handleJoinRoom(
-                                                            room.roomname,
-                                                            pass,
-                                                            room["_id"]
-                                                        )
-                                                    }
-                                                >
-                                                    Join
-                                                </button>
-                                                {errors.length !== 0 &&
-                                                    errors.map((err) => (
-                                                        <div key={err.path}>
-                                                            {err.msg}
-                                                        </div>
-                                                    ))}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    ))}
+        <div className="rooms-section">
+            <div className="section-header">
+                <h2>♠ Active Rooms</h2>
+                <button className="btn-primary" onClick={handleCreateGameRoom}>
+                    + Create Room
+                </button>
             </div>
+
+            {status === "error" && (
+                <p className="rooms-status">Error fetching rooms. Please try again.</p>
+            )}
+            {status === "loading" && (
+                <p className="rooms-status">Loading rooms...</p>
+            )}
+            {status === "success" &&
+                (data.length === 0 ? (
+                    <p className="rooms-status">
+                        No active rooms yet. Be the first to create one!
+                    </p>
+                ) : (
+                    <table className="rooms-table">
+                        <thead>
+                            <tr>
+                                <th>Room Name</th>
+                                <th>Admin</th>
+                                <th>Players</th>
+                                <th>Join</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {data.map((room) => (
+                                <tr key={room["_id"]}>
+                                    <td>
+                                        <span className="room-name-cell">
+                                            {room.roomname}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className="room-admin-cell">
+                                            {room.admin.name}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className="player-count-badge">
+                                            {room.players.length} / {room.player_count}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div className="join-cell">
+                                            <input
+                                                type="password"
+                                                className="join-input"
+                                                value={pass}
+                                                onChange={(e) => setPass(e.target.value)}
+                                                placeholder="Password"
+                                            />
+                                            <button
+                                                className="btn-primary"
+                                                onClick={() =>
+                                                    handleJoinRoom(
+                                                        room.roomname,
+                                                        pass,
+                                                        room["_id"]
+                                                    )
+                                                }
+                                            >
+                                                Join
+                                            </button>
+                                        </div>
+                                        {errors.length !== 0 &&
+                                            errors.map((err) => (
+                                                <p key={err.path} className="form-error" style={{ marginTop: "6px" }}>
+                                                    {err.msg}
+                                                </p>
+                                            ))}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ))}
         </div>
     );
 };

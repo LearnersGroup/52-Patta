@@ -1,22 +1,19 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ConnectionState } from "../websocket/ConnectionState";
 import { Events } from "../websocket/Events";
 import { ConnectionManager } from "../websocket/ConnectionManager";
 import { MyForm } from "../websocket/MyForm";
 import { getSocket } from "../../socket";
 import { useAuth } from "../hooks/useAuth";
-import { get_all_rooms, removeAuthToken } from "../../api/apiHandler";
+import { removeAuthToken } from "../../api/apiHandler";
 import AllGameRooms from "./AllGameRooms/AllGameRooms";
 import { WsSendUserName } from "../../api/wsEmitters";
-import { Sq } from "@letele/playing-cards";
-import { useDispatch, useSelector } from "react-redux";
-import { notify, setAlert } from "../../redux/slices/alert";
+import { useDispatch } from "react-redux";
+import { notify } from "../../redux/slices/alert";
 
 const HomePage = () => {
     const dispatch = useDispatch();
-    //hooks
     const { logout, user } = useAuth();
-    //other state
     const socket = getSocket();
     const [isConnected, setIsConnected] = useState(socket ? socket.connected : false);
     const [fooEvents, setFooEvents] = useState([]);
@@ -27,10 +24,9 @@ const HomePage = () => {
     };
 
     const handleClick = () => {
-        notify("test", "success")(dispatch)
+        notify("test", "success")(dispatch);
     };
 
-    //websocket logic
     useEffect(() => {
         function onConnect() {
             setIsConnected(true);
@@ -61,18 +57,52 @@ const HomePage = () => {
     }, []);
 
     return (
-        <div className="home-page">
-            <h1 className="title">HomePage</h1>
-            <p>Current User - {user.user_name}</p>
-            <button onClick={handleLogout}>Logout</button>
-            <button onClick={handleClick}>Alert</button>
-            <AllGameRooms />
-            <Sq style={{ height: "100px", width: "100px" }} />
-            <div className="webhooks">
-                <ConnectionState isConnected={isConnected} />
-                <Events events={fooEvents} />
-                <ConnectionManager />
-                <MyForm />
+        <div className="lobby-page">
+            <nav className="navbar">
+                <div className="navbar-brand">
+                    <span className="suit-red">♥</span>
+                    <span className="navbar-logo">52-Patta</span>
+                    <span className="suit-black">♠</span>
+                </div>
+                <div className="navbar-user">
+                    <span className="navbar-username">
+                        ♦ {user.user_name}
+                    </span>
+                    <button className="btn-outline" onClick={handleLogout}>
+                        Logout
+                    </button>
+                </div>
+            </nav>
+
+            <main className="lobby-main">
+                <div className="lobby-welcome">
+                    <div className="welcome-card-icon">🃏</div>
+                    <div className="welcome-text">
+                        <h2>Welcome back, {user.user_name}!</h2>
+                        <p>Join an existing room or create a new game below.</p>
+                    </div>
+                </div>
+
+                <AllGameRooms />
+            </main>
+
+            <div className="debug-section">
+                <details>
+                    <summary>Developer Tools</summary>
+                    <div>
+                        <ConnectionState isConnected={isConnected} />
+                        <Events events={fooEvents} />
+                        <ConnectionManager />
+                        <MyForm />
+                        <button
+                            className="btn-secondary"
+                            onClick={handleClick}
+                            style={{ marginTop: "8px" }}
+                        >
+                            Test Alert
+                        </button>
+                    </div>
+                </details>
             </div>
         </div>
     );
