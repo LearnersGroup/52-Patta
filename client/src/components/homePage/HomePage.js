@@ -3,7 +3,7 @@ import { ConnectionState } from "../websocket/ConnectionState";
 import { Events } from "../websocket/Events";
 import { ConnectionManager } from "../websocket/ConnectionManager";
 import { MyForm } from "../websocket/MyForm";
-import { socket } from "../../socket";
+import { getSocket } from "../../socket";
 import { useAuth } from "../hooks/useAuth";
 import { get_all_rooms, removeAuthToken } from "../../api/apiHandler";
 import AllGameRooms from "./AllGameRooms/AllGameRooms";
@@ -17,7 +17,8 @@ const HomePage = () => {
     //hooks
     const { logout, user } = useAuth();
     //other state
-    const [isConnected, setIsConnected] = useState(socket.connected);
+    const socket = getSocket();
+    const [isConnected, setIsConnected] = useState(socket ? socket.connected : false);
     const [fooEvents, setFooEvents] = useState([]);
 
     const handleLogout = () => {
@@ -43,15 +44,19 @@ const HomePage = () => {
             setFooEvents((previous) => [...previous, value]);
         }
 
-        socket.on("connect", onConnect);
-        socket.on("disconnect", onDisconnect);
-        socket.on("message", onFooEvent);
-        WsSendUserName(user.user_name);
+        if (socket) {
+            socket.on("connect", onConnect);
+            socket.on("disconnect", onDisconnect);
+            socket.on("message", onFooEvent);
+            WsSendUserName(user.user_name);
+        }
 
         return () => {
-            socket.off("connect", onConnect);
-            socket.off("disconnect", onDisconnect);
-            socket.off("message", onFooEvent);
+            if (socket) {
+                socket.off("connect", onConnect);
+                socket.off("disconnect", onDisconnect);
+                socket.off("message", onFooEvent);
+            }
         };
     }, []);
 
