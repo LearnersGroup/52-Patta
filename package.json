@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server",
-    "server": "nodemon dev-server-mock",
+    "server": "nodemon server",
     "client": "npm start --prefix client",
     "client1": "PORT=3001 npm start --prefix client",
     "socket-dev": "concurrently \"npm run server\" \"npm run client\" \"npm run client1\"",

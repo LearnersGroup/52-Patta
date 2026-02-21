@@ -67,7 +67,7 @@ app.post('/api/users', async (req, res) => {
     const id     = randomUUID();
     const hashed = await bcrypt.hash(password, 10);
     users.set(id, { id, name, email, password: hashed, gameroom: null });
-    res.json({ token: signToken(id) });
+    res.json({ token: signToken(id), user_name: name });
 });
 
 /** POST /api/auth — login */

@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 export const AuthPage = () => {
     const navigate = useNavigate();
-    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [errors, setErrors] = useState([]);
     const { login } = useAuth();
@@ -14,7 +14,7 @@ export const AuthPage = () => {
         e.preventDefault();
         setErrors([]);
         try {
-            const { token, user_name } = await user_login(username, password);
+            const { token, user_name } = await user_login(email, password);
 
             if (token) {
                 await login({ token, user_name });
@@ -22,7 +22,7 @@ export const AuthPage = () => {
             }
         } catch (error) {
             console.log(error);
-            setErrors(error.errors);
+            setErrors(error.errors || [{ msg: "Something went wrong. Please try again.", path: "general" }]);
         }
     };
 
@@ -42,15 +42,15 @@ export const AuthPage = () => {
 
                 <form className="auth-form" onSubmit={handleLogin}>
                     <div className="form-group">
-                        <label htmlFor="username">Username</label>
+                        <label htmlFor="email">Email</label>
                         <input
-                            id="username"
-                            type="text"
+                            id="email"
+                            type="email"
                             className="form-input"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Enter your username"
-                            autoComplete="username"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="Enter your email"
+                            autoComplete="email"
                         />
                     </div>
                     <div className="form-group">

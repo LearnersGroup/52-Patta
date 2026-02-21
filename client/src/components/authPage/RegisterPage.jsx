@@ -15,13 +15,13 @@ export const RegisterPage = () => {
         e.preventDefault();
         setErrors([]);
         try {
-            const { token } = await user_register(username, useremail, password);
+            const { token, user_name } = await user_register(username, useremail, password);
             if (token) {
-                await login({ token });
+                await login({ token, user_name });
             }
         } catch (error) {
             console.log(error);
-            setErrors(error.errors);
+            setErrors(error.errors || [{ msg: "Something went wrong. Please try again.", path: "general" }]);
         }
     };
 
