@@ -1,116 +1,992 @@
-.App {
-  text-align: center;
+// ============================================
+// 52-PATTA — Casino Night Theme
+// ============================================
+
+// ─── Color Palette ───────────────────────────
+$bg-deep:            #080f0a;
+$bg-felt:            #0f2314;
+$bg-panel:           #132a19;
+$bg-panel-light:     #1a3a22;
+$bg-input:           #0d1e11;
+$gold:               #c9a227;
+$gold-light:         #e8d16a;
+$gold-dark:          #8a6e18;
+$red-suit:           #cc2936;
+$cream:              #f5f0e8;
+$cream-muted:        #a89f8e;
+$green-glow:         rgba(30, 77, 42, 0.3);
+$border-gold:        rgba(201, 162, 39, 0.28);
+$border-gold-bright: rgba(201, 162, 39, 0.65);
+$glow-gold:          rgba(201, 162, 39, 0.15);
+$shadow:             rgba(0, 0, 0, 0.55);
+
+// ─── Typography ──────────────────────────────
+$font-heading: 'Cinzel', 'Georgia', 'Times New Roman', serif;
+$font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+// ─── Mixins ──────────────────────────────────
+@mixin panel {
+  background: $bg-panel;
+  border: 1px solid $border-gold;
+  border-radius: 14px;
+  box-shadow:
+    0 4px 32px $shadow,
+    0 0 0 1px rgba(201, 162, 39, 0.04),
+    inset 0 1px 0 rgba(201, 162, 39, 0.08);
 }
 
-.home-page {
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 7px;
+  font-family: $font-heading;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+// ─── Suit Utility Classes ─────────────────────
+.suit-red   { color: $red-suit; }
+.suit-black { color: $cream; opacity: 0.75; }
+
+// ─── Buttons ─────────────────────────────────
+.btn-primary {
+  @include btn-base;
+  background: linear-gradient(135deg, darken($gold, 12%), $gold, darken($gold, 12%));
+  background-size: 200% 100%;
+  color: #1a0f00;
+  box-shadow: 0 2px 14px rgba(201, 162, 39, 0.25);
+
+  &:hover {
+    background-position: right center;
+    box-shadow: 0 4px 22px rgba(201, 162, 39, 0.45);
+    transform: translateY(-1px);
+  }
+  &:active { transform: translateY(0); }
+  &.btn-full { width: 100%; }
+}
+
+.btn-secondary {
+  @include btn-base;
+  background: transparent;
+  border: 1px solid $border-gold;
+  color: $gold;
+
+  &:hover {
+    background: rgba(201, 162, 39, 0.08);
+    border-color: $gold;
+  }
+}
+
+.btn-danger {
+  @include btn-base;
+  background: linear-gradient(135deg, #7a1515, $red-suit, #7a1515);
+  background-size: 200% 100%;
+  color: $cream;
+
+  &:hover {
+    background-position: right center;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 18px rgba(204, 41, 54, 0.4);
+  }
+  &:active { transform: translateY(0); }
+}
+
+.btn-outline {
+  @include btn-base;
+  background: transparent;
+  border: 1px solid rgba(245, 240, 232, 0.2);
+  color: $cream-muted;
+  padding: 8px 16px;
+  font-size: 0.72rem;
+
+  &:hover {
+    border-color: rgba(204, 41, 54, 0.6);
+    color: lighten($red-suit, 20%);
+  }
+}
+
+.btn-ready {
+  @include btn-base;
+  background: rgba(46, 204, 113, 0.12);
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  color: #2ecc71;
+
+  &:hover {
+    background: rgba(46, 204, 113, 0.22);
+    border-color: #2ecc71;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(46, 204, 113, 0.2);
+  }
+  &:active { transform: translateY(0); }
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: $gold;
+  cursor: pointer;
+  font-family: $font-body;
+  font-size: 0.88rem;
+  text-decoration: underline;
+  padding: 0;
+
+  &:hover { color: $gold-light; }
+}
+
+// ─── Form Elements ───────────────────────────
+.form-group {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  align-items:stretch;
-  .title{
-    text-decoration: underline;
-  }
-  .webhooks{
-    margin-top: 28px;
-    width: 100vw;
-    border-top: 2px solid black;
-  }
-  .create-and-all-rooms{
-    margin-top: 28px;
-    border-top: 2px solid black;
-    .all-rooms {
-      display: flex;
-      flex-direction: column;
-      margin: 27px 5%;
+  gap: 7px;
 
-      .title-and-create-room{
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
+  label {
+    color: $gold;
+    font-family: $font-heading;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: $bg-input;
+  border: 1px solid $border-gold;
+  border-radius: 7px;
+  color: $cream;
+  font-family: $font-body;
+  font-size: 0.97rem;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &::placeholder { color: rgba(168, 159, 142, 0.45); }
+
+  &:focus {
+    border-color: $gold;
+    box-shadow: 0 0 0 3px $glow-gold;
+  }
+}
+
+.form-errors {
+  background: rgba(204, 41, 54, 0.08);
+  border: 1px solid rgba(204, 41, 54, 0.35);
+  border-radius: 7px;
+  padding: 12px 14px;
+}
+
+.form-error {
+  color: #ff9090;
+  font-size: 0.84rem;
+  margin: 0;
+
+  & + & { margin-top: 5px; }
+}
+
+// ─── AUTH PAGES ──────────────────────────────
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 0%, $green-glow 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(8, 15, 10, 0.8) 0%, transparent 70%),
+    $bg-deep;
+  padding: 24px;
+  position: relative;
+
+  // Subtle diamond pattern overlay
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 38px,
+        rgba(201, 162, 39, 0.018) 38px,
+        rgba(201, 162, 39, 0.018) 40px
+      );
+    pointer-events: none;
+  }
+}
+
+.auth-card {
+  @include panel;
+  width: 100%;
+  max-width: 420px;
+  padding: 42px 40px 36px;
+  position: relative;
+  z-index: 1;
+
+  // Corner suit decorations
+  &::before {
+    content: '♠  ♥';
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-size: 1rem;
+    opacity: 0.12;
+    color: $cream;
+    letter-spacing: 4px;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '♦  ♣';
+    position: absolute;
+    bottom: 14px;
+    right: 18px;
+    font-size: 1rem;
+    opacity: 0.12;
+    color: $cream;
+    letter-spacing: 4px;
+    pointer-events: none;
+  }
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 4px;
+
+  .suit {
+    font-size: 1.5rem;
+    line-height: 1;
+
+    &.suit-heart, &.suit-diamond { color: $red-suit; }
+    &.suit-spade, &.suit-club    { color: $cream; opacity: 0.75; }
+  }
+
+  h1 {
+    font-family: $font-heading;
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: $gold;
+    margin: 0;
+    text-shadow: 0 0 28px rgba(201, 162, 39, 0.35);
+    letter-spacing: 0.12em;
+  }
+}
+
+.auth-tagline {
+  text-align: center;
+  color: $cream-muted;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin: 0 0 30px;
+}
+
+.auth-title {
+  font-family: $font-heading;
+  font-size: 1rem;
+  color: $cream;
+  text-align: center;
+  margin: 0 0 26px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  position: relative;
+
+  &::after {
+    content: '';
+    display: block;
+    width: 55px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, $gold, transparent);
+    margin: 10px auto 0;
+  }
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.auth-switch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: $cream-muted;
+  border-top: 1px solid $border-gold;
+  padding-top: 20px;
+  flex-wrap: wrap;
+}
+
+// ─── NAVBAR ──────────────────────────────────
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 62px;
+  background: rgba(6, 12, 8, 0.96);
+  border-bottom: 1px solid $border-gold;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+
+  &-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    .suit-red   { color: $red-suit; font-size: 1.1rem; }
+    .suit-black { color: $cream; font-size: 1.1rem; opacity: 0.65; }
+  }
+
+  &-logo {
+    font-family: $font-heading;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: $gold;
+    letter-spacing: 0.14em;
+    text-shadow: 0 0 18px rgba(201, 162, 39, 0.3);
+  }
+
+  &-user {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  &-username {
+    color: $cream-muted;
+    font-size: 0.88rem;
+  }
+}
+
+// ─── LOBBY / HOME PAGE ───────────────────────
+.lobby-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 80% 0%, $green-glow 0%, transparent 50%),
+    $bg-deep;
+}
+
+.lobby-main {
+  padding: 32px 28px;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.lobby-welcome {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding: 20px 24px;
+  background: rgba(201, 162, 39, 0.04);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+
+  .welcome-card-icon {
+    font-size: 2.6rem;
+    opacity: 0.85;
+    line-height: 1;
+  }
+
+  .welcome-text {
+    h2 {
+      font-family: $font-heading;
+      font-size: 1rem;
+      color: $gold;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    p {
+      font-size: 0.85rem;
+      color: $cream-muted;
     }
   }
 }
 
+// ─── ROOMS SECTION ───────────────────────────
+.rooms-section {
+  @include panel;
+  padding: 26px 28px;
 
-.alert {
-  position: fixed;
-  bottom: 20px;
-  left: 20px;
-  padding: 10px;
-  background-color: #333333;
-  color: #ffffff;
-  border-radius: 5px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  z-index: 9999;
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid $border-gold;
 
-  &.success {
-    background-color: #28a745;
-  }
-
-  &.error {
-    background-color: #dc3545;
-  }
-
-  &.warning {
-    background-color: #ffc107;
-  }
-
-  &.info {
-    background-color: #17a2b8;
+    h2 {
+      font-family: $font-heading;
+      color: $gold;
+      font-size: 0.95rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin: 0;
+    }
   }
 }
 
+.rooms-status {
+  text-align: center;
+  color: $cream-muted;
+  padding: 40px;
+  font-style: italic;
+  font-size: 0.95rem;
+}
 
-// copied Table style
-// Define variables for table colors
-$table-bg-color: #ffffff; // White background
-$table-border-color: #dddddd; // Light gray border color
-$table-header-bg-color: #f2f2f2; // Light gray background for table header
-
-// Define the table styles
-$table-padding: 10px;
-$table-border-width: 1px;
-$table-border-style: solid;
-$table-border-radius: 5px;
-
-// Define the table header styles
-$table-header-font-color: #333333; // Dark gray font color for table header
-$table-header-font-weight: bold;
-
-// Define the table row styles
-$table-row-hover-bg-color: #f9f9f9; // Light gray background color on hover
-
-// Define the table cell styles
-$table-cell-padding: 8px;
-$table-cell-border-bottom-color: #dddddd; // Light gray border color for cell bottom
-
-// Define the table class
-.table {
+// ─── ROOMS TABLE ─────────────────────────────
+.rooms-table {
+  width: 100%;
   border-collapse: collapse;
-  background-color: $table-bg-color;
-  border: $table-border-width $table-border-style $table-border-color;
-  border-radius: $table-border-radius;
+
+  th {
+    font-family: $font-heading;
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    padding: 10px 14px;
+    border-bottom: 1px solid $border-gold;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  td {
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.08);
+    color: $cream;
+    font-size: 0.93rem;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background 0.15s ease;
+
+    &:hover { background: rgba(201, 162, 39, 0.04); }
+    &:last-child td { border-bottom: none; }
+  }
+}
+
+.room-name-cell {
+  font-weight: 600;
+  color: $cream;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::before {
+    content: '♠';
+    color: $gold;
+    opacity: 0.5;
+    font-size: 0.8rem;
+  }
+}
+
+.room-admin-cell {
+  color: $cream-muted;
+  font-size: 0.88rem;
+}
+
+.player-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid $border-gold;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 0.82rem;
+  color: $gold;
+  font-weight: 700;
+}
+
+.join-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.join-input {
+  padding: 8px 12px;
+  background: $bg-input;
+  border: 1px solid $border-gold;
+  border-radius: 6px;
+  color: $cream;
+  font-size: 0.84rem;
+  outline: none;
+  width: 100px;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: rgba(168, 159, 142, 0.38);
+    font-size: 0.78rem;
+  }
+
+  &:focus { border-color: $gold; }
+}
+
+// ─── CREATE GAME PAGE ────────────────────────
+.create-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse at 50% 20%, $green-glow 0%, transparent 55%),
+    $bg-deep;
+  padding: 24px;
+  position: relative;
+
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 38px,
+        rgba(201, 162, 39, 0.018) 38px,
+        rgba(201, 162, 39, 0.018) 40px
+      );
+    pointer-events: none;
+  }
+}
+
+.create-card {
+  @include panel;
+  width: 100%;
+  max-width: 480px;
+  padding: 40px 38px;
+  position: relative;
+  z-index: 1;
+}
+
+.create-header {
+  text-align: center;
+  margin-bottom: 32px;
+
+  .create-icon {
+    font-size: 2.8rem;
+    display: block;
+    margin-bottom: 10px;
+    line-height: 1;
+  }
+
+  h2 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 1.3rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 5px;
+  }
+
+  p {
+    color: $cream-muted;
+    font-size: 0.83rem;
+    letter-spacing: 0.05em;
+  }
+}
+
+.create-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.player-count-widget {
+  text-align: center;
+  padding: 4px 0 10px;
+
+  .count-number {
+    font-family: $font-heading;
+    font-size: 2.8rem;
+    color: $gold;
+    text-shadow: 0 0 20px rgba(201, 162, 39, 0.3);
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .count-label {
+    color: $cream-muted;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+}
+
+.range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(201, 162, 39, 0.18);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  position: relative;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, $gold-light, $gold);
+    box-shadow: 0 0 10px rgba(201, 162, 39, 0.5), 0 2px 6px rgba(0,0,0,0.4);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    border: 2px solid rgba(255,255,255,0.15);
+
+    &:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 18px rgba(201, 162, 39, 0.7);
+    }
+  }
+
+  &::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, $gold-light, $gold);
+    border: 2px solid rgba(255,255,255,0.15);
+    box-shadow: 0 0 10px rgba(201, 162, 39, 0.5);
+    cursor: pointer;
+  }
+
+  &:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px $glow-gold, 0 0 14px rgba(201, 162, 39, 0.5);
+  }
+}
+
+.create-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+
+  .btn-secondary { flex: 1; }
+  .btn-primary   { flex: 2; }
+}
+
+// ─── GAME PAGE ───────────────────────────────
+.game-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(30, 77, 42, 0.22) 0%, transparent 65%),
+    $bg-deep;
+  padding: 28px;
+}
+
+.game-header {
+  max-width: 720px;
+  margin: 0 auto 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .game-title-block {
+    .game-room-label {
+      font-family: $font-heading;
+      color: $gold;
+      font-size: 0.95rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .game-room-id {
+      font-size: 0.72rem;
+      color: $cream-muted;
+      font-family: monospace;
+      letter-spacing: 0.06em;
+    }
+  }
+
+  .game-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+}
+
+.players-card {
+  @include panel;
+  max-width: 720px;
+  margin: 0 auto;
+  overflow: hidden;
+
+  .players-header {
+    padding: 18px 26px;
+    border-bottom: 1px solid $border-gold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    h3 {
+      font-family: $font-heading;
+      color: $gold;
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .players-count-badge {
+      background: rgba(201, 162, 39, 0.08);
+      border: 1px solid $border-gold;
+      border-radius: 20px;
+      padding: 3px 14px;
+      font-size: 0.78rem;
+      color: $gold;
+      font-weight: 700;
+    }
+  }
+
+  .players-empty {
+    padding: 52px;
+    text-align: center;
+    color: $cream-muted;
+    font-style: italic;
+  }
+}
+
+.players-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    font-family: $font-heading;
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    padding: 12px 26px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.1);
+    text-align: left;
+    font-weight: 600;
+  }
+
+  td {
+    padding: 16px 26px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.06);
+    color: $cream;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background 0.15s ease;
+    &:hover { background: rgba(201, 162, 39, 0.03); }
+    &:last-child td { border-bottom: none; }
+  }
+}
+
+.player-name-cell {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+
+  .player-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $bg-panel-light, $bg-felt);
+    border: 1px solid $border-gold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: $gold;
+    flex-shrink: 0;
+    font-family: $font-heading;
+    font-weight: 700;
+  }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  &.ready {
+    background: rgba(46, 204, 113, 0.12);
+    border: 1px solid rgba(46, 204, 113, 0.38);
+    color: #4fde8c;
+
+    &::before {
+      content: '✓';
+      font-weight: 900;
+    }
+  }
+
+  &.not-ready {
+    background: rgba(168, 159, 142, 0.08);
+    border: 1px solid rgba(168, 159, 142, 0.18);
+    color: $cream-muted;
+
+    &::before { content: '○'; }
+  }
+}
+
+// ─── ALERT TOASTS ────────────────────────────
+.alert {
+  position: fixed;
+  bottom: 22px;
+  left: 22px;
+  padding: 13px 18px;
+  background: $bg-panel;
+  color: $cream;
+  border-radius: 9px;
+  border: 1px solid $border-gold;
+  box-shadow: 0 6px 28px $shadow;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  min-width: 180px;
+  max-width: 340px;
+  animation: slideInAlert 0.2s ease;
+
+  button {
+    background: none;
+    border: none;
+    color: $cream-muted;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 2px;
+    margin-left: auto;
+    line-height: 1;
+
+    &:hover { color: $cream; }
+  }
+
+  &.success {
+    border-color: rgba(46, 204, 113, 0.45);
+    background: rgba(46, 204, 113, 0.1);
+    color: #a4f0c0;
+  }
+
+  &.error {
+    border-color: rgba(204, 41, 54, 0.45);
+    background: rgba(204, 41, 54, 0.1);
+    color: #ffb0b0;
+  }
+
+  &.warning {
+    border-color: rgba(243, 156, 18, 0.45);
+    background: rgba(243, 156, 18, 0.1);
+    color: #ffd598;
+  }
+
+  &.info {
+    border-color: rgba(52, 152, 219, 0.45);
+    background: rgba(52, 152, 219, 0.1);
+    color: #a8d8f5;
+  }
+}
+
+@keyframes slideInAlert {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+// ─── DEBUG / WEBSOCKET PANEL ──────────────────
+.debug-section {
+  border-top: 1px solid rgba(201, 162, 39, 0.08);
+  margin-top: 52px;
+  padding: 14px 28px 20px;
+  background: rgba(0, 0, 0, 0.18);
+
+  details {
+    summary {
+      font-family: $font-heading;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(168, 159, 142, 0.45);
+      cursor: pointer;
+      padding: 8px 0;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &::before {
+        content: '▶';
+        font-size: 0.55rem;
+        transition: transform 0.2s;
+      }
+
+      &:hover { color: $cream-muted; }
+    }
+
+    &[open] summary::before { transform: rotate(90deg); }
+
+    > div {
+      padding: 14px 0 4px;
+      color: $cream-muted;
+      font-size: 0.82rem;
+    }
+  }
+}
+
+// ─── BACKWARD-COMPAT .table CLASS ────────────
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: $bg-panel;
+  border: 1px solid $border-gold;
+  border-radius: 8px;
+  overflow: hidden;
 
   th, td {
-    padding: $table-cell-padding;
-    border-bottom: $table-border-width $table-border-style $table-cell-border-bottom-color;
-    border-right: $table-border-width $table-border-style $table-border-color; // Add right border for each cell
-    text-align: left; // Align text to the left
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.12);
+    text-align: left;
+    color: $cream;
   }
 
   th {
-    background-color: $table-header-bg-color;
-    color: $table-header-font-color;
-    font-weight: $table-header-font-weight;
+    background: rgba(201, 162, 39, 0.07);
+    color: $gold;
+    font-family: $font-heading;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
   }
 
-  tr:hover {
-    background-color: $table-row-hover-bg-color;
-  }
+  tr:hover { background: rgba(201, 162, 39, 0.04); }
+  td:last-child { border-right: none; }
+  tbody tr:last-child td { border-bottom: none; }
+}
 
-  // Remove right border for the last cell in each row
-  td:last-child {
-    border-right: none;
-  }
+// ─── APP ROOT ────────────────────────────────
+.App {
+  text-align: center;
 }
