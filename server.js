@@ -12,6 +12,7 @@ const bcrypt = require("bcryptjs");
 const ws_auth_middleware = require("./middleware/ws_auth");
 const { userJoinRoom, userCreateRoom, userLeaveRoom, userToggleReady } = require("./socket_handlers/game_room/");
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
+const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame } = require("./socket_handlers/game_play/");
 require('dotenv').config()
 
 function setupSocketHandlers(io) {
@@ -27,6 +28,17 @@ function setupSocketHandlers(io) {
         socket.on("user-create-room", userCreateRoom(socket, io));
         socket.on("user-leave-room", userLeaveRoom(socket, io));
         socket.on("user-toggle-ready", userToggleReady(socket, io));
+
+        //game-play
+        socket.on("game-start", startGame(socket, io));
+        socket.on("game-place-bid", placeBid(socket, io));
+        socket.on("game-pass-bid", passBid(socket, io));
+        socket.on("game-select-powerhouse", selectPowerHouse(socket, io));
+        socket.on("game-select-partners", selectPartners(socket, io));
+        socket.on("game-play-card", playCard(socket, io));
+        socket.on("game-request-state", requestGameState(socket, io));
+        socket.on("game-next-round", nextRound(socket, io));
+        socket.on("game-quit", quitGame(socket, io));
     });
 }
 
@@ -47,7 +59,7 @@ if (require.main === module) {
 // Allowed origins for CORS
 const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',')
-    : ['http://localhost:3000', 'http://localhost:3001'];
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'];
 
 // Init Middleware
 app.use(helmet());

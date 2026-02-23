@@ -1,6 +1,9 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
 const bcrypt = require("bcryptjs");
+const { findGameForSocket } = require("../game_play/helpers/findGameForSocket");
+const { buildPublicView } = require("../game_play/helpers/broadcastState");
+const { getValidPlays } = require("../../game_engine/tricks");
 
 module.exports = (socket, io) => async (data, callback) => {
     const { roomname, roompass } = data;
@@ -28,6 +31,27 @@ module.exports = (socket, io) => async (data, callback) => {
                         `${socket.username} has reconnected!`
                     );
                     io.to(roomname).emit("fetch-users-in-room");
+
+                    // If an active game is in progress, send them the game state
+                    if (game.state !== "lobby") {
+                        findGameForSocket(socket).then(({ gameState }) => {
+                            if (gameState) {
+                                const playerId = socket.user.id;
+                                const publicView = buildPublicView(gameState);
+                                const personalView = {
+                                    ...publicView,
+                                    myHand: gameState.hands[playerId] || [],
+                                    validPlays: gameState.phase === "playing"
+                                        ? getValidPlays(gameState, playerId)
+                                        : [],
+                                };
+                                socket.emit("game-state-update", personalView);
+                                io.to(roomname).emit("game-player-reconnected", {
+                                    playerId,
+                                });
+                            }
+                        });
+                    }
                 }
             });
             return;

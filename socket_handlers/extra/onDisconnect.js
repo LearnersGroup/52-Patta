@@ -1,5 +1,6 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
+const { getGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 
 module.exports = (socket, io) => async () => {
     try {
@@ -10,6 +11,29 @@ module.exports = (socket, io) => async () => {
 
         const game = await Game.findById(user.gameroom);
         if (!game) return;
+
+        const gameId = game._id.toString();
+        const isActiveGame = game.state !== "lobby";
+
+        // If game is actively in progress, don't remove the player — just
+        // persist a checkpoint so they can reconnect.
+        if (isActiveGame) {
+            io.to(game.roomname).emit(
+                "room-message",
+                `${socket.username || "A player"} has disconnected`
+            );
+            io.to(game.roomname).emit("game-player-disconnected", {
+                playerId: socket.user.id,
+            });
+
+            const gameState = getGameState(gameId);
+            if (gameState) {
+                await persistCheckpoint(gameId);
+            }
+            return;
+        }
+
+        // --- Lobby disconnect: existing behavior ---
 
         // Notify room about disconnection
         io.to(game.roomname).emit(

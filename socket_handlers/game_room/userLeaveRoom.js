@@ -28,6 +28,8 @@ module.exports = (socket, io) => async (callback) => {
             }
             await Game.findOneAndDelete({ _id: game.id });
             //redirecting all users to homePage
+            const socketsInRoom = await io.in(game.roomname).fetchSockets();
+            console.log(`[LeaveRoom] Admin leaving room "${game.roomname}". Sockets in room: ${socketsInRoom.length}, ids: [${socketsInRoom.map(s => s.user?.id).join(', ')}]`);
             io.to(game.roomname).emit("redirect-to-home-page");
             return;
         }
