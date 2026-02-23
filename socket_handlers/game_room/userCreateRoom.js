@@ -3,7 +3,7 @@ const User = require("../../models/User");
 const bcrypt = require("bcryptjs");
 
 module.exports = (socket, io) => async (data, callback) => {
-    const { roomname, roompass, player_count } = data;
+    const { roomname, roompass, player_count, deck_count, bid_threshold } = data;
 
     if (!roomname || typeof roomname !== 'string') {
         callback("Room name is required");
@@ -14,8 +14,8 @@ module.exports = (socket, io) => async (data, callback) => {
         return;
     }
     const count = parseInt(player_count, 10);
-    if (isNaN(count) || count < 2 || count > 10) {
-        callback("Player count must be between 2 and 10");
+    if (isNaN(count) || count < 4 || count > 10) {
+        callback("Player count must be between 4 and 10");
         return;
     }
 
@@ -38,13 +38,22 @@ module.exports = (socket, io) => async (data, callback) => {
             return
         }
 
-        game = new Game({
+        const gameData = {
             roomname: sanitizedRoomname,
             roompass: roompass,
             player_count: count,
             players: [{playerId: socket.user.id}],
             admin: socket.user.id,
-        });
+        };
+        // Only set deck_count if provided (for 6-player games where user picks 1 or 2 decks)
+        if (deck_count === 1 || deck_count === 2) {
+            gameData.deck_count = deck_count;
+        }
+        // Store bid threshold for odd-player variants
+        if (bid_threshold && typeof bid_threshold === 'number' && bid_threshold > 0) {
+            gameData.bid_threshold = bid_threshold;
+        }
+        game = new Game(gameData);
 
         //encrypt creds & store
         const salt = await bcrypt.genSalt(10);

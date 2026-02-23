@@ -572,7 +572,7 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
 .create-card {
   @include panel;
   width: 100%;
-  max-width: 480px;
+  max-width: 540px;
   padding: 40px 38px;
   position: relative;
   z-index: 1;
@@ -685,6 +685,77 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   .btn-primary   { flex: 2; }
 }
 
+.variant-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.variant-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(201, 162, 39, 0.15);
+  border-radius: 8px;
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(201, 162, 39, 0.4);
+    background: rgba(201, 162, 39, 0.06);
+  }
+
+  &.active {
+    border-color: $gold;
+    background: rgba(201, 162, 39, 0.12);
+    box-shadow: 0 0 12px rgba(201, 162, 39, 0.15);
+  }
+
+  .variant-label {
+    color: $cream;
+    font-family: $font-heading;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+  }
+
+  .variant-meta {
+    color: $cream-muted;
+    font-size: 0.65rem;
+    letter-spacing: 0.03em;
+  }
+
+  &.active .variant-label {
+    color: $gold;
+  }
+}
+
+.threshold-info {
+  color: $cream-muted;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  font-family: $font-body;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.threshold-widget {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.threshold-value {
+  font-family: $font-heading;
+  font-size: 2rem;
+  color: $gold;
+  min-width: 70px;
+  text-align: center;
+  text-shadow: 0 0 16px rgba(201, 162, 39, 0.3);
+}
+
 // ─── GAME PAGE ───────────────────────────────
 .game-page {
   min-height: 100vh;
@@ -723,6 +794,41 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
     display: flex;
     gap: 10px;
     align-items: center;
+  }
+}
+
+.lobby-threshold-info {
+  max-width: 720px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: rgba(201, 162, 39, 0.04);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+
+  .threshold-label {
+    font-family: $font-heading;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    white-space: nowrap;
+  }
+
+  .threshold-badge {
+    font-family: $font-heading;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: $gold;
+    text-shadow: 0 0 10px rgba(201, 162, 39, 0.25);
+  }
+
+  .threshold-desc {
+    font-size: 0.78rem;
+    color: $cream-muted;
+    font-style: italic;
   }
 }
 
@@ -984,6 +1090,760 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   tr:hover { background: rgba(201, 162, 39, 0.04); }
   td:last-child { border-right: none; }
   tbody tr:last-child td { border-bottom: none; }
+}
+
+// ─── DECK SELECTOR (Create Page) ────────────
+.deck-selector {
+  display: flex;
+  gap: 10px;
+
+  .deck-btn {
+    @include btn-base;
+    flex: 1;
+    background: $bg-input;
+    border: 1px solid $border-gold;
+    color: $cream-muted;
+
+    &.active {
+      background: rgba(201, 162, 39, 0.12);
+      border-color: $gold;
+      color: $gold;
+    }
+
+    &:hover:not(.active) {
+      border-color: rgba(201, 162, 39, 0.5);
+      color: $cream;
+    }
+  }
+}
+
+// ─── GAME BOARD ─────────────────────────────
+.game-board {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.quit-game-bar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-sm {
+  padding: 6px 14px;
+  font-size: 0.68rem;
+}
+
+.quit-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.quit-confirm-dialog {
+  @include panel;
+  padding: 32px 36px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+
+  h3 {
+    font-family: $font-heading;
+    color: $cream;
+    font-size: 1.1rem;
+    letter-spacing: 0.12em;
+    margin: 0 0 12px;
+  }
+
+  p {
+    color: $cream-muted;
+    font-size: 0.88rem;
+    margin: 0 0 24px;
+    line-height: 1.5;
+  }
+}
+
+.quit-confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+
+  button { flex: 1; }
+}
+
+.game-board-loading {
+  text-align: center;
+  color: $cream-muted;
+  padding: 60px 20px;
+  font-style: italic;
+  font-size: 1.05rem;
+}
+
+.game-error-banner {
+  background: rgba(204, 41, 54, 0.1);
+  border: 1px solid rgba(204, 41, 54, 0.4);
+  border-radius: 8px;
+  padding: 12px 18px;
+  color: #ff9090;
+  font-size: 0.9rem;
+}
+
+// ─── PLAYER LIST BAR ────────────────────────
+.player-list-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.player-seat {
+  @include panel;
+  padding: 10px 14px;
+  min-width: 120px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.2s;
+
+  &.active-turn {
+    border-color: $gold;
+    box-shadow: 0 0 12px $glow-gold;
+  }
+
+  &.is-me {
+    background: rgba(201, 162, 39, 0.06);
+  }
+
+  &.team-bid {
+    border-left: 3px solid #2ecc71;
+  }
+
+  &.team-oppose {
+    border-left: 3px solid $red-suit;
+  }
+}
+
+.seat-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $bg-panel-light, $bg-felt);
+  border: 1px solid $border-gold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: $gold;
+  font-family: $font-heading;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.seat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.seat-name {
+  color: $cream;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leader-badge, .partner-badge {
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.leader-badge {
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid $border-gold;
+  color: $gold;
+}
+
+.partner-badge {
+  background: rgba(46, 204, 113, 0.12);
+  border: 1px solid rgba(46, 204, 113, 0.35);
+  color: #2ecc71;
+}
+
+.seat-meta {
+  display: flex;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: $cream-muted;
+}
+
+.turn-indicator {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $gold;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.6);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(201, 162, 39, 0.6); }
+  50%      { opacity: 0.6; box-shadow: 0 0 16px rgba(201, 162, 39, 0.9); }
+}
+
+// ─── BIDDING PANEL ──────────────────────────
+.bidding-panel {
+  @include panel;
+  padding: 24px 28px;
+}
+
+.bidding-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+
+  h3 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+}
+
+.current-bid-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .bid-label {
+    color: $cream-muted;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .bid-amount {
+    font-family: $font-heading;
+    font-size: 1.6rem;
+    color: $gold;
+    font-weight: 700;
+    text-shadow: 0 0 14px rgba(201, 162, 39, 0.3);
+  }
+
+  .bid-leader-label {
+    font-size: 0.75rem;
+    color: $cream-muted;
+  }
+}
+
+.bidding-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.bid-input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: $bg-input;
+  border: 1px solid $border-gold;
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.bid-adjust {
+  @include btn-base;
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid $border-gold;
+  color: $gold;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 1.2rem;
+
+  &:hover:not(:disabled) {
+    background: rgba(201, 162, 39, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+.bid-value {
+  font-family: $font-heading;
+  font-size: 1.3rem;
+  color: $cream;
+  min-width: 50px;
+  text-align: center;
+}
+
+.bid-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.bidding-passed, .bidding-waiting {
+  color: $cream-muted;
+  font-style: italic;
+  font-size: 0.92rem;
+  padding: 8px 0;
+}
+
+// ─── POWERHOUSE PANEL ───────────────────────
+.powerhouse-panel {
+  @include panel;
+  padding: 24px 28px;
+
+  h3 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0 0 20px;
+  }
+}
+
+.suit-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.suit-btn {
+  @include btn-base;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 14px;
+  background: $bg-input;
+  border: 1px solid $border-gold;
+
+  &.red {
+    color: $red-suit;
+    &:hover {
+      border-color: $red-suit;
+      box-shadow: 0 0 12px rgba(204, 41, 54, 0.2);
+    }
+  }
+
+  &.black {
+    color: $cream;
+    &:hover {
+      border-color: $cream;
+      box-shadow: 0 0 12px rgba(245, 240, 232, 0.1);
+    }
+  }
+
+  .suit-symbol {
+    font-size: 2.2rem;
+    line-height: 1;
+  }
+
+  .suit-name {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+.powerhouse-selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+
+  .ph-label {
+    color: $cream-muted;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .ph-suit {
+    font-size: 1.2rem;
+    font-weight: 700;
+
+    &.red { color: $red-suit; }
+    &.black { color: $cream; }
+  }
+}
+
+.partner-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.partner-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+
+  .partner-select {
+    width: auto;
+    min-width: 120px;
+    padding: 8px 12px;
+    font-size: 0.88rem;
+  }
+}
+
+.duplicate-spec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .spec-label {
+    color: $cream-muted;
+    font-size: 0.78rem;
+    white-space: nowrap;
+  }
+}
+
+.waiting-panel {
+  @include panel;
+  padding: 40px 28px;
+  text-align: center;
+
+  .waiting-text {
+    color: $cream-muted;
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+}
+
+// ─── TRICK AREA ─────────────────────────────
+.trick-area {
+  @include panel;
+  padding: 20px 24px;
+}
+
+.trick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+
+  .round-label {
+    font-family: $font-heading;
+    color: $cream;
+    font-size: 0.85rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+}
+
+.powerhouse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+
+  &.red {
+    background: rgba(204, 41, 54, 0.12);
+    border: 1px solid rgba(204, 41, 54, 0.38);
+    color: $red-suit;
+  }
+
+  &.black {
+    background: rgba(245, 240, 232, 0.06);
+    border: 1px solid rgba(245, 240, 232, 0.18);
+    color: $cream;
+  }
+}
+
+.trick-cards {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 100px;
+}
+
+.trick-card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.trick-card {
+  width: 65px;
+  height: 91px; // 5:7 ratio
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.trick-player-label {
+  font-size: 0.65rem;
+  color: $cream-muted;
+  font-family: monospace;
+}
+
+.trick-empty {
+  color: $cream-muted;
+  font-style: italic;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+// ─── PLAYER HAND ────────────────────────────
+.player-hand-area {
+  position: sticky;
+  bottom: 0;
+  background:
+    linear-gradient(0deg, $bg-deep 60%, transparent 100%);
+  padding: 12px 0 20px;
+}
+
+.hand-label {
+  font-family: $font-heading;
+  color: $cream-muted;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+.hand-cards {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.hand-card {
+  width: 60px;
+  height: 84px;
+  border-radius: 5px;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: default;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+
+  &.playable {
+    cursor: pointer;
+    border: 2px solid rgba(46, 204, 113, 0.5);
+
+    &:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 6px 18px rgba(46, 204, 113, 0.3);
+      border-color: #2ecc71;
+    }
+  }
+
+  &.disabled {
+    opacity: 0.45;
+    filter: grayscale(0.3);
+  }
+}
+
+// ─── SCOREBOARD ─────────────────────────────
+.scoreboard {
+  @include panel;
+  padding: 20px 24px;
+}
+
+.score-header {
+  margin-bottom: 16px;
+
+  h3 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+}
+
+.score-teams {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
+.score-team {
+  flex: 1;
+  text-align: center;
+  padding: 14px;
+  border-radius: 10px;
+
+  &.bid-team {
+    background: rgba(46, 204, 113, 0.06);
+    border: 1px solid rgba(46, 204, 113, 0.2);
+  }
+
+  &.oppose-team {
+    background: rgba(204, 41, 54, 0.06);
+    border: 1px solid rgba(204, 41, 54, 0.2);
+  }
+}
+
+.team-label {
+  font-family: $font-heading;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $cream-muted;
+  margin-bottom: 6px;
+}
+
+.team-points {
+  font-family: $font-heading;
+  font-size: 2rem;
+  font-weight: 700;
+  color: $cream;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.team-members {
+  font-size: 0.72rem;
+  color: $cream-muted;
+}
+
+.score-divider {
+  color: $cream-muted;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.final-scores {
+  margin-top: 20px;
+  border-top: 1px solid $border-gold;
+  padding-top: 16px;
+
+  h4 {
+    font-family: $font-heading;
+    color: $cream;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+}
+
+.score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 6px;
+
+  &:hover { background: rgba(201, 162, 39, 0.04); }
+}
+
+.score-player {
+  color: $cream;
+  font-size: 0.88rem;
+  font-family: monospace;
+}
+
+.score-value {
+  font-family: $font-heading;
+  font-weight: 700;
+  color: $gold;
+  font-size: 0.95rem;
+
+  &.negative { color: $red-suit; }
+}
+
+// ─── NEXT ROUND SECTION ────────────────────
+.next-round-section {
+  margin-top: 20px;
+  border-top: 1px solid $border-gold;
+  padding-top: 16px;
+  text-align: center;
+}
+
+.next-round-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.next-round-status {
+  color: $cream-muted;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+// ─── REMOVED TWOS ───────────────────────────
+.removed-twos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(201, 162, 39, 0.04);
+  border: 1px solid $border-gold;
+  border-radius: 8px;
+}
+
+.removed-label {
+  color: $cream-muted;
+  font-size: 0.78rem;
+  font-family: $font-heading;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.removed-cards {
+  display: flex;
+  gap: 6px;
+}
+
+.removed-card {
+  width: 36px;
+  height: 50px;
+  border-radius: 3px;
+  overflow: hidden;
+  opacity: 0.6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 // ─── APP ROOT ────────────────────────────────

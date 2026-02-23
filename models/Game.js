@@ -18,6 +18,14 @@ const GameSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
+    deck_count: {
+        type: Number,
+        default: null,
+    },
+    bid_threshold: {
+        type: Number,
+        default: null,
+    },
     players: [{
         playerId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -34,7 +42,11 @@ const GameSchema = new mongoose.Schema({
     },
     state: {
         type: String,
-        default: "State"
+        default: "lobby"
+    },
+    gameState: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null
     }
 });
 
