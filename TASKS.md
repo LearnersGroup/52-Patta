@@ -100,6 +100,9 @@
 > Add two new card games using the plugin architecture from EPIC 2.
 > **Depends on:** EPIC 2 (plugin architecture)
 
+### Prerequisites
+- [ ] Set up `migrate-mongo` for database schema migrations (needed for User model changes across environments)
+
 ### MendiKot
 - [ ] Research and document MendiKot rules and game flow
 - [ ] Implement MendiKot game engine (config, dealing, tricks, scoring)
