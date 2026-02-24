@@ -175,6 +175,21 @@
 
 ---
 
+## EPIC 11: Migrate off Create React App [P11 - Future]
+
+> CRA is effectively unmaintained and locks 57 dependency vulnerabilities that cannot be patched.
+> Migrating to Vite (or Next.js) unblocks all client-side vulnerability fixes and improves DX (faster builds, HMR).
+
+- [ ] Evaluate Vite vs Next.js (Vite recommended — minimal migration, keeps SPA architecture)
+- [ ] Set up Vite project with React plugin
+- [ ] Migrate CRA-specific config (proxy, env vars `REACT_APP_*` → `VITE_*`)
+- [ ] Migrate build scripts and Dockerfile
+- [ ] Verify all existing functionality works
+- [ ] Remove `react-scripts` dependency
+- [ ] Run `npm audit` — confirm 57 CRA-locked vulnerabilities are resolved
+
+---
+
 ## Dependency Graph
 
 ```
