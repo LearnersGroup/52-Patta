@@ -2,6 +2,7 @@ const express = require("express");
 var cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const Sentry = require("@sentry/node");
 const connectDB = require("./config/db");
 const { Server } = require("socket.io");
 const app = express();
@@ -14,6 +15,15 @@ const { userJoinRoom, userCreateRoom, userLeaveRoom, userToggleReady } = require
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
 const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame } = require("./socket_handlers/game_play/");
 require('dotenv').config()
+
+// Initialize Sentry error tracking (only if DSN is configured)
+if (process.env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.NODE_ENV || 'development',
+        tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
+    });
+}
 
 function setupSocketHandlers(io) {
     io.on("connection", (socket) => {
@@ -133,6 +143,11 @@ app.get('/health', async (req, res) => {
 
     res.status(200).json(health);
 });
+
+// Sentry error handler (must be after routes, before other error handlers)
+if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+}
 
 const server = http.createServer(app);
 const io = new Server(server, {

@@ -75,9 +75,9 @@
 - [x] Infrastructure as Code with Terraform (AWS EC2, VPC, security groups) — `terraform/`
 - [ ] Set up staging environment (separate EC2 instance or ECS) — **manual: run `terraform apply`**
 - [x] Add health check endpoint (`GET /health` with DB connectivity check)
-- [ ] Set up error tracking (Sentry or similar) — **manual: create Sentry project, add DSN to env**
-- [ ] Set up log aggregation (CloudWatch or ELK) — **manual: configure on AWS**
-- [ ] Add uptime monitoring (UptimeRobot, Better Uptime, or similar) — **manual: configure monitoring service**
+- [x] Set up error tracking (Sentry) — integrated in `server.js`, **manual: create Sentry project, add `SENTRY_DSN` to env**
+- [x] Set up log aggregation — `config/logger.js` outputs JSON lines for CloudWatch/ELK, **manual: configure CloudWatch agent on EC2**
+- [x] Add uptime monitoring — `scripts/health-check.sh` for cron/UptimeRobot, **manual: configure monitoring service pointing to `GET /health`**
 
 ---
 

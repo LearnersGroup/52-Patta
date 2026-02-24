@@ -16,6 +16,7 @@
   "author": "Prince Patel",
   "license": "ISC",
   "dependencies": {
+    "@sentry/node": "^10.39.0",
     "bcryptjs": "^2.4.3",
     "config": "^3.3.9",
     "cors": "^2.8.5",
