@@ -1,0 +1,49 @@
+# Local development docker-compose
+# Usage: docker-compose up --build
+# This mirrors the production setup locally (nginx + backend + mongo)
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: patta_dev
+
+  backend:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongo
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      MONGO_HOST: mongodb://mongo:27017/patta_dev
+      MONGO_DB_NAME: patta_dev
+      MONGO_USERNAME: ""
+      MONGO_PASSWORD: ""
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-do-not-use-in-prod}
+      CORS_ORIGINS: http://localhost,http://localhost:3000,http://localhost:80
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  client:
+    build: ./client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mongo_data:

@@ -108,6 +108,32 @@ app.get('/', (req, res) => {
     res.status(200).send('52 Patta\'s Service is up');
 });
 
+// Health check endpoint for load balancers, Docker, and uptime monitoring
+app.get('/health', async (req, res) => {
+    const health = {
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+    };
+
+    try {
+        const dbState = require('mongoose').connection.readyState;
+        // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+        health.database = dbState === 1 ? 'connected' : 'disconnected';
+        if (dbState !== 1) {
+            health.status = 'degraded';
+            return res.status(503).json(health);
+        }
+    } catch {
+        health.database = 'error';
+        health.status = 'degraded';
+        return res.status(503).json(health);
+    }
+
+    res.status(200).json(health);
+});
+
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {

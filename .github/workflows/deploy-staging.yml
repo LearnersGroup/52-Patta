@@ -1,0 +1,47 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Build and push server image
+        run: |
+          docker build -t 52-patta-server .
+          # Tag and push to ECR (uncomment when ECR is set up)
+          # aws ecr get-login-password | docker login --username AWS --password-stdin ${{ vars.ECR_REGISTRY }}
+          # docker tag 52-patta-server ${{ vars.ECR_REGISTRY }}/52-patta-server:staging
+          # docker push ${{ vars.ECR_REGISTRY }}/52-patta-server:staging
+
+      - name: Build and push client image
+        run: |
+          cd client
+          docker build -t 52-patta-client .
+          # Tag and push to ECR (uncomment when ECR is set up)
+          # docker tag 52-patta-client ${{ vars.ECR_REGISTRY }}/52-patta-client:staging
+          # docker push ${{ vars.ECR_REGISTRY }}/52-patta-client:staging
+
+      - name: Deploy to staging server
+        run: |
+          echo "TODO: SSH into staging EC2 and docker-compose pull + up"
+          echo "This will be automated once Terraform provisions the infrastructure"
+          # ssh -o StrictHostKeyChecking=no ec2-user@${{ vars.STAGING_HOST }} << 'EOF'
+          #   cd /app
+          #   docker-compose pull
+          #   docker-compose up -d
+          # EOF
