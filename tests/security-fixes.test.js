@@ -53,7 +53,19 @@ describe('HIGH: Security Middleware', () => {
 
     test('should use helmet middleware', () => {
         expect(serverFile).toMatch(/require\s*\(\s*["']helmet["']\s*\)/);
-        expect(serverFile).toMatch(/app\.use\s*\(\s*helmet\s*\(\s*\)/);
+        expect(serverFile).toMatch(/app\.use\s*\(\s*helmet\s*\(/);
+    });
+
+    test('should configure Content Security Policy', () => {
+        expect(serverFile).toMatch(/contentSecurityPolicy/);
+        expect(serverFile).toMatch(/defaultSrc.*'self'/);
+        expect(serverFile).toMatch(/frameAncestors.*'none'/);
+    });
+
+    test('should configure HSTS', () => {
+        expect(serverFile).toMatch(/hsts/);
+        expect(serverFile).toMatch(/maxAge:\s*31536000/);
+        expect(serverFile).toMatch(/includeSubDomains:\s*true/);
     });
 
     test('should use rate limiting on auth endpoints', () => {

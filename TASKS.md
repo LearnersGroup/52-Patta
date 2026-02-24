@@ -11,15 +11,15 @@
 
 > Fix committed credentials, harden Docker images, add HTTPS. Must be done before any public deployment.
 
-- [ ] Remove `.env` from git tracking and add to `.gitignore`
-- [ ] Create `.env.example` with all required environment variables documented
+- [x] Remove `.env` from git tracking and add to `.gitignore`
+- [x] Create `.env.example` with all required environment variables documented
 - [ ] Rotate MongoDB credentials on Atlas (replace `bako/bako`)
-- [ ] Rotate JWT secret (replace `@123qwertY`)
-- [ ] Pin Docker base images to LTS versions (e.g., `node:20-alpine`)
-- [ ] Replace `nodemon` with `node server.js` in production server Dockerfile CMD
-- [ ] Serve React production build with nginx or `serve` instead of `react-scripts start`
-- [ ] Set up SSL/TLS with Let's Encrypt + nginx reverse proxy
-- [ ] Review and harden security headers (Helmet config audit)
+- [x] Rotate JWT secret (replace `@123qwertY`)
+- [x] Pin Docker base images to LTS versions (e.g., `node:20-alpine`)
+- [x] Replace `nodemon` with `node server.js` in production server Dockerfile CMD
+- [x] Serve React production build with nginx or `serve` instead of `react-scripts start`
+- [x] Set up SSL/TLS with Let's Encrypt + nginx reverse proxy
+- [x] Review and harden security headers (Helmet config audit)
 
 ---
 
@@ -51,14 +51,14 @@
 > Create comprehensive documentation for the project's current state.
 > **Depends on:** EPIC 2 (architecture should be stable before documenting)
 
-- [ ] System architecture diagram (client, server, DB, Socket.io flow)
-- [ ] Socket event catalog (all client/server events with payload schemas)
-- [ ] Game engine module diagram (config, deck, bidding, tricks, scoring, powerhouse)
-- [ ] REST API endpoint documentation (routes, request/response shapes)
-- [ ] Game state flow diagram (lobby -> bidding -> powerhouse -> playing -> scoring)
-- [ ] Data model documentation (User, Game, in-memory gameState)
-- [ ] Dev setup guide (local dev, mock server, integration tests)
-- [ ] Contributing guide (coding standards, PR process, testing expectations)
+- [x] System architecture diagram (client, server, DB, Socket.io flow) — `docs/architecture.md`
+- [x] Socket event catalog (all client/server events with payload schemas) — `docs/socket-events.md`
+- [x] Game engine module diagram (config, deck, bidding, tricks, scoring, powerhouse) — `docs/game-engine.md`
+- [x] REST API endpoint documentation (routes, request/response shapes) — `docs/api-endpoints.md`
+- [x] Game state flow diagram (lobby -> bidding -> powerhouse -> playing -> scoring) — `docs/game-flow.md`
+- [x] Data model documentation (User, Game, in-memory gameState) — `docs/data-models.md`
+- [x] Dev setup guide (local dev, mock server, integration tests) — `docs/dev-setup.md`
+- [x] Contributing guide (coding standards, PR process, testing expectations) — `docs/contributing.md`
 
 ---
 
@@ -172,6 +172,21 @@
 - [ ] TV platform SDK integration (tvOS, Android TV)
 - [ ] QR code / pairing mechanism between phone and TV
 - [ ] TV display components (large card view, scoreboard, game table)
+
+---
+
+## EPIC 11: Migrate off Create React App [P11 - Future]
+
+> CRA is effectively unmaintained and locks 57 dependency vulnerabilities that cannot be patched.
+> Migrating to Vite (or Next.js) unblocks all client-side vulnerability fixes and improves DX (faster builds, HMR).
+
+- [ ] Evaluate Vite vs Next.js (Vite recommended — minimal migration, keeps SPA architecture)
+- [ ] Set up Vite project with React plugin
+- [ ] Migrate CRA-specific config (proxy, env vars `REACT_APP_*` → `VITE_*`)
+- [ ] Migrate build scripts and Dockerfile
+- [ ] Verify all existing functionality works
+- [ ] Remove `react-scripts` dependency
+- [ ] Run `npm audit` — confirm 57 CRA-locked vulnerabilities are resolved
 
 ---
 
