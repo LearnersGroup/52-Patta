@@ -51,14 +51,14 @@
 > Create comprehensive documentation for the project's current state.
 > **Depends on:** EPIC 2 (architecture should be stable before documenting)
 
-- [ ] System architecture diagram (client, server, DB, Socket.io flow)
-- [ ] Socket event catalog (all client/server events with payload schemas)
-- [ ] Game engine module diagram (config, deck, bidding, tricks, scoring, powerhouse)
-- [ ] REST API endpoint documentation (routes, request/response shapes)
-- [ ] Game state flow diagram (lobby -> bidding -> powerhouse -> playing -> scoring)
-- [ ] Data model documentation (User, Game, in-memory gameState)
-- [ ] Dev setup guide (local dev, mock server, integration tests)
-- [ ] Contributing guide (coding standards, PR process, testing expectations)
+- [x] System architecture diagram (client, server, DB, Socket.io flow) — `docs/architecture.md`
+- [x] Socket event catalog (all client/server events with payload schemas) — `docs/socket-events.md`
+- [x] Game engine module diagram (config, deck, bidding, tricks, scoring, powerhouse) — `docs/game-engine.md`
+- [x] REST API endpoint documentation (routes, request/response shapes) — `docs/api-endpoints.md`
+- [x] Game state flow diagram (lobby -> bidding -> powerhouse -> playing -> scoring) — `docs/game-flow.md`
+- [x] Data model documentation (User, Game, in-memory gameState) — `docs/data-models.md`
+- [x] Dev setup guide (local dev, mock server, integration tests) — `docs/dev-setup.md`
+- [x] Contributing guide (coding standards, PR process, testing expectations) — `docs/contributing.md`
 
 ---
 
