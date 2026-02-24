@@ -11,15 +11,15 @@
 
 > Fix committed credentials, harden Docker images, add HTTPS. Must be done before any public deployment.
 
-- [ ] Remove `.env` from git tracking and add to `.gitignore`
-- [ ] Create `.env.example` with all required environment variables documented
+- [x] Remove `.env` from git tracking and add to `.gitignore`
+- [x] Create `.env.example` with all required environment variables documented
 - [ ] Rotate MongoDB credentials on Atlas (replace `bako/bako`)
-- [ ] Rotate JWT secret (replace `@123qwertY`)
-- [ ] Pin Docker base images to LTS versions (e.g., `node:20-alpine`)
-- [ ] Replace `nodemon` with `node server.js` in production server Dockerfile CMD
-- [ ] Serve React production build with nginx or `serve` instead of `react-scripts start`
-- [ ] Set up SSL/TLS with Let's Encrypt + nginx reverse proxy
-- [ ] Review and harden security headers (Helmet config audit)
+- [x] Rotate JWT secret (replace `@123qwertY`)
+- [x] Pin Docker base images to LTS versions (e.g., `node:20-alpine`)
+- [x] Replace `nodemon` with `node server.js` in production server Dockerfile CMD
+- [x] Serve React production build with nginx or `serve` instead of `react-scripts start`
+- [x] Set up SSL/TLS with Let's Encrypt + nginx reverse proxy
+- [x] Review and harden security headers (Helmet config audit)
 
 ---
 
