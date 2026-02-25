@@ -13,7 +13,7 @@ variable "environment" {
 variable "aws_region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-2"
+  default     = "ca-central-1"
 }
 
 variable "instance_type" {
@@ -25,7 +25,7 @@ variable "instance_type" {
 variable "ami_id" {
   description = "Amazon Machine Image ID (Amazon Linux 2023)"
   type        = string
-  default     = "ami-0c101f26f147fa7fd" # Amazon Linux 2023 in us-east-2
+  default     = "ami-0f435c88087d8e0de" # Amazon Linux 2023 in ca-central-1
 }
 
 variable "key_pair_name" {
