@@ -1,10 +1,10 @@
 # Production docker-compose
 # Usage: docker-compose -f docker-compose.prod.yml up -d
-# Requires: .env file with real credentials, SSL certs from Certbot
+# Images are pulled from ECR by the CI/CD pipeline - no build needed on the server
 
 services:
   backend:
-    build: .
+    image: 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-server:staging
     restart: unless-stopped
     expose:
       - "4000"
@@ -18,7 +18,7 @@ services:
       start_period: 10s
 
   client:
-    build: ./client
+    image: 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-client:staging
     restart: unless-stopped
     ports:
       - "80:80"

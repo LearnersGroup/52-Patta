@@ -5,11 +5,15 @@ on:
     tags:
       - 'v*'  # Triggers on version tags like v1.0.0, v2.1.3
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: production
+env:
+  AWS_REGION: ca-central-1
+  ECR_REGISTRY: 198303630852.dkr.ecr.ca-central-1.amazonaws.com
+  SERVER_IMAGE: 52-patta-server
+  CLIENT_IMAGE: 52-patta-client
 
+jobs:
+  test:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,25 +24,33 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      # Run full test suite before deploying to production
       - name: Install and test server
-        run: |
-          npm ci
-          npm test
+        run: npm ci && npm test
         env:
           JWT_SECRET: test-secret
           MONGO_HOST: mongodb://localhost:27017/test
 
       - name: Install and build client
-        run: |
-          cd client && npm ci && npm run build
+        run: cd client && npm ci && npm run build
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: test  # Only deploy if tests pass
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Extract version tag
         id: version
@@ -46,30 +58,42 @@ jobs:
 
       - name: Build and push server image
         run: |
-          docker build -t 52-patta-server .
-          # Tag and push to ECR (uncomment when ECR is set up)
-          # aws ecr get-login-password | docker login --username AWS --password-stdin ${{ vars.ECR_REGISTRY }}
-          # docker tag 52-patta-server ${{ vars.ECR_REGISTRY }}/52-patta-server:${{ steps.version.outputs.tag }}
-          # docker tag 52-patta-server ${{ vars.ECR_REGISTRY }}/52-patta-server:latest
-          # docker push ${{ vars.ECR_REGISTRY }}/52-patta-server:${{ steps.version.outputs.tag }}
-          # docker push ${{ vars.ECR_REGISTRY }}/52-patta-server:latest
+          docker build \
+            -t $ECR_REGISTRY/$SERVER_IMAGE:${{ steps.version.outputs.tag }} \
+            -t $ECR_REGISTRY/$SERVER_IMAGE:latest \
+            .
+          docker push $ECR_REGISTRY/$SERVER_IMAGE:${{ steps.version.outputs.tag }}
+          docker push $ECR_REGISTRY/$SERVER_IMAGE:latest
 
       - name: Build and push client image
         run: |
           cd client
-          docker build -t 52-patta-client .
-          # Tag and push to ECR (uncomment when ECR is set up)
-          # docker tag 52-patta-client ${{ vars.ECR_REGISTRY }}/52-patta-client:${{ steps.version.outputs.tag }}
-          # docker tag 52-patta-client ${{ vars.ECR_REGISTRY }}/52-patta-client:latest
-          # docker push ${{ vars.ECR_REGISTRY }}/52-patta-client:${{ steps.version.outputs.tag }}
-          # docker push ${{ vars.ECR_REGISTRY }}/52-patta-client:latest
+          docker build \
+            -t $ECR_REGISTRY/$CLIENT_IMAGE:${{ steps.version.outputs.tag }} \
+            -t $ECR_REGISTRY/$CLIENT_IMAGE:latest \
+            .
+          docker push $ECR_REGISTRY/$CLIENT_IMAGE:${{ steps.version.outputs.tag }}
+          docker push $ECR_REGISTRY/$CLIENT_IMAGE:latest
 
-      - name: Deploy to production server
-        run: |
-          echo "TODO: Deploy to production EC2"
-          echo "Version: ${{ steps.version.outputs.tag }}"
-          # ssh -o StrictHostKeyChecking=no ec2-user@${{ vars.PROD_HOST }} << 'EOF'
-          #   cd /app
-          #   docker-compose pull
-          #   docker-compose up -d
-          # EOF
+      - name: Deploy to production EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Login to ECR
+            aws ecr get-login-password --region ca-central-1 | \
+              docker login --username AWS --password-stdin 198303630852.dkr.ecr.ca-central-1.amazonaws.com
+
+            # Pull latest images from ECR
+            docker pull 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-server:latest
+            docker pull 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-client:latest
+
+            # Restart with new images
+            cd /app
+            git pull origin main
+            docker-compose -f docker-compose.prod.yml up -d
+
+            # Clean up old unused images
+            docker image prune -f

@@ -4,6 +4,12 @@ on:
   push:
     branches: [main]
 
+env:
+  AWS_REGION: ca-central-1
+  ECR_REGISTRY: 198303630852.dkr.ecr.ca-central-1.amazonaws.com
+  SERVER_IMAGE: 52-patta-server
+  CLIENT_IMAGE: 52-patta-client
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -18,30 +24,43 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push server image
         run: |
-          docker build -t 52-patta-server .
-          # Tag and push to ECR (uncomment when ECR is set up)
-          # aws ecr get-login-password | docker login --username AWS --password-stdin ${{ vars.ECR_REGISTRY }}
-          # docker tag 52-patta-server ${{ vars.ECR_REGISTRY }}/52-patta-server:staging
-          # docker push ${{ vars.ECR_REGISTRY }}/52-patta-server:staging
+          docker build -t $ECR_REGISTRY/$SERVER_IMAGE:staging -t $ECR_REGISTRY/$SERVER_IMAGE:latest .
+          docker push $ECR_REGISTRY/$SERVER_IMAGE:staging
+          docker push $ECR_REGISTRY/$SERVER_IMAGE:latest
 
       - name: Build and push client image
         run: |
           cd client
-          docker build -t 52-patta-client .
-          # Tag and push to ECR (uncomment when ECR is set up)
-          # docker tag 52-patta-client ${{ vars.ECR_REGISTRY }}/52-patta-client:staging
-          # docker push ${{ vars.ECR_REGISTRY }}/52-patta-client:staging
+          docker build -t $ECR_REGISTRY/$CLIENT_IMAGE:staging -t $ECR_REGISTRY/$CLIENT_IMAGE:latest .
+          docker push $ECR_REGISTRY/$CLIENT_IMAGE:staging
+          docker push $ECR_REGISTRY/$CLIENT_IMAGE:latest
 
-      - name: Deploy to staging server
-        run: |
-          echo "TODO: SSH into staging EC2 and docker-compose pull + up"
-          echo "This will be automated once Terraform provisions the infrastructure"
-          # ssh -o StrictHostKeyChecking=no ec2-user@${{ vars.STAGING_HOST }} << 'EOF'
-          #   cd /app
-          #   docker-compose pull
-          #   docker-compose up -d
-          # EOF
+      - name: Deploy to staging EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            # Login to ECR
+            aws ecr get-login-password --region ca-central-1 | \
+              docker login --username AWS --password-stdin 198303630852.dkr.ecr.ca-central-1.amazonaws.com
+
+            # Pull latest images from ECR
+            docker pull 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-server:staging
+            docker pull 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-client:staging
+
+            # Restart with new images (no rebuild needed)
+            cd /app
+            git pull origin main
+            docker-compose -f docker-compose.prod.yml up -d
+
+            # Clean up old unused images
+            docker image prune -f
