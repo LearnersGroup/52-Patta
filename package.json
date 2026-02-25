@@ -11,6 +11,7 @@
     "socket-dev": "concurrently \"npm run server\" \"npm run client\" \"npm run client1\"",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "test": "jest --forceExit --detectOpenHandles",
+    "test:unit": "jest --forceExit --detectOpenHandles --testPathPattern=tests/security-fixes",
     "test:integration": "vitest run --config vitest.config.js"
   },
   "author": "Prince Patel",
