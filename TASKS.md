@@ -67,17 +67,17 @@
 > Professional deployment pipeline with environment separation, IaC, and monitoring.
 > **Depends on:** EPIC 1 (security), EPIC 3 (documentation)
 
-- [ ] Create `docker-compose.yml` for local development
-- [ ] Create environment-specific config files (dev / staging / prod)
-- [ ] Update CI/CD pipeline: add lint -> test -> build steps before deploy
-- [ ] Add auto-deploy on merge to `main` (staging environment)
-- [ ] Add auto-deploy on tag/release (production environment)
-- [ ] Infrastructure as Code with Terraform (AWS EC2, VPC, security groups)
-- [ ] Set up staging environment (separate EC2 instance or ECS)
-- [ ] Add health check endpoint (`GET /health` with DB connectivity check)
-- [ ] Set up error tracking (Sentry or similar)
-- [ ] Set up log aggregation (CloudWatch or ELK)
-- [ ] Add uptime monitoring (UptimeRobot, Better Uptime, or similar)
+- [x] Create `docker-compose.yml` for local development
+- [x] Create environment-specific config files (dev / staging / prod) — `env/dev.env`, `env/staging.env.example`, `env/prod.env.example`
+- [x] Update CI/CD pipeline: add lint -> test -> build steps before deploy — `.github/workflows/ci.yml`
+- [x] Add auto-deploy on merge to `main` (staging environment) — `.github/workflows/deploy-staging.yml`
+- [x] Add auto-deploy on tag/release (production environment) — `.github/workflows/deploy-prod.yml`
+- [x] Infrastructure as Code with Terraform (AWS EC2, VPC, security groups) — `terraform/`
+- [ ] Set up staging environment (separate EC2 instance or ECS) — **manual: run `terraform apply`**
+- [x] Add health check endpoint (`GET /health` with DB connectivity check)
+- [x] Set up error tracking (Sentry) — integrated in `server.js`, **manual: create Sentry project, add `SENTRY_DSN` to env**
+- [x] Set up log aggregation — `config/logger.js` outputs JSON lines for CloudWatch/ELK, **manual: configure CloudWatch agent on EC2**
+- [x] Add uptime monitoring — `scripts/health-check.sh` for cron/UptimeRobot, **manual: configure monitoring service pointing to `GET /health`**
 
 ---
 
@@ -99,6 +99,9 @@
 
 > Add two new card games using the plugin architecture from EPIC 2.
 > **Depends on:** EPIC 2 (plugin architecture)
+
+### Prerequisites
+- [ ] Set up `migrate-mongo` for database schema migrations (needed for User model changes across environments)
 
 ### MendiKot
 - [ ] Research and document MendiKot rules and game flow

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-test-build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      # Server
+      - name: Install server dependencies
+        run: npm ci
+
+      - name: Run server tests
+        run: npm test
+        env:
+          JWT_SECRET: test-secret
+          MONGO_HOST: mongodb://localhost:27017/test
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          JWT_SECRET: test-secret
+
+      # Client
+      - name: Install client dependencies
+        run: cd client && npm ci
+
+      - name: Build client
+        run: cd client && npm run build
+
+      # Docker
+      - name: Build server Docker image
+        run: docker build -t 52-patta-server .
+
+      - name: Build client Docker image
+        run: cd client && docker build -t 52-patta-client .

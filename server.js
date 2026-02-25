@@ -2,6 +2,7 @@ const express = require("express");
 var cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const Sentry = require("@sentry/node");
 const connectDB = require("./config/db");
 const { Server } = require("socket.io");
 const app = express();
@@ -14,6 +15,15 @@ const { userJoinRoom, userCreateRoom, userLeaveRoom, userToggleReady } = require
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
 const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame } = require("./socket_handlers/game_play/");
 require('dotenv').config()
+
+// Initialize Sentry error tracking (only if DSN is configured)
+if (process.env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: process.env.NODE_ENV || 'development',
+        tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.2 : 1.0,
+    });
+}
 
 function setupSocketHandlers(io) {
     io.on("connection", (socket) => {
@@ -67,10 +77,10 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https://www.gravatar.com"],
             connectSrc: ["'self'", "wss:", "ws:"],
-            fontSrc: ["'self'"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
             objectSrc: ["'none'"],
             frameAncestors: ["'none'"],
             upgradeInsecureRequests: [],
@@ -107,6 +117,37 @@ app.use("/api/mygame", require("./routes/api/mygame"));
 app.get('/', (req, res) => {
     res.status(200).send('52 Patta\'s Service is up');
 });
+
+// Health check endpoint for load balancers, Docker, and uptime monitoring
+app.get('/health', async (req, res) => {
+    const health = {
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+    };
+
+    try {
+        const dbState = require('mongoose').connection.readyState;
+        // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+        health.database = dbState === 1 ? 'connected' : 'disconnected';
+        if (dbState !== 1) {
+            health.status = 'degraded';
+            return res.status(503).json(health);
+        }
+    } catch {
+        health.database = 'error';
+        health.status = 'degraded';
+        return res.status(503).json(health);
+    }
+
+    res.status(200).json(health);
+});
+
+// Sentry error handler (must be after routes, before other error handlers)
+if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+}
 
 const server = http.createServer(app);
 const io = new Server(server, {

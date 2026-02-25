@@ -19,3 +19,13 @@ npm-debug.log*
 
 # Build output
 client/build/
+
+# Environment files with real secrets
+env/staging.env
+env/prod.env
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.terraform.lock.hcl
