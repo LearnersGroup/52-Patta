@@ -1,10 +1,11 @@
 # Production docker-compose
 # Usage: docker-compose -f docker-compose.prod.yml up -d
 # Images are pulled from ECR by the CI/CD pipeline - no build needed on the server
+# Requires ECR_REGISTRY to be set in .env (e.g. 198303630852.dkr.ecr.ca-central-1.amazonaws.com)
 
 services:
   backend:
-    image: 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-server:staging
+    image: ${ECR_REGISTRY}/52-patta-server:${IMAGE_TAG:-staging}
     restart: unless-stopped
     expose:
       - "4000"
@@ -18,7 +19,7 @@ services:
       start_period: 10s
 
   client:
-    image: 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-client:staging
+    image: ${ECR_REGISTRY}/52-patta-client:${IMAGE_TAG:-staging}
     restart: unless-stopped
     ports:
       - "80:80"

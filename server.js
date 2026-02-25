@@ -122,6 +122,7 @@ app.get('/', (req, res) => {
 app.get('/health', async (req, res) => {
     const health = {
         status: 'ok',
+        version: require('./package.json').version,
         uptime: process.uptime(),
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || 'development',
