@@ -11,7 +11,7 @@ env:
   CLIENT_IMAGE: 52-patta-client
 
 jobs:
-  deploy:
+  test-build-deploy:
     runs-on: ubuntu-latest
     environment: staging
 
@@ -19,6 +19,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # --- Test ---
+      - name: Install server dependencies
+        run: npm ci
+
+      - name: Run server tests
+        run: npm test
+        env:
+          JWT_SECRET: test-secret
+          MONGO_HOST: mongodb://localhost:27017/test
+
+      # --- Build & Push to ECR ---
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -42,6 +59,7 @@ jobs:
           docker push $ECR_REGISTRY/$CLIENT_IMAGE:staging
           docker push $ECR_REGISTRY/$CLIENT_IMAGE:latest
 
+      # --- Deploy ---
       - name: Deploy to staging EC2
         uses: appleboy/ssh-action@v1
         with:
@@ -53,14 +71,15 @@ jobs:
             aws ecr get-login-password --region ca-central-1 | \
               docker login --username AWS --password-stdin 198303630852.dkr.ecr.ca-central-1.amazonaws.com
 
-            # Pull latest images from ECR
+            # Pull latest images
             docker pull 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-server:staging
             docker pull 198303630852.dkr.ecr.ca-central-1.amazonaws.com/52-patta-client:staging
 
-            # Restart with new images (no rebuild needed)
-            cd /app
-            git pull origin main
+            # Pull latest config (nginx, docker-compose, etc.)
+            cd /app && git pull origin main
+
+            # Restart containers with new images (no rebuild)
             docker-compose -f docker-compose.prod.yml up -d
 
-            # Clean up old unused images
+            # Clean up old images
             docker image prune -f
