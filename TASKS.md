@@ -102,6 +102,9 @@
 
 ### Prerequisites
 - [ ] Set up `migrate-mongo` for database schema migrations (needed for User model changes across environments)
+- [ ] Fix pre-existing test failures before EPIC 6 work begins:
+  - [ ] Remove unused `config` package import from `routes/api/users.js` (causes warning in CI)
+  - [ ] Fix integration test "Suite 9: Join full room is rejected" — `player_count` validation sends invalid value, test expects rejection but error message doesn't match
 
 ### MendiKot
 - [ ] Research and document MendiKot rules and game flow
