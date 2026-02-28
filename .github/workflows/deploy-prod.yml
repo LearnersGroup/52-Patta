@@ -74,6 +74,33 @@ jobs:
           docker push $ECR_REGISTRY/$CLIENT_IMAGE:${{ steps.version.outputs.tag }}
           docker push $ECR_REGISTRY/$CLIENT_IMAGE:latest
 
+      # --- Ensure EC2 is running ---
+      - name: Start EC2 if stopped
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters \
+              "Name=tag:Name,Values=52-patta-production" \
+              "Name=instance-state-name,Values=running,stopped,stopping,pending" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+
+          if [ "$INSTANCE_ID" = "None" ] || [ -z "$INSTANCE_ID" ]; then
+            echo "::warning::No EC2 instance found by tag. Assuming host is reachable."
+          else
+            STATE=$(aws ec2 describe-instances \
+              --instance-ids $INSTANCE_ID \
+              --query "Reservations[0].Instances[0].State.Name" \
+              --output text)
+
+            if [ "$STATE" = "stopped" ]; then
+              echo "EC2 is stopped — starting it before deploy..."
+              aws ec2 start-instances --instance-ids $INSTANCE_ID
+              aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+              echo "Waiting for SSH to become available..."
+              sleep 30
+            fi
+          fi
+
       # --- Deploy ---
       - name: Deploy to production EC2
         uses: appleboy/ssh-action@v1

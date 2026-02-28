@@ -1,0 +1,165 @@
+name: Manage Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - stop
+          - start
+          - status
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  AWS_REGION: ca-central-1
+  PROJECT_NAME: 52-patta
+
+jobs:
+  manage:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Find EC2 instance by tag
+        id: ec2
+        run: |
+          INSTANCE_ID=$(aws ec2 describe-instances \
+            --filters \
+              "Name=tag:Name,Values=${{ env.PROJECT_NAME }}-${{ inputs.environment }}" \
+              "Name=instance-state-name,Values=running,stopped,stopping,pending" \
+            --query "Reservations[0].Instances[0].InstanceId" \
+            --output text)
+
+          if [ "$INSTANCE_ID" = "None" ] || [ -z "$INSTANCE_ID" ]; then
+            echo "::error::No EC2 instance found with tag Name=${{ env.PROJECT_NAME }}-${{ inputs.environment }}"
+            exit 1
+          fi
+
+          echo "instance_id=$INSTANCE_ID" >> $GITHUB_OUTPUT
+          echo "Found instance: $INSTANCE_ID"
+
+      # ── Status ──
+      - name: Get instance status
+        if: inputs.action == 'status'
+        run: |
+          aws ec2 describe-instances \
+            --instance-ids ${{ steps.ec2.outputs.instance_id }} \
+            --query "Reservations[0].Instances[0].{
+              InstanceId: InstanceId,
+              State: State.Name,
+              Type: InstanceType,
+              PublicIp: PublicIpAddress,
+              LaunchTime: LaunchTime
+            }" \
+            --output table
+
+      # ── Stop ──
+      - name: Stop EC2 instance
+        if: inputs.action == 'stop'
+        run: |
+          STATE=$(aws ec2 describe-instances \
+            --instance-ids ${{ steps.ec2.outputs.instance_id }} \
+            --query "Reservations[0].Instances[0].State.Name" \
+            --output text)
+
+          if [ "$STATE" = "stopped" ]; then
+            echo "Instance is already stopped."
+            exit 0
+          fi
+
+          echo "Stopping instance ${{ steps.ec2.outputs.instance_id }}..."
+          aws ec2 stop-instances --instance-ids ${{ steps.ec2.outputs.instance_id }}
+
+          echo "Waiting for instance to stop..."
+          aws ec2 wait instance-stopped --instance-ids ${{ steps.ec2.outputs.instance_id }}
+          echo "Instance stopped."
+
+      # ── Start ──
+      - name: Start EC2 instance
+        if: inputs.action == 'start'
+        run: |
+          STATE=$(aws ec2 describe-instances \
+            --instance-ids ${{ steps.ec2.outputs.instance_id }} \
+            --query "Reservations[0].Instances[0].State.Name" \
+            --output text)
+
+          if [ "$STATE" = "running" ]; then
+            echo "Instance is already running."
+            exit 0
+          fi
+
+          echo "Starting instance ${{ steps.ec2.outputs.instance_id }}..."
+          aws ec2 start-instances --instance-ids ${{ steps.ec2.outputs.instance_id }}
+
+          echo "Waiting for instance to be running..."
+          aws ec2 wait instance-running --instance-ids ${{ steps.ec2.outputs.instance_id }}
+          echo "Instance is running."
+
+      - name: Wait for app to come up
+        if: inputs.action == 'start'
+        run: |
+          # Get the public IP (Elastic IP persists across stop/start)
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids ${{ steps.ec2.outputs.instance_id }} \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+
+          echo "Instance IP: $PUBLIC_IP"
+          echo "Waiting for Docker containers to auto-restart (restart: unless-stopped)..."
+
+          # Give Docker daemon time to start and containers to come up
+          sleep 30
+
+          # Poll the health endpoint (up to 3 minutes)
+          MAX_ATTEMPTS=18
+          ATTEMPT=0
+          until curl -sf --connect-timeout 5 "http://$PUBLIC_IP/health" > /dev/null 2>&1; do
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ $ATTEMPT -ge $MAX_ATTEMPTS ]; then
+              echo "::warning::App did not respond after $((MAX_ATTEMPTS * 10))s. Instance is running but app may need manual attention or a deploy."
+              exit 0
+            fi
+            echo "Attempt $ATTEMPT/$MAX_ATTEMPTS - waiting 10s..."
+            sleep 10
+          done
+
+          echo "App is healthy at http://$PUBLIC_IP"
+
+      # ── Summary ──
+      - name: Print summary
+        run: |
+          STATE=$(aws ec2 describe-instances \
+            --instance-ids ${{ steps.ec2.outputs.instance_id }} \
+            --query "Reservations[0].Instances[0].State.Name" \
+            --output text)
+
+          PUBLIC_IP=$(aws ec2 describe-instances \
+            --instance-ids ${{ steps.ec2.outputs.instance_id }} \
+            --query "Reservations[0].Instances[0].PublicIpAddress" \
+            --output text)
+
+          echo "## Infrastructure Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Action | \`${{ inputs.action }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${{ inputs.environment }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Instance ID | \`${{ steps.ec2.outputs.instance_id }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| State | \`$STATE\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Public IP | \`$PUBLIC_IP\` |" >> $GITHUB_STEP_SUMMARY
