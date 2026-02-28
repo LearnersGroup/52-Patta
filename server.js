@@ -10,6 +10,7 @@ const http = require("http");
 const Game = require("./models/Game");
 const User = require("./models/User");
 const bcrypt = require("bcryptjs");
+const passport = require("./config/passport");
 const ws_auth_middleware = require("./middleware/ws_auth");
 const { userJoinRoom, userCreateRoom, userLeaveRoom, userToggleReady } = require("./socket_handlers/game_room/");
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
@@ -79,8 +80,9 @@ app.use(helmet({
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https://www.gravatar.com"],
-            connectSrc: ["'self'", "wss:", "ws:"],
+            connectSrc: ["'self'", "wss:", "ws:", "https://accounts.google.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            formAction: ["'self'", "https://accounts.google.com", "https://www.facebook.com"],
             objectSrc: ["'none'"],
             frameAncestors: ["'none'"],
             upgradeInsecureRequests: [],
@@ -97,6 +99,7 @@ app.use(cors({
     credentials: true
 }));
 app.use(express.json({ extended: false, limit: '10kb' }));
+app.use(passport.initialize());
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
@@ -106,6 +109,7 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth", authLimiter);
 app.use("/api/users", authLimiter);
+app.use("/api/oauth", authLimiter);
 
 //define routes
 app.use("/api/users", require("./routes/api/users")); //create user
@@ -113,6 +117,7 @@ app.use("/api/auth", require("./routes/api/auth")); //auth user
 app.use("/api/games", require("./routes/api/games")); //create game-room
 app.use("/api/game-rooms", require("./routes/api/game-rooms")); //
 app.use("/api/mygame", require("./routes/api/mygame"));
+app.use("/api/oauth", require("./routes/api/oauth"));
 
 app.get('/', (req, res) => {
     res.status(200).send('52 Patta\'s Service is up');

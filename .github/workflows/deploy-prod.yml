@@ -10,6 +10,10 @@ env:
   ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
   SERVER_IMAGE: 52-patta-server
   CLIENT_IMAGE: 52-patta-client
+  GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+  GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  GOOGLE_CALLBACK_URL: ${{ vars.GOOGLE_CALLBACK_URL }}
+  CLIENT_URL: ${{ vars.CLIENT_URL }}
 
 jobs:
   test-build-deploy:
@@ -77,8 +81,24 @@ jobs:
           host: ${{ secrets.PROD_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION
+          envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_CALLBACK_URL,CLIENT_URL
           script: |
+            cd /app
+
+            # Sync secrets from GitHub into EC2 .env
+            update_env() {
+              local key=$1 value=$2
+              if grep -q "^${key}=" .env 2>/dev/null; then
+                sed -i "s|^${key}=.*|${key}=${value}|" .env
+              else
+                echo "${key}=${value}" >> .env
+              fi
+            }
+            update_env "GOOGLE_CLIENT_ID"      "$GOOGLE_CLIENT_ID"
+            update_env "GOOGLE_CLIENT_SECRET"  "$GOOGLE_CLIENT_SECRET"
+            update_env "GOOGLE_CALLBACK_URL"   "$GOOGLE_CALLBACK_URL"
+            update_env "CLIENT_URL"            "$CLIENT_URL"
+
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
               docker login --username AWS --password-stdin $ECR_REGISTRY
@@ -88,7 +108,7 @@ jobs:
             docker pull $ECR_REGISTRY/$CLIENT_IMAGE:latest
 
             # Pull latest config
-            cd /app && git pull origin main
+            git pull origin main
 
             # Restart containers with new images
             IMAGE_TAG=latest docker-compose -f docker-compose.prod.yml up -d

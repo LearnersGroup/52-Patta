@@ -12,10 +12,19 @@ const UserSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: false
     },
     avatar: {
         type: String,
+    },
+    provider: {
+        type: String,
+        enum: ['local', 'google', 'facebook'],
+        default: 'local'
+    },
+    providerId: {
+        type: String,
+        default: null
     },
     date: {
         type: Date,
