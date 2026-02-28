@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const auth = require("../../middleware/auth");
 const { check, validationResult } = require("express-validator");
-const config = require("config");
 const User = require("../../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
@@ -49,6 +48,14 @@ router.post(
                 return res
                     .status(400)
                     .json({ errors: [{ msg: "Invalid Credentials" }] });
+            }
+
+            // OAuth-only users cannot login with password
+            if (!user.password) {
+                const provider = user.provider === 'google' ? 'Google' : 'Facebook';
+                return res
+                    .status(400)
+                    .json({ errors: [{ msg: `This account uses ${provider} sign-in. Please use the ${provider} button to log in.` }] });
             }
 
             //verify credentials

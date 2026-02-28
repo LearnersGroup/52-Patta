@@ -6,6 +6,7 @@ import GamePage from "./components/gamePage/GamePage";
 import { ProtectedRoute } from "./components/utils/ProtectedRoute";
 import { AuthProvider } from "./components/hooks/useAuth";
 import RegisterPage from "./components/authPage/RegisterPage";
+import OAuthCallback from "./components/authPage/OAuthCallback";
 import { QueryClient, QueryClientProvider, useQuery } from "react-query";
 import "./App.scss";
 
@@ -56,6 +57,10 @@ export default function App() {
                             <Route
                                 path="/register"
                                 element={<RegisterPage />}
+                            />
+                            <Route
+                                path="/oauth-callback"
+                                element={<OAuthCallback />}
                             />
                         </Routes>
                     </AuthProvider>
