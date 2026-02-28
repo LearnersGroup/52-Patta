@@ -11,6 +11,8 @@ env:
   CLIENT_IMAGE: 52-patta-client
   GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
   GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+  GOOGLE_CALLBACK_URL: ${{ vars.GOOGLE_CALLBACK_URL }}
+  CLIENT_URL: ${{ vars.CLIENT_URL }}
 
 jobs:
   test-build-deploy:
@@ -68,7 +70,7 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET
+          envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_CALLBACK_URL,CLIENT_URL
           script: |
             cd /app
 
@@ -83,8 +85,8 @@ jobs:
             }
             update_env "GOOGLE_CLIENT_ID"      "$GOOGLE_CLIENT_ID"
             update_env "GOOGLE_CLIENT_SECRET"  "$GOOGLE_CLIENT_SECRET"
-            update_env "GOOGLE_CALLBACK_URL"   "https://52patta.in/api/oauth/google/callback"
-            update_env "CLIENT_URL"            "https://52patta.in"
+            update_env "GOOGLE_CALLBACK_URL"   "$GOOGLE_CALLBACK_URL"
+            update_env "CLIENT_URL"            "$CLIENT_URL"
 
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
