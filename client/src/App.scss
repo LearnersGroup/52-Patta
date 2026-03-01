@@ -1386,6 +1386,17 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   50%      { opacity: 0.6; box-shadow: 0 0 16px rgba(201, 162, 39, 0.9); }
 }
 
+@keyframes turn-glow-pulse {
+  0%, 100% {
+    border-color: rgba(201, 162, 39, 0.6);
+    box-shadow: 0 0 14px rgba(201, 162, 39, 0.35), inset 0 0 8px rgba(201, 162, 39, 0.1);
+  }
+  50% {
+    border-color: rgba(201, 162, 39, 0.9);
+    box-shadow: 0 0 22px rgba(201, 162, 39, 0.55), inset 0 0 12px rgba(201, 162, 39, 0.15);
+  }
+}
+
 // ─── BIDDING PANEL ──────────────────────────
 .bidding-panel {
   @include panel;
@@ -1572,32 +1583,152 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
 .partner-selection {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+// ─── PARTNER CARD PICKER (visual) ───────────
+.partner-card-picker {
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 
-.partner-input-row {
+.suit-group {
   display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  .partner-select {
-    width: auto;
-    min-width: 120px;
-    padding: 8px 12px;
-    font-size: 0.88rem;
+.suit-group-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: $font-heading;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  &.red  { color: $red-suit; }
+  &.black { color: $cream; }
+
+  .suit-group-symbol { font-size: 1rem; line-height: 1; }
+  .suit-group-name   { opacity: 0.85; }
+}
+
+.suit-cards-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-bottom: 6px; // breathing room for hover lift
+}
+
+.partner-card-thumb {
+  position: relative;
+  width: 52px;
+  height: 73px;
+  border-radius: 5px;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+
+  &:hover:not(.disabled) {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
+  }
+
+  &.selected {
+    transform: translateY(-4px);
+    box-shadow:
+      0 0 0 2px $gold,
+      0 6px 18px rgba(201, 162, 39, 0.4);
+  }
+
+  &.selected.red {
+    box-shadow:
+      0 0 0 2px $red-suit,
+      0 6px 18px rgba(204, 41, 54, 0.4);
+  }
+
+  &.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 }
 
-.duplicate-spec {
+// Copy selector overlay (2-deck games)
+.copy-btns {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 3px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(2px);
+}
+
+.copy-btn {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  background: transparent;
+  color: $cream-muted;
+  font-size: 0.62rem;
+  font-weight: 700;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.12s ease;
 
-  .spec-label {
-    color: $cream-muted;
-    font-size: 0.78rem;
-    white-space: nowrap;
+  &:hover {
+    border-color: $gold;
+    color: $gold;
+  }
+
+  &.active {
+    background: $gold;
+    border-color: $gold;
+    color: $bg-deep;
+    box-shadow: 0 0 6px rgba(201, 162, 39, 0.5);
+  }
+}
+
+// "More / collapse" button — card-shaped placeholder
+.suit-more-btn {
+  @include btn-base;
+  width: 40px;
+  height: 73px;
+  padding: 4px;
+  background: $bg-input;
+  border: 1px dashed rgba(201, 162, 39, 0.28);
+  color: $cream-muted;
+  font-size: 0.68rem;
+  font-family: $font-body;
+  border-radius: 5px;
+  flex-direction: column;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  gap: 2px;
+
+  &:hover {
+    border-color: $gold;
+    color: $gold;
+    background: rgba(201, 162, 39, 0.06);
+  }
+
+  &.collapse {
+    font-size: 0.8rem;
   }
 }
 
@@ -1696,13 +1827,489 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   width: 100%;
 }
 
+// ─── TEAM SCORE HUD ────────────────────────
+.team-score-hud {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba($bg-panel, 0.92);
+  border: 1px solid $border-gold;
+  border-radius: 20px;
+  padding: 6px 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.hud-team {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hud-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+
+  &.bid-dot {
+    background: #3b82f6;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+  }
+
+  &.oppose-dot {
+    background: $red-suit;
+    box-shadow: 0 0 6px rgba(204, 41, 54, 0.5);
+  }
+}
+
+.hud-score {
+  font-family: $font-heading;
+  font-size: 1rem;
+  font-weight: 700;
+  color: $cream;
+  min-width: 24px;
+  text-align: center;
+}
+
+.hud-vs {
+  color: $cream-muted;
+  font-size: 0.65rem;
+  font-style: italic;
+}
+
+// ─── PARTNER CARD DISPLAY ───────────────────
+.partner-display {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  background: rgba($bg-panel, 0.92);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.partner-cards-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.partner-card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  &.revealed .partner-card-mini {
+    box-shadow: 0 0 0 2px #2ecc71, 0 4px 14px rgba(46, 204, 113, 0.35);
+  }
+
+  &.revealed .partner-label {
+    animation: partner-reveal 0.6s ease-out;
+  }
+}
+
+.partner-card-mini {
+  width: 45px;
+  height: 63px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.3s ease;
+
+  &.red {
+    box-shadow: 0 2px 8px rgba(204, 41, 54, 0.3);
+  }
+}
+
+.partner-label {
+  font-size: 0.65rem;
+  font-family: monospace;
+  color: $cream-muted;
+  letter-spacing: 0.08em;
+  max-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.revealed {
+    color: #2ecc71;
+    font-weight: 700;
+  }
+}
+
+@keyframes partner-reveal {
+  0%   { opacity: 0; transform: scale(0.8); }
+  50%  { opacity: 1; transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+// ─── CIRCULAR TABLE ─────────────────────────
+.circular-table-wrapper {
+  // The wrapper is the positioning context for both the table and all seats.
+  // It is larger than the table itself to accommodate seats around the perimeter.
+  position: relative;
+  width: var(--wrapper-size, 644px);
+  height: var(--wrapper-size, 644px);
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.circular-table {
+  // The felt circle — absolutely centered inside the wrapper
+  position: absolute;
+  top: var(--seat-padding, 72px);
+  left: var(--seat-padding, 72px);
+  width: var(--table-size, 500px);
+  height: var(--table-size, 500px);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(30, 77, 42, 0.35), transparent 70%),
+    $bg-felt;
+  border: 2px solid $border-gold;
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 60px rgba(0, 0, 0, 0.3),
+    0 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.table-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 68%;
+  height: 68%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ─── PLAYER SEAT (CIRCULAR) ────────────────
+.table-seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  z-index: 2;
+  pointer-events: auto;
+  max-width: 90px;
+
+  // Active turn: glowing border around entire seat + arrow pointing from table edge
+  &.active-turn {
+    // Glow border around the whole seat container
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border: 2px solid rgba(201, 162, 39, 0.6);
+      border-radius: 12px;
+      box-shadow: 0 0 14px rgba(201, 162, 39, 0.35), inset 0 0 8px rgba(201, 162, 39, 0.1);
+      animation: turn-glow-pulse 1.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    // Arrow from table edge pointing toward the seat
+    &::before {
+      content: '';
+      position: absolute;
+      left: calc(50% + var(--arrow-dx, 0px));
+      top: calc(50% + var(--arrow-dy, 0px));
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 12px solid $gold;
+      transform: translate(-50%, -50%) rotate(calc(var(--seat-angle-deg, 90) * 1deg - 90deg));
+      filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.7));
+      z-index: -1;
+      pointer-events: none;
+    }
+  }
+
+  &.active-turn .table-seat-avatar {
+    border-color: $gold;
+    box-shadow: 0 0 16px rgba(201, 162, 39, 0.5), 0 0 32px rgba(201, 162, 39, 0.25);
+  }
+
+  &.is-me .table-seat-name {
+    color: $gold-light;
+    font-weight: 700;
+  }
+
+  &.team-bid .table-seat-avatar {
+    border-color: rgba(46, 204, 113, 0.5);
+  }
+
+  &.team-oppose .table-seat-avatar {
+    border-color: rgba(204, 41, 54, 0.5);
+  }
+}
+
+.table-seat-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $bg-panel-light, $bg-felt);
+  border: 2px solid $border-gold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: $gold;
+  font-family: $font-heading;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+
+.table-seat-turn-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $gold;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.6);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.table-seat-name {
+  font-size: 0.62rem;
+  color: $cream;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.table-seat-badges {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+.table-seat-meta {
+  font-size: 0.55rem;
+  color: $cream-muted;
+  text-align: center;
+  white-space: nowrap;
+}
+
+// ─── CARD BACK FAN ──────────────────────────
+.card-back-fan {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  height: 32px;
+  width: 50px;
+}
+
+.card-back-item {
+  position: absolute;
+  width: 22px;
+  height: 32px;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transform-origin: bottom center;
+}
+
+.card-count-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -6px;
+  background: $bg-panel;
+  border: 1px solid $border-gold;
+  border-radius: 8px;
+  font-size: 0.5rem;
+  color: $cream-muted;
+  padding: 0 4px;
+  line-height: 1.4;
+  z-index: 3;
+}
+
+// ─── PLAY AREA ──────────────────────────────
+.play-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(201, 162, 39, 0.03);
+  }
+
+  &.inspect-mode {
+    background: rgba(201, 162, 39, 0.04);
+  }
+}
+
+.play-area-round {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: $font-heading;
+  color: $cream-muted;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.play-area-card {
+  position: absolute;
+  width: 60px;
+  height: 84px;
+  left: 50%;
+  top: 50%;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transform: translate(
+    calc(-50% + var(--thrown-x, 0px)),
+    calc(-50% + var(--thrown-y, 0px))
+  ) rotate(var(--thrown-rotate, 0deg));
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.3s;
+  pointer-events: none;
+  z-index: 1;
+
+  &:last-child {
+    z-index: 2;
+  }
+}
+
+.play-area-card-label {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: $cream-muted;
+  font-family: monospace;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+
+  .inspect-mode & {
+    opacity: 1;
+  }
+}
+
+.play-area-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: $cream-muted;
+  font-style: italic;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+// ─── CARD FLY-IN ANIMATION ─────────────────
+.play-area-card.entering {
+  animation: card-fly-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes card-fly-in {
+  0% {
+    transform: translate(
+      calc(-50% + var(--seat-x, 0px)),
+      calc(-50% + var(--seat-y, 0px))
+    ) scale(0.4) rotate(0deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--thrown-x, 0px)),
+      calc(-50% + var(--thrown-y, 0px))
+    ) rotate(var(--thrown-rotate, 0deg));
+    opacity: 1;
+  }
+}
+
+// ─── CARD SWEEP-TO-WINNER ANIMATION ────────
+.play-area-card.departing {
+  animation: card-sweep-out 0.8s ease-in forwards;
+}
+
+@keyframes card-sweep-out {
+  0% {
+    transform: translate(
+      calc(-50% + var(--thrown-x, 0px)),
+      calc(-50% + var(--thrown-y, 0px))
+    ) rotate(var(--thrown-rotate, 0deg));
+    opacity: 1;
+  }
+  60% {
+    transform: translate(
+      calc(-50% + var(--winner-x, 0px)),
+      calc(-50% + var(--winner-y, 0px))
+    ) rotate(0deg) scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--winner-x, 0px)),
+      calc(-50% + var(--winner-y, 0px))
+    ) rotate(0deg) scale(0.2);
+    opacity: 0;
+  }
+}
+
+.play-area-inspect-hint {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: rgba(201, 162, 39, 0.4);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  .play-area:hover & {
+    opacity: 1;
+  }
+}
+
 // ─── PLAYER HAND ────────────────────────────
 .player-hand-area {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  z-index: 10;
+  margin-top: -70px;
   background:
-    linear-gradient(0deg, $bg-deep 60%, transparent 100%);
-  padding: 12px 0 20px;
+    linear-gradient(0deg, $bg-deep 40%, transparent 100%);
+  padding: 8px 0 16px;
+  text-align: center;
 }
 
 .hand-label {
@@ -1712,39 +2319,52 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   letter-spacing: 0.18em;
   text-transform: uppercase;
   margin-bottom: 8px;
-  padding-left: 4px;
 }
 
-.hand-cards {
-  display: flex;
-  gap: 2px;
+// Arc hand wrapper — horizontally scrollable if many cards
+.hand-cards-arc-wrap {
   overflow-x: auto;
-  padding: 4px 0;
+  overflow-y: visible;
+  display: flex;
+  justify-content: center;
+  padding: 0 8px 4px;
+  // Extra top padding so risen (hovered) cards aren't clipped
+  padding-top: 8px;
 }
 
-.hand-card {
-  width: 60px;
-  height: 84px;
+// The absolutely-positioned canvas that holds all arc cards
+.hand-cards-arc {
+  position: relative;
+  flex-shrink: 0;
+  // width & height set inline by component
+}
+
+.hand-card-arc {
+  position: absolute;
+  // width & height set inline (for hover-enlarge)
   border-radius: 5px;
   overflow: hidden;
-  flex-shrink: 0;
   cursor: default;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out, border-color 0.25s,
+              width 0.25s ease-out, height 0.25s ease-out, left 0.25s ease-out;
 
   &.playable {
     cursor: pointer;
-    border: 2px solid rgba(46, 204, 113, 0.5);
+    border: 2px solid rgba(46, 204, 113, 0.4);
+  }
 
-    &:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 6px 18px rgba(46, 204, 113, 0.3);
-      border-color: #2ecc71;
-    }
+  &.hovered {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+
+  &.hovered.playable {
+    border-color: #2ecc71;
+    box-shadow: 0 8px 24px rgba(46, 204, 113, 0.4);
   }
 
   &.disabled {
-    opacity: 0.45;
+    opacity: 0.42;
     filter: grayscale(0.3);
   }
 }

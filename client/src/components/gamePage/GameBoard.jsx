@@ -1,22 +1,40 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { WsRequestGameState, WsQuitGame } from "../../api/wsEmitters";
 import BiddingPanel from "./BiddingPanel";
 import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
-import TrickArea from "./TrickArea";
 import PlayerList from "./PlayerList";
 import ScoreBoard from "./ScoreBoard";
 import RemovedTwosDisplay from "./RemovedTwosDisplay";
+import PartnerCardDisplay from "./PartnerCardDisplay";
+import TeamScoreHUD from "./TeamScoreHUD";
+import { CircularTable, PlayArea } from "../shared";
+import { getCardComponent, cardKey } from "./utils/cardMapper";
+
+// Cards per player for each game config (mirrors server config.js)
+const CARDS_PER_PLAYER = {
+    "4P1D": 13, "5P1D": 10, "6P1D": 8, "6P2D": 17,
+    "7P2D": 14, "8P2D": 13, "9P2D": 11, "10P2D": 10,
+};
 
 const GameBoard = ({ userId, isAdmin }) => {
     const game = useSelector((state) => state.game);
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+    const [inspectMode, setInspectMode] = useState(false);
 
     useEffect(() => {
         // Request current game state on mount (listeners registered in GamePage)
         WsRequestGameState();
     }, []);
+
+    // Reset inspect mode when a new trick starts (plays go to 0)
+    const playsCount = game.currentTrick?.plays?.length || 0;
+    useEffect(() => {
+        if (playsCount === 0) {
+            setInspectMode(false);
+        }
+    }, [playsCount]);
 
     if (!game.phase) {
         return (
@@ -41,6 +59,63 @@ const GameBoard = ({ userId, isAdmin }) => {
         WsQuitGame();
         setShowQuitConfirm(false);
     };
+
+    /**
+     * Compute expected card count for a player using frontend-only logic.
+     * cardsPerPlayer - completedRounds - (played in current trick ? 1 : 0)
+     */
+    const computeCardCount = (pid) => {
+        const total = CARDS_PER_PLAYER[game.configKey] || 13;
+        const trickPlays = game.currentTrick?.plays || [];
+        const hasPlayed = trickPlays.some((p) => p.playerId === pid);
+        return Math.max(0, total - (game.currentRound || 0) - (hasPlayed ? 1 : 0));
+    };
+
+    /**
+     * Compute per-player trick points for the current round.
+     */
+    const playerTrickPoints = {};
+    (game.tricks || []).forEach((t) => {
+        if (t.winner) {
+            playerTrickPoints[t.winner] =
+                (playerTrickPoints[t.winner] || 0) + (t.points || 0);
+        }
+    });
+
+    /**
+     * Build the players array for CircularTable from KaliTeer game state.
+     * Maps game-specific concepts (leader, teams, partners) to the
+     * generic format CircularTable expects.
+     */
+    const buildPlayerList = () => {
+        return (game.seatOrder || []).map((pid) => {
+            const isMe = pid === userId;
+            const isLeader = pid === game.leader;
+            const isBidTeam = game.teams?.bid?.includes(pid);
+            const isOppose = game.teams?.oppose?.includes(pid);
+            const isRevealed = game.revealedPartners?.includes(pid);
+
+            let teamClass = "";
+            if (isBidTeam) teamClass = "team-bid";
+            else if (isOppose && game.leader) teamClass = "team-oppose";
+
+            return {
+                id: pid,
+                name: getName(pid),
+                isMe,
+                isLeader,
+                isPartner: isRevealed,
+                isTurn: pid === game.currentTrick?.currentTurn,
+                teamClass,
+                cardCount: computeCardCount(pid),
+                score: playerTrickPoints[pid] ?? 0,
+                avatarInitial: getName(pid).charAt(0).toUpperCase(),
+            };
+        });
+    };
+
+    // Use playing phase check for circular layout
+    const isPlayingPhase = game.phase === "playing";
 
     return (
         <div className="game-board">
@@ -86,21 +161,24 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <RemovedTwosDisplay cards={game.removedTwos} />
             )}
 
-            <PlayerList
-                seatOrder={game.seatOrder}
-                handSizes={game.handSizes}
-                teams={game.teams}
-                revealedPartners={game.revealedPartners}
-                currentTurn={
-                    game.phase === "bidding"
-                        ? game.bidding?.currentTurn
-                        : game.currentTrick?.currentTurn
-                }
-                leader={game.leader}
-                userId={userId}
-                scores={game.scores}
-                getName={getName}
-            />
+            {/* Non-playing phases: use original horizontal player list */}
+            {!isPlayingPhase && (
+                <PlayerList
+                    seatOrder={game.seatOrder}
+                    handSizes={game.handSizes}
+                    teams={game.teams}
+                    revealedPartners={game.revealedPartners}
+                    currentTurn={
+                        game.phase === "bidding"
+                            ? game.bidding?.currentTurn
+                            : game.currentTrick?.currentTurn
+                    }
+                    leader={game.leader}
+                    userId={userId}
+                    scores={game.scores}
+                    getName={getName}
+                />
+            )}
 
             {game.phase === "bidding" && (
                 <BiddingPanel
@@ -129,18 +207,54 @@ const GameBoard = ({ userId, isAdmin }) => {
                 </div>
             )}
 
-            {game.phase === "playing" && (
-                <TrickArea
-                    currentTrick={game.currentTrick}
-                    seatOrder={game.seatOrder}
-                    powerHouseSuit={game.powerHouseSuit}
-                    currentRound={game.currentRound}
-                    totalRounds={game.tricks?.length + 1}
-                    getName={getName}
-                />
+            {/* Playing phase: HUDs + Circular table with PlayArea */}
+            {isPlayingPhase && (
+                <>
+                    <TeamScoreHUD
+                        tricks={game.tricks}
+                        teams={game.teams}
+                        leader={game.leader}
+                        partnerCards={game.partnerCards}
+                    />
+
+                    <PartnerCardDisplay
+                        partnerCards={game.partnerCards}
+                        powerHouseSuit={game.powerHouseSuit}
+                        getName={getName}
+                    />
+
+                    <CircularTable
+                        players={buildPlayerList()}
+                        centerContent={({ seatPositionMap, tableSize }) => (
+                            <PlayArea
+                                plays={game.currentTrick?.plays || []}
+                                inspectMode={inspectMode}
+                                onToggleInspect={() => setInspectMode(!inspectMode)}
+                                getCardSvg={getCardComponent}
+                                cardKeyFn={cardKey}
+                                getName={getName}
+                                seatPositionMap={seatPositionMap}
+                                tableSize={tableSize}
+                                roundLabel={`Round ${(game.currentRound || 0) + 1}`}
+                                seatOrder={game.seatOrder}
+                                tricksCount={game.tricks?.length || 0}
+                                lastTrickWinner={
+                                    game.tricks?.length > 0
+                                        ? game.tricks[game.tricks.length - 1].winner
+                                        : null
+                                }
+                                lastTrickCards={
+                                    game.tricks?.length > 0
+                                        ? game.tricks[game.tricks.length - 1].cards
+                                        : null
+                                }
+                            />
+                        )}
+                    />
+                </>
             )}
 
-            {(game.phase === "playing" || game.phase === "scoring" || game.phase === "finished") && (
+            {(game.phase === "scoring" || game.phase === "finished") && (
                 <ScoreBoard
                     scores={game.scores}
                     teams={game.teams}
