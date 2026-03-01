@@ -8,8 +8,15 @@ import PlayerList from "./PlayerList";
 import ScoreBoard from "./ScoreBoard";
 import RemovedTwosDisplay from "./RemovedTwosDisplay";
 import PartnerCardDisplay from "./PartnerCardDisplay";
+import TeamScoreHUD from "./TeamScoreHUD";
 import { CircularTable, PlayArea } from "../shared";
 import { getCardComponent, cardKey } from "./utils/cardMapper";
+
+// Cards per player for each game config (mirrors server config.js)
+const CARDS_PER_PLAYER = {
+    "4P1D": 13, "5P1D": 10, "6P1D": 8, "6P2D": 17,
+    "7P2D": 14, "8P2D": 13, "9P2D": 11, "10P2D": 10,
+};
 
 const GameBoard = ({ userId, isAdmin }) => {
     const game = useSelector((state) => state.game);
@@ -54,6 +61,28 @@ const GameBoard = ({ userId, isAdmin }) => {
     };
 
     /**
+     * Compute expected card count for a player using frontend-only logic.
+     * cardsPerPlayer - completedRounds - (played in current trick ? 1 : 0)
+     */
+    const computeCardCount = (pid) => {
+        const total = CARDS_PER_PLAYER[game.configKey] || 13;
+        const trickPlays = game.currentTrick?.plays || [];
+        const hasPlayed = trickPlays.some((p) => p.playerId === pid);
+        return Math.max(0, total - (game.currentRound || 0) - (hasPlayed ? 1 : 0));
+    };
+
+    /**
+     * Compute per-player trick points for the current round.
+     */
+    const playerTrickPoints = {};
+    (game.tricks || []).forEach((t) => {
+        if (t.winner) {
+            playerTrickPoints[t.winner] =
+                (playerTrickPoints[t.winner] || 0) + (t.points || 0);
+        }
+    });
+
+    /**
      * Build the players array for CircularTable from KaliTeer game state.
      * Maps game-specific concepts (leader, teams, partners) to the
      * generic format CircularTable expects.
@@ -78,8 +107,8 @@ const GameBoard = ({ userId, isAdmin }) => {
                 isPartner: isRevealed,
                 isTurn: pid === game.currentTrick?.currentTurn,
                 teamClass,
-                cardCount: game.handSizes?.[pid] ?? 0,
-                score: game.scores?.[pid] ?? 0,
+                cardCount: computeCardCount(pid),
+                score: playerTrickPoints[pid] ?? 0,
                 avatarInitial: getName(pid).charAt(0).toUpperCase(),
             };
         });
@@ -178,9 +207,16 @@ const GameBoard = ({ userId, isAdmin }) => {
                 </div>
             )}
 
-            {/* Playing phase: Partner display + Circular table with PlayArea */}
+            {/* Playing phase: HUDs + Circular table with PlayArea */}
             {isPlayingPhase && (
                 <>
+                    <TeamScoreHUD
+                        tricks={game.tricks}
+                        teams={game.teams}
+                        leader={game.leader}
+                        partnerCards={game.partnerCards}
+                    />
+
                     <PartnerCardDisplay
                         partnerCards={game.partnerCards}
                         powerHouseSuit={game.powerHouseSuit}
@@ -201,13 +237,19 @@ const GameBoard = ({ userId, isAdmin }) => {
                                 tableSize={tableSize}
                                 roundLabel={`Round ${(game.currentRound || 0) + 1}`}
                                 seatOrder={game.seatOrder}
+                                tricksCount={game.tricks?.length || 0}
+                                lastTrickWinner={
+                                    game.tricks?.length > 0
+                                        ? game.tricks[game.tricks.length - 1].winner
+                                        : null
+                                }
                             />
                         )}
                     />
                 </>
             )}
 
-            {(game.phase === "playing" || game.phase === "scoring" || game.phase === "finished") && (
+            {(game.phase === "scoring" || game.phase === "finished") && (
                 <ScoreBoard
                     scores={game.scores}
                     teams={game.teams}

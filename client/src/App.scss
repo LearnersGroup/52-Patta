@@ -1386,6 +1386,17 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   50%      { opacity: 0.6; box-shadow: 0 0 16px rgba(201, 162, 39, 0.9); }
 }
 
+@keyframes turn-glow-pulse {
+  0%, 100% {
+    border-color: rgba(201, 162, 39, 0.6);
+    box-shadow: 0 0 14px rgba(201, 162, 39, 0.35), inset 0 0 8px rgba(201, 162, 39, 0.1);
+  }
+  50% {
+    border-color: rgba(201, 162, 39, 0.9);
+    box-shadow: 0 0 22px rgba(201, 162, 39, 0.55), inset 0 0 12px rgba(201, 162, 39, 0.15);
+  }
+}
+
 // ─── BIDDING PANEL ──────────────────────────
 .bidding-panel {
   @include panel;
@@ -1816,14 +1827,76 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   width: 100%;
 }
 
-// ─── PARTNER CARD DISPLAY ───────────────────
-.partner-display {
+// ─── TEAM SCORE HUD ────────────────────────
+.team-score-hud {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 8px 0;
+  gap: 8px;
+  background: rgba($bg-panel, 0.92);
+  border: 1px solid $border-gold;
+  border-radius: 20px;
+  padding: 6px 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.hud-team {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hud-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+
+  &.bid-dot {
+    background: #3b82f6;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+  }
+
+  &.oppose-dot {
+    background: $red-suit;
+    box-shadow: 0 0 6px rgba(204, 41, 54, 0.5);
+  }
+}
+
+.hud-score {
+  font-family: $font-heading;
+  font-size: 1rem;
+  font-weight: 700;
+  color: $cream;
+  min-width: 24px;
+  text-align: center;
+}
+
+.hud-vs {
+  color: $cream-muted;
+  font-size: 0.65rem;
+  font-style: italic;
+}
+
+// ─── PARTNER CARD DISPLAY ───────────────────
+.partner-display {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  background: rgba($bg-panel, 0.92);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
 }
 
 .partner-cards-row {
@@ -1885,17 +1958,22 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
 
 // ─── CIRCULAR TABLE ─────────────────────────
 .circular-table-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 12px 0;
+  // The wrapper is the positioning context for both the table and all seats.
+  // It is larger than the table itself to accommodate seats around the perimeter.
+  position: relative;
+  width: var(--wrapper-size, 644px);
+  height: var(--wrapper-size, 644px);
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
 .circular-table {
-  --table-size: 520px;
-  position: relative;
-  width: var(--table-size);
-  height: var(--table-size);
+  // The felt circle — absolutely centered inside the wrapper
+  position: absolute;
+  top: var(--seat-padding, 72px);
+  left: var(--seat-padding, 72px);
+  width: var(--table-size, 500px);
+  height: var(--table-size, 500px);
   border-radius: 50%;
   background:
     radial-gradient(ellipse at 50% 40%, rgba(30, 77, 42, 0.35), transparent 70%),
@@ -1905,14 +1983,6 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
     0 0 40px rgba(0, 0, 0, 0.6),
     inset 0 0 60px rgba(0, 0, 0, 0.3),
     0 0 0 4px rgba(0, 0, 0, 0.4);
-  flex-shrink: 0;
-
-  @media (max-width: 640px) {
-    --table-size: min(90vw, 360px);
-  }
-  @media (min-width: 641px) and (max-width: 960px) {
-    --table-size: min(80vw, 480px);
-  }
 }
 
 .table-center {
@@ -1920,8 +1990,8 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 60%;
-  height: 60%;
+  width: 68%;
+  height: 68%;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1940,9 +2010,41 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   pointer-events: auto;
   max-width: 90px;
 
+  // Active turn: glowing border around entire seat + arrow pointing from table edge
+  &.active-turn {
+    // Glow border around the whole seat container
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border: 2px solid rgba(201, 162, 39, 0.6);
+      border-radius: 12px;
+      box-shadow: 0 0 14px rgba(201, 162, 39, 0.35), inset 0 0 8px rgba(201, 162, 39, 0.1);
+      animation: turn-glow-pulse 1.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    // Arrow from table edge pointing toward the seat
+    &::before {
+      content: '';
+      position: absolute;
+      left: calc(50% + var(--arrow-dx, 0px));
+      top: calc(50% + var(--arrow-dy, 0px));
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 12px solid $gold;
+      transform: translate(-50%, -50%) rotate(calc(var(--seat-angle-deg, 90) * 1deg - 90deg));
+      filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.7));
+      z-index: -1;
+      pointer-events: none;
+    }
+  }
+
   &.active-turn .table-seat-avatar {
     border-color: $gold;
-    box-shadow: 0 0 12px $glow-gold, 0 0 24px rgba(201, 162, 39, 0.2);
+    box-shadow: 0 0 16px rgba(201, 162, 39, 0.5), 0 0 32px rgba(201, 162, 39, 0.25);
   }
 
   &.is-me .table-seat-name {
@@ -2153,6 +2255,35 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   }
 }
 
+// ─── CARD SWEEP-TO-WINNER ANIMATION ────────
+.play-area-card.departing {
+  animation: card-sweep-out 0.8s ease-in forwards;
+}
+
+@keyframes card-sweep-out {
+  0% {
+    transform: translate(
+      calc(-50% + var(--thrown-x, 0px)),
+      calc(-50% + var(--thrown-y, 0px))
+    ) rotate(var(--thrown-rotate, 0deg));
+    opacity: 1;
+  }
+  60% {
+    transform: translate(
+      calc(-50% + var(--winner-x, 0px)),
+      calc(-50% + var(--winner-y, 0px))
+    ) rotate(0deg) scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--winner-x, 0px)),
+      calc(-50% + var(--winner-y, 0px))
+    ) rotate(0deg) scale(0.2);
+    opacity: 0;
+  }
+}
+
 .play-area-inspect-hint {
   position: absolute;
   bottom: 4px;
@@ -2172,11 +2303,13 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
 
 // ─── PLAYER HAND ────────────────────────────
 .player-hand-area {
-  position: sticky;
-  bottom: 0;
+  position: relative;
+  z-index: 10;
+  margin-top: -70px;
   background:
-    linear-gradient(0deg, $bg-deep 60%, transparent 100%);
-  padding: 12px 0 20px;
+    linear-gradient(0deg, $bg-deep 40%, transparent 100%);
+  padding: 8px 0 16px;
+  text-align: center;
 }
 
 .hand-label {
@@ -2186,39 +2319,52 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   letter-spacing: 0.18em;
   text-transform: uppercase;
   margin-bottom: 8px;
-  padding-left: 4px;
 }
 
-.hand-cards {
-  display: flex;
-  gap: 2px;
+// Arc hand wrapper — horizontally scrollable if many cards
+.hand-cards-arc-wrap {
   overflow-x: auto;
-  padding: 4px 0;
+  overflow-y: visible;
+  display: flex;
+  justify-content: center;
+  padding: 0 8px 4px;
+  // Extra top padding so risen (hovered) cards aren't clipped
+  padding-top: 8px;
 }
 
-.hand-card {
-  width: 60px;
-  height: 84px;
+// The absolutely-positioned canvas that holds all arc cards
+.hand-cards-arc {
+  position: relative;
+  flex-shrink: 0;
+  // width & height set inline by component
+}
+
+.hand-card-arc {
+  position: absolute;
+  // width & height set inline (for hover-enlarge)
   border-radius: 5px;
   overflow: hidden;
-  flex-shrink: 0;
   cursor: default;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out, border-color 0.25s,
+              width 0.25s ease-out, height 0.25s ease-out, left 0.25s ease-out;
 
   &.playable {
     cursor: pointer;
-    border: 2px solid rgba(46, 204, 113, 0.5);
+    border: 2px solid rgba(46, 204, 113, 0.4);
+  }
 
-    &:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 6px 18px rgba(46, 204, 113, 0.3);
-      border-color: #2ecc71;
-    }
+  &.hovered {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+
+  &.hovered.playable {
+    border-color: #2ecc71;
+    box-shadow: 0 8px 24px rgba(46, 204, 113, 0.4);
   }
 
   &.disabled {
-    opacity: 0.45;
+    opacity: 0.42;
     filter: grayscale(0.3);
   }
 }
