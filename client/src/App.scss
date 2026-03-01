@@ -614,6 +614,35 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   }
 
   &:focus { border-color: $gold; }
+
+  &.shake {
+    animation: shake 0.5s ease;
+    border-color: rgba(204, 41, 54, 0.7);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-5px); }
+  60%       { transform: translateX(5px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+.room-full-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(204, 41, 54, 0.1);
+  border: 1px solid rgba(204, 41, 54, 0.35);
+  border-radius: 20px;
+  padding: 3px 14px;
+  font-size: 0.78rem;
+  color: #ffb0b0;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 // ─── CREATE GAME PAGE ────────────────────────

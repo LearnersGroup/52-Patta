@@ -3,12 +3,14 @@ import { useQuery } from "react-query";
 import { get_all_rooms } from "../../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../../../socket";
-import { WsUserJoinRoom } from "../../../api/wsEmitters";
+import { useDispatch } from "react-redux";
+import { notify } from "../../../redux/slices/alert";
 
 const AllGameRooms = () => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
     const [pass, setPass] = useState("");
-    const [errors, setErrors] = useState([]);
+    const [shakingRoomId, setShakingRoomId] = useState(null);
     const { data, status } = useQuery("all-game-rooms", get_all_rooms);
 
     const handleCreateGameRoom = () => {
@@ -32,14 +34,20 @@ const AllGameRooms = () => {
         };
     }, []);
 
-    const handleJoinRoom = async (roomname, roompass, id) => {
-        let data = { roomname, roompass, id };
-        try {
-            WsUserJoinRoom(data);
-        } catch (error) {
-            console.log(error);
-            setErrors(error.errors);
-        }
+    const triggerShake = (roomId) => {
+        setShakingRoomId(roomId);
+        setTimeout(() => setShakingRoomId(null), 500);
+    };
+
+    const handleJoinRoom = (roomname, roompass, id) => {
+        socket.emit("user-join-room", { roomname, roompass, id }, (err) => {
+            if (err === "Invalid Credentials") {
+                triggerShake(id);
+                notify("Incorrect password", "error")(dispatch);
+            } else if (err) {
+                notify(err, "error")(dispatch);
+            }
+        });
     };
 
     return (
@@ -73,54 +81,55 @@ const AllGameRooms = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {data.map((room) => (
-                                <tr key={room["_id"]}>
-                                    <td>
-                                        <span className="room-name-cell">
-                                            {room.roomname}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className="room-admin-cell">
-                                            {room.admin.name}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className="player-count-badge">
-                                            {room.players.length} / {room.player_count}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div className="join-cell">
-                                            <input
-                                                type="password"
-                                                className="join-input"
-                                                value={pass}
-                                                onChange={(e) => setPass(e.target.value)}
-                                                placeholder="Password"
-                                            />
-                                            <button
-                                                className="btn-primary"
-                                                onClick={() =>
-                                                    handleJoinRoom(
-                                                        room.roomname,
-                                                        pass,
-                                                        room["_id"]
-                                                    )
-                                                }
-                                            >
-                                                Join
-                                            </button>
-                                        </div>
-                                        {errors.length !== 0 &&
-                                            errors.map((err) => (
-                                                <p key={err.path} className="form-error" style={{ marginTop: "6px" }}>
-                                                    {err.msg}
-                                                </p>
-                                            ))}
-                                    </td>
-                                </tr>
-                            ))}
+                            {data.map((room) => {
+                                const isFull = room.players.length >= room.player_count;
+                                return (
+                                    <tr key={room["_id"]}>
+                                        <td>
+                                            <span className="room-name-cell">
+                                                {room.roomname}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className="room-admin-cell">
+                                                {room.admin.name}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className="player-count-badge">
+                                                {room.players.length} / {room.player_count}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {isFull ? (
+                                                <span className="room-full-badge">Full</span>
+                                            ) : (
+                                                <div className="join-cell">
+                                                    <input
+                                                        type="password"
+                                                        className={`join-input${shakingRoomId === room["_id"] ? " shake" : ""}`}
+                                                        value={pass}
+                                                        onChange={(e) => setPass(e.target.value)}
+                                                        placeholder="Password"
+                                                    />
+                                                    <button
+                                                        className="btn-primary"
+                                                        onClick={() =>
+                                                            handleJoinRoom(
+                                                                room.roomname,
+                                                                pass,
+                                                                room["_id"]
+                                                            )
+                                                        }
+                                                    >
+                                                        Join
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 ))}
