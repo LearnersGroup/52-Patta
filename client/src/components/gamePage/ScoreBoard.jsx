@@ -1,5 +1,6 @@
-import React from "react";
-import { WsNextRound } from "../../api/wsEmitters";
+import React, { useState, useEffect } from "react";
+
+const SCOREBOARD_DISPLAY_SECONDS = 5;
 
 const ScoreBoard = ({
     scores = {},
@@ -14,7 +15,11 @@ const ScoreBoard = ({
     userId,
     isAdmin,
     onQuitGame,
+    currentGameNumber,
+    totalGames,
 }) => {
+    const [countdown, setCountdown] = useState(SCOREBOARD_DISPLAY_SECONDS);
+
     const bidTeamPoints = tricks.reduce((sum, t) => {
         if (teams.bid?.includes(t.winner)) return sum + (t.points || 0);
         return sum;
@@ -26,18 +31,39 @@ const ScoreBoard = ({
     }, 0);
 
     const isFinished = phase === "finished" || phase === "scoring";
-    const iAmReady = nextRoundReady.readyPlayers?.includes(userId);
-    const readyCount = nextRoundReady.readyPlayers?.length || 0;
-    const totalCount = nextRoundReady.totalPlayers || seatOrder.length;
 
-    const handleNextRound = () => {
-        WsNextRound();
-    };
+    // Auto-countdown timer when game is finished
+    useEffect(() => {
+        if (phase !== "finished") {
+            setCountdown(SCOREBOARD_DISPLAY_SECONDS);
+            return;
+        }
+
+        setCountdown(SCOREBOARD_DISPLAY_SECONDS);
+        const timer = setInterval(() => {
+            setCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [phase]);
 
     return (
         <div className="scoreboard">
             <div className="score-header">
-                <h3>{isFinished ? "Game Over!" : "Scoreboard"}</h3>
+                <h3>
+                    {isFinished ? "Game Over!" : "Scoreboard"}
+                    {totalGames > 1 && (
+                        <span className="game-counter-inline">
+                            {" "}— Game {currentGameNumber} of {totalGames}
+                        </span>
+                    )}
+                </h3>
             </div>
             <div className="score-teams">
                 <div className="score-team bid-team">
@@ -108,26 +134,33 @@ const ScoreBoard = ({
 
             {phase === "finished" && (
                 <div className="next-round-section">
-                    <div className="next-round-buttons">
-                        <button
-                            className={`btn-primary ${iAmReady ? "btn-disabled" : ""}`}
-                            onClick={handleNextRound}
-                            disabled={iAmReady}
-                        >
-                            {iAmReady ? "Waiting for others..." : "Play Next Round"}
-                        </button>
-                        {isAdmin && (
+                    <div className="auto-countdown">
+                        <div className="countdown-text">
+                            {currentGameNumber < totalGames
+                                ? `Next game in ${countdown}s...`
+                                : `Final results in ${countdown}s...`
+                            }
+                        </div>
+                        <div className="countdown-bar">
+                            <div
+                                className="countdown-fill"
+                                style={{
+                                    width: `${(countdown / SCOREBOARD_DISPLAY_SECONDS) * 100}%`,
+                                    transition: "width 1s linear",
+                                }}
+                            />
+                        </div>
+                    </div>
+                    {isAdmin && (
+                        <div className="next-round-buttons">
                             <button
-                                className="btn-danger"
+                                className="btn-danger btn-sm"
                                 onClick={onQuitGame}
                             >
                                 Quit Game
                             </button>
-                        )}
-                    </div>
-                    <div className="next-round-status">
-                        {readyCount} / {totalCount} players ready
-                    </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { WsPlayCard } from "../../api/wsEmitters";
 import { getCardComponent, cardKey, isCardInList } from "./utils/cardMapper";
+import { toggleHandSort } from "../../redux/slices/game";
 
 // How many px of each non-last card to expose (shows rank+suit top-left corner)
 const OVERLAP = 28;
@@ -21,6 +23,8 @@ const HAND_HOVER_SCALE = 1.08;
 const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
     const [hoveredIndex, setHoveredIndex] = useState(-1);
     const [isHandHovered, setIsHandHovered] = useState(false);
+    const dispatch = useDispatch();
+    const handSorted = useSelector((state) => state.game.handSorted);
 
     const handleCardClick = (card) => {
         if (!isMyTurn) return;
@@ -34,13 +38,16 @@ const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
         "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
         "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13, A: 14,
     };
-    const sorted = [...cards].sort((a, b) => {
-        const sd = suitOrder[a.suit] - suitOrder[b.suit];
-        if (sd !== 0) return sd;
-        return rankOrder[a.rank] - rankOrder[b.rank];
-    });
 
-    const N = sorted.length;
+    const displayCards = handSorted
+        ? [...cards].sort((a, b) => {
+            const sd = suitOrder[a.suit] - suitOrder[b.suit];
+            if (sd !== 0) return sd;
+            return rankOrder[a.rank] - rankOrder[b.rank];
+        })
+        : cards; // natural deal order
+
+    const N = displayCards.length;
     if (N === 0) return null;
 
     // Apply scale when hand area is hovered
@@ -61,13 +68,22 @@ const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
             onMouseEnter={() => setIsHandHovered(true)}
             onMouseLeave={() => { setIsHandHovered(false); setHoveredIndex(-1); }}
         >
-            <div className="hand-label">Your Hand</div>
+            <div className="hand-header">
+                <div className="hand-label">Your Hand</div>
+                <button
+                    className="hand-sort-toggle"
+                    onClick={() => dispatch(toggleHandSort())}
+                    title={handSorted ? "Show natural deal order" : "Sort by suit"}
+                >
+                    {handSorted ? "Natural Order" : "Sort by Suit"}
+                </button>
+            </div>
             <div className="hand-cards-arc-wrap">
                 <div
                     className="hand-cards-arc"
                     style={{ width: `${containerW}px`, height: `${containerH}px` }}
                 >
-                    {sorted.map((card, i) => {
+                    {displayCards.map((card, i) => {
                         const CardSvg = getCardComponent(card);
                         const isValid = isMyTurn && isCardInList(card, validPlays);
                         const isDisabled = isMyTurn && !isValid;

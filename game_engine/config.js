@@ -181,11 +181,20 @@ function compareRanks(rankA, rankB) {
     return RANK_ORDER[rankA] - RANK_ORDER[rankB];
 }
 
+const SHUFFLE_DEALING_CONFIG = {
+    MAX_SHUFFLE_OPS: 5,
+    CUT_CARD_REVEAL_MS: 1500,
+    DEALING_ANIMATION_MS: 5000,
+    SCOREBOARD_DISPLAY_MS: 5000,
+    SHUFFLE_TYPES: ["riffle", "hindu", "overhand"],
+};
+
 module.exports = {
     GAME_CONFIGS,
     SUITS,
     RANKS,
     RANK_ORDER,
+    SHUFFLE_DEALING_CONFIG,
     getConfig,
     getCardPoints,
     compareRanks,

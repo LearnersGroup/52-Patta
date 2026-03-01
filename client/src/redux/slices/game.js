@@ -1,7 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-    phase: null, // null | "bidding" | "powerhouse" | "playing" | "scoring" | "finished"
+    phase: null, // null | "shuffling" | "dealing" | "bidding" | "powerhouse" | "playing" | "scoring" | "finished" | "series-finished"
     configKey: null,
     seatOrder: [],
     playerNames: {},
@@ -24,6 +24,19 @@ const initialState = {
     scoringResult: null,
     nextRoundReady: { readyPlayers: [], totalPlayers: 0 },
     error: null,
+
+    // Dealer & shuffling
+    dealer: null,
+    dealerIndex: 0,
+    shuffleQueue: [],
+    cutCard: null,
+    dealingConfig: null,
+    handSorted: true, // toggle for sort-by-suit vs natural order
+
+    // Game series tracking
+    currentGameNumber: 1,
+    totalGames: 1,
+    finalRankings: null,
 };
 
 const gameSlice = createSlice({
@@ -53,11 +66,32 @@ const gameSlice = createSlice({
             state.handSizes = data.handSizes;
             state.scores = data.scores;
             state.scoringResult = data.scoringResult || null;
+
+            // Dealer & shuffling fields
+            state.dealer = data.dealer || null;
+            state.dealerIndex = data.dealerIndex ?? 0;
+            state.shuffleQueue = data.shuffleQueue || [];
+            state.dealingConfig = data.dealingConfig || null;
+
+            // Game series tracking
+            state.currentGameNumber = data.currentGameNumber || 1;
+            state.totalGames = data.totalGames || 1;
+            state.finalRankings = data.finalRankings || null;
+
             // Reset next-round readiness when a new game state arrives
             if (data.phase !== "finished") {
                 state.nextRoundReady = { readyPlayers: [], totalPlayers: 0 };
             }
             state.error = null;
+        },
+        updateShuffleQueue: (state, action) => {
+            state.shuffleQueue = action.payload;
+        },
+        setCutCard: (state, action) => {
+            state.cutCard = action.payload;
+        },
+        toggleHandSort: (state) => {
+            state.handSorted = !state.handSorted;
         },
         updateNextRoundReady: (state, action) => {
             state.nextRoundReady = action.payload;
@@ -72,7 +106,15 @@ const gameSlice = createSlice({
     },
 });
 
-export const { updateGameState, updateNextRoundReady, setGameError, clearGameError, resetGame } =
-    gameSlice.actions;
+export const {
+    updateGameState,
+    updateShuffleQueue,
+    setCutCard,
+    toggleHandSort,
+    updateNextRoundReady,
+    setGameError,
+    clearGameError,
+    resetGame,
+} = gameSlice.actions;
 
 export default gameSlice.reducer;

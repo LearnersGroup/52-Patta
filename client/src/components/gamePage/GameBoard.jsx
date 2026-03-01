@@ -11,6 +11,9 @@ import PartnerCardDisplay from "./PartnerCardDisplay";
 import TeamScoreHUD from "./TeamScoreHUD";
 import { CircularTable, PlayArea } from "../shared";
 import { getCardComponent, cardKey } from "./utils/cardMapper";
+import ShufflingPanel from "./ShufflingPanel";
+import DealingOverlay from "./DealingOverlay";
+import SeriesFinishedPanel from "./SeriesFinishedPanel";
 
 // Cards per player for each game config (mirrors server config.js)
 const CARDS_PER_PLAYER = {
@@ -24,29 +27,20 @@ const GameBoard = ({ userId, isAdmin }) => {
     const [inspectMode, setInspectMode] = useState(false);
 
     useEffect(() => {
-        // Request current game state on mount (listeners registered in GamePage)
         WsRequestGameState();
     }, []);
 
-    // Reset inspect mode when a new trick starts (plays go to 0)
     const playsCount = game.currentTrick?.plays?.length || 0;
     useEffect(() => {
-        if (playsCount === 0) {
-            setInspectMode(false);
-        }
+        if (playsCount === 0) setInspectMode(false);
     }, [playsCount]);
 
     if (!game.phase) {
-        return (
-            <div className="game-board-loading">
-                Loading game state...
-            </div>
-        );
+        return <div className="game-board-loading">Loading game state...</div>;
     }
 
     const playerNames = game.playerNames || {};
     const getName = (pid) => playerNames[pid] || pid?.substring(0, 8);
-
     const isBidLeader = game.leader === userId;
     const isMyTurn =
         game.phase === "bidding"
@@ -60,10 +54,6 @@ const GameBoard = ({ userId, isAdmin }) => {
         setShowQuitConfirm(false);
     };
 
-    /**
-     * Compute expected card count for a player using frontend-only logic.
-     * cardsPerPlayer - completedRounds - (played in current trick ? 1 : 0)
-     */
     const computeCardCount = (pid) => {
         const total = CARDS_PER_PLAYER[game.configKey] || 13;
         const trickPlays = game.currentTrick?.plays || [];
@@ -71,9 +61,6 @@ const GameBoard = ({ userId, isAdmin }) => {
         return Math.max(0, total - (game.currentRound || 0) - (hasPlayed ? 1 : 0));
     };
 
-    /**
-     * Compute per-player trick points for the current round.
-     */
     const playerTrickPoints = {};
     (game.tricks || []).forEach((t) => {
         if (t.winner) {
@@ -82,15 +69,11 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
     });
 
-    /**
-     * Build the players array for CircularTable from KaliTeer game state.
-     * Maps game-specific concepts (leader, teams, partners) to the
-     * generic format CircularTable expects.
-     */
     const buildPlayerList = () => {
         return (game.seatOrder || []).map((pid) => {
             const isMe = pid === userId;
             const isLeader = pid === game.leader;
+            const isDealer = pid === game.dealer;
             const isBidTeam = game.teams?.bid?.includes(pid);
             const isOppose = game.teams?.oppose?.includes(pid);
             const isRevealed = game.revealedPartners?.includes(pid);
@@ -104,6 +87,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                 name: getName(pid),
                 isMe,
                 isLeader,
+                isDealer,
                 isPartner: isRevealed,
                 isTurn: pid === game.currentTrick?.currentTurn,
                 teamClass,
@@ -114,17 +98,13 @@ const GameBoard = ({ userId, isAdmin }) => {
         });
     };
 
-    // Use playing phase check for circular layout
     const isPlayingPhase = game.phase === "playing";
 
     return (
         <div className="game-board">
             {isAdmin && (
                 <div className="quit-game-bar">
-                    <button
-                        className="btn-danger btn-sm"
-                        onClick={() => setShowQuitConfirm(true)}
-                    >
+                    <button className="btn-danger btn-sm" onClick={() => setShowQuitConfirm(true)}>
                         Quit Game
                     </button>
                 </div>
@@ -136,32 +116,18 @@ const GameBoard = ({ userId, isAdmin }) => {
                         <h3>Quit Game?</h3>
                         <p>This will end the current game and return all players to the lobby.</p>
                         <div className="quit-confirm-actions">
-                            <button
-                                className="btn-secondary"
-                                onClick={() => setShowQuitConfirm(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="btn-danger"
-                                onClick={handleQuitGame}
-                            >
-                                Quit Game
-                            </button>
+                            <button className="btn-secondary" onClick={() => setShowQuitConfirm(false)}>Cancel</button>
+                            <button className="btn-danger" onClick={handleQuitGame}>Quit Game</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {game.error && (
-                <div className="game-error-banner">{game.error}</div>
-            )}
+            {game.error && <div className="game-error-banner">{game.error}</div>}
 
-            {game.removedTwos?.length > 0 && (
-                <RemovedTwosDisplay cards={game.removedTwos} />
-            )}
+            {game.removedTwos?.length > 0 && <RemovedTwosDisplay cards={game.removedTwos} />}
 
-            {/* Non-playing phases: use original horizontal player list */}
+            {/* Non-playing phases: use horizontal player list */}
             {!isPlayingPhase && (
                 <PlayerList
                     seatOrder={game.seatOrder}
@@ -174,19 +140,35 @@ const GameBoard = ({ userId, isAdmin }) => {
                             : game.currentTrick?.currentTurn
                     }
                     leader={game.leader}
+                    dealer={game.dealer}
                     userId={userId}
                     scores={game.scores}
                     getName={getName}
                 />
             )}
 
-            {game.phase === "bidding" && (
-                <BiddingPanel
-                    bidding={game.bidding}
+            {game.phase === "shuffling" && (
+                <ShufflingPanel
+                    dealer={game.dealer}
                     userId={userId}
-                    isMyTurn={isMyTurn}
+                    shuffleQueue={game.shuffleQueue}
                     getName={getName}
+                    currentGameNumber={game.currentGameNumber}
+                    totalGames={game.totalGames}
                 />
+            )}
+
+            {game.phase === "dealing" && (
+                <DealingOverlay
+                    myHand={game.myHand}
+                    cutCard={game.cutCard}
+                    dealingConfig={game.dealingConfig}
+                    isDealer={game.dealer === userId}
+                />
+            )}
+
+            {game.phase === "bidding" && (
+                <BiddingPanel bidding={game.bidding} userId={userId} isMyTurn={isMyTurn} getName={getName} />
             )}
 
             {game.phase === "powerhouse" && isBidLeader && (
@@ -268,10 +250,22 @@ const GameBoard = ({ userId, isAdmin }) => {
                     userId={userId}
                     isAdmin={isAdmin}
                     onQuitGame={() => setShowQuitConfirm(true)}
+                    currentGameNumber={game.currentGameNumber}
+                    totalGames={game.totalGames}
                 />
             )}
 
-            {game.phase !== "finished" && (
+            {game.phase === "series-finished" && (
+                <SeriesFinishedPanel
+                    finalRankings={game.finalRankings}
+                    scores={game.scores}
+                    seatOrder={game.seatOrder}
+                    getName={getName}
+                    userId={userId}
+                />
+            )}
+
+            {game.phase !== "finished" && game.phase !== "series-finished" && game.phase !== "shuffling" && (
                 <PlayerHand
                     cards={game.myHand}
                     validPlays={game.validPlays}
