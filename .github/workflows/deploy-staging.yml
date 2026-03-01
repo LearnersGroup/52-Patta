@@ -20,6 +20,11 @@ jobs:
     environment: staging
 
     steps:
+      - name: Debug vars
+        run: |
+          echo "CLIENT_URL=${{ vars.CLIENT_URL }}"
+          echo "GOOGLE_CALLBACK_URL=${{ vars.GOOGLE_CALLBACK_URL }}"
+
       - name: Checkout code
         uses: actions/checkout@v4
 
