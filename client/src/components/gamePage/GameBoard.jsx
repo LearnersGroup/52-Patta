@@ -1,22 +1,33 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { WsRequestGameState, WsQuitGame } from "../../api/wsEmitters";
 import BiddingPanel from "./BiddingPanel";
 import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
-import TrickArea from "./TrickArea";
 import PlayerList from "./PlayerList";
 import ScoreBoard from "./ScoreBoard";
 import RemovedTwosDisplay from "./RemovedTwosDisplay";
+import PartnerCardDisplay from "./PartnerCardDisplay";
+import { CircularTable, PlayArea } from "../shared";
+import { getCardComponent, cardKey } from "./utils/cardMapper";
 
 const GameBoard = ({ userId, isAdmin }) => {
     const game = useSelector((state) => state.game);
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+    const [inspectMode, setInspectMode] = useState(false);
 
     useEffect(() => {
         // Request current game state on mount (listeners registered in GamePage)
         WsRequestGameState();
     }, []);
+
+    // Reset inspect mode when a new trick starts (plays go to 0)
+    const playsCount = game.currentTrick?.plays?.length || 0;
+    useEffect(() => {
+        if (playsCount === 0) {
+            setInspectMode(false);
+        }
+    }, [playsCount]);
 
     if (!game.phase) {
         return (
@@ -41,6 +52,41 @@ const GameBoard = ({ userId, isAdmin }) => {
         WsQuitGame();
         setShowQuitConfirm(false);
     };
+
+    /**
+     * Build the players array for CircularTable from KaliTeer game state.
+     * Maps game-specific concepts (leader, teams, partners) to the
+     * generic format CircularTable expects.
+     */
+    const buildPlayerList = () => {
+        return (game.seatOrder || []).map((pid) => {
+            const isMe = pid === userId;
+            const isLeader = pid === game.leader;
+            const isBidTeam = game.teams?.bid?.includes(pid);
+            const isOppose = game.teams?.oppose?.includes(pid);
+            const isRevealed = game.revealedPartners?.includes(pid);
+
+            let teamClass = "";
+            if (isBidTeam) teamClass = "team-bid";
+            else if (isOppose && game.leader) teamClass = "team-oppose";
+
+            return {
+                id: pid,
+                name: getName(pid),
+                isMe,
+                isLeader,
+                isPartner: isRevealed,
+                isTurn: pid === game.currentTrick?.currentTurn,
+                teamClass,
+                cardCount: game.handSizes?.[pid] ?? 0,
+                score: game.scores?.[pid] ?? 0,
+                avatarInitial: getName(pid).charAt(0).toUpperCase(),
+            };
+        });
+    };
+
+    // Use playing phase check for circular layout
+    const isPlayingPhase = game.phase === "playing";
 
     return (
         <div className="game-board">
@@ -86,21 +132,24 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <RemovedTwosDisplay cards={game.removedTwos} />
             )}
 
-            <PlayerList
-                seatOrder={game.seatOrder}
-                handSizes={game.handSizes}
-                teams={game.teams}
-                revealedPartners={game.revealedPartners}
-                currentTurn={
-                    game.phase === "bidding"
-                        ? game.bidding?.currentTurn
-                        : game.currentTrick?.currentTurn
-                }
-                leader={game.leader}
-                userId={userId}
-                scores={game.scores}
-                getName={getName}
-            />
+            {/* Non-playing phases: use original horizontal player list */}
+            {!isPlayingPhase && (
+                <PlayerList
+                    seatOrder={game.seatOrder}
+                    handSizes={game.handSizes}
+                    teams={game.teams}
+                    revealedPartners={game.revealedPartners}
+                    currentTurn={
+                        game.phase === "bidding"
+                            ? game.bidding?.currentTurn
+                            : game.currentTrick?.currentTurn
+                    }
+                    leader={game.leader}
+                    userId={userId}
+                    scores={game.scores}
+                    getName={getName}
+                />
+            )}
 
             {game.phase === "bidding" && (
                 <BiddingPanel
@@ -129,15 +178,33 @@ const GameBoard = ({ userId, isAdmin }) => {
                 </div>
             )}
 
-            {game.phase === "playing" && (
-                <TrickArea
-                    currentTrick={game.currentTrick}
-                    seatOrder={game.seatOrder}
-                    powerHouseSuit={game.powerHouseSuit}
-                    currentRound={game.currentRound}
-                    totalRounds={game.tricks?.length + 1}
-                    getName={getName}
-                />
+            {/* Playing phase: Partner display + Circular table with PlayArea */}
+            {isPlayingPhase && (
+                <>
+                    <PartnerCardDisplay
+                        partnerCards={game.partnerCards}
+                        powerHouseSuit={game.powerHouseSuit}
+                        getName={getName}
+                    />
+
+                    <CircularTable
+                        players={buildPlayerList()}
+                        centerContent={({ seatPositionMap, tableSize }) => (
+                            <PlayArea
+                                plays={game.currentTrick?.plays || []}
+                                inspectMode={inspectMode}
+                                onToggleInspect={() => setInspectMode(!inspectMode)}
+                                getCardSvg={getCardComponent}
+                                cardKeyFn={cardKey}
+                                getName={getName}
+                                seatPositionMap={seatPositionMap}
+                                tableSize={tableSize}
+                                roundLabel={`Round ${(game.currentRound || 0) + 1}`}
+                                seatOrder={game.seatOrder}
+                            />
+                        )}
+                    />
+                </>
             )}
 
             {(game.phase === "playing" || game.phase === "scoring" || game.phase === "finished") && (

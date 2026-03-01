@@ -1572,32 +1572,152 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
 .partner-selection {
   display: flex;
   flex-direction: column;
+  gap: 16px;
+}
+
+// ─── PARTNER CARD PICKER (visual) ───────────
+.partner-card-picker {
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 
-.partner-input-row {
+.suit-group {
   display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  .partner-select {
-    width: auto;
-    min-width: 120px;
-    padding: 8px 12px;
-    font-size: 0.88rem;
+.suit-group-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: $font-heading;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  &.red  { color: $red-suit; }
+  &.black { color: $cream; }
+
+  .suit-group-symbol { font-size: 1rem; line-height: 1; }
+  .suit-group-name   { opacity: 0.85; }
+}
+
+.suit-cards-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-bottom: 6px; // breathing room for hover lift
+}
+
+.partner-card-thumb {
+  position: relative;
+  width: 52px;
+  height: 73px;
+  border-radius: 5px;
+  overflow: hidden;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+
+  &:hover:not(.disabled) {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
+  }
+
+  &.selected {
+    transform: translateY(-4px);
+    box-shadow:
+      0 0 0 2px $gold,
+      0 6px 18px rgba(201, 162, 39, 0.4);
+  }
+
+  &.selected.red {
+    box-shadow:
+      0 0 0 2px $red-suit,
+      0 6px 18px rgba(204, 41, 54, 0.4);
+  }
+
+  &.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 }
 
-.duplicate-spec {
+// Copy selector overlay (2-deck games)
+.copy-btns {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  padding: 4px 3px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(2px);
+}
+
+.copy-btn {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 162, 39, 0.45);
+  background: transparent;
+  color: $cream-muted;
+  font-size: 0.62rem;
+  font-weight: 700;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.12s ease;
 
-  .spec-label {
-    color: $cream-muted;
-    font-size: 0.78rem;
-    white-space: nowrap;
+  &:hover {
+    border-color: $gold;
+    color: $gold;
+  }
+
+  &.active {
+    background: $gold;
+    border-color: $gold;
+    color: $bg-deep;
+    box-shadow: 0 0 6px rgba(201, 162, 39, 0.5);
+  }
+}
+
+// "More / collapse" button — card-shaped placeholder
+.suit-more-btn {
+  @include btn-base;
+  width: 40px;
+  height: 73px;
+  padding: 4px;
+  background: $bg-input;
+  border: 1px dashed rgba(201, 162, 39, 0.28);
+  color: $cream-muted;
+  font-size: 0.68rem;
+  font-family: $font-body;
+  border-radius: 5px;
+  flex-direction: column;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  gap: 2px;
+
+  &:hover {
+    border-color: $gold;
+    color: $gold;
+    background: rgba(201, 162, 39, 0.06);
+  }
+
+  &.collapse {
+    font-size: 0.8rem;
   }
 }
 
@@ -1694,6 +1814,360 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   align-items: center;
   justify-content: center;
   width: 100%;
+}
+
+// ─── PARTNER CARD DISPLAY ───────────────────
+.partner-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 8px 0;
+}
+
+.partner-cards-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.partner-card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  &.revealed .partner-card-mini {
+    box-shadow: 0 0 0 2px #2ecc71, 0 4px 14px rgba(46, 204, 113, 0.35);
+  }
+
+  &.revealed .partner-label {
+    animation: partner-reveal 0.6s ease-out;
+  }
+}
+
+.partner-card-mini {
+  width: 45px;
+  height: 63px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.3s ease;
+
+  &.red {
+    box-shadow: 0 2px 8px rgba(204, 41, 54, 0.3);
+  }
+}
+
+.partner-label {
+  font-size: 0.65rem;
+  font-family: monospace;
+  color: $cream-muted;
+  letter-spacing: 0.08em;
+  max-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.revealed {
+    color: #2ecc71;
+    font-weight: 700;
+  }
+}
+
+@keyframes partner-reveal {
+  0%   { opacity: 0; transform: scale(0.8); }
+  50%  { opacity: 1; transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+// ─── CIRCULAR TABLE ─────────────────────────
+.circular-table-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 0;
+}
+
+.circular-table {
+  --table-size: 520px;
+  position: relative;
+  width: var(--table-size);
+  height: var(--table-size);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(30, 77, 42, 0.35), transparent 70%),
+    $bg-felt;
+  border: 2px solid $border-gold;
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 60px rgba(0, 0, 0, 0.3),
+    0 0 0 4px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+
+  @media (max-width: 640px) {
+    --table-size: min(90vw, 360px);
+  }
+  @media (min-width: 641px) and (max-width: 960px) {
+    --table-size: min(80vw, 480px);
+  }
+}
+
+.table-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  height: 60%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ─── PLAYER SEAT (CIRCULAR) ────────────────
+.table-seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  z-index: 2;
+  pointer-events: auto;
+  max-width: 90px;
+
+  &.active-turn .table-seat-avatar {
+    border-color: $gold;
+    box-shadow: 0 0 12px $glow-gold, 0 0 24px rgba(201, 162, 39, 0.2);
+  }
+
+  &.is-me .table-seat-name {
+    color: $gold-light;
+    font-weight: 700;
+  }
+
+  &.team-bid .table-seat-avatar {
+    border-color: rgba(46, 204, 113, 0.5);
+  }
+
+  &.team-oppose .table-seat-avatar {
+    border-color: rgba(204, 41, 54, 0.5);
+  }
+}
+
+.table-seat-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $bg-panel-light, $bg-felt);
+  border: 2px solid $border-gold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: $gold;
+  font-family: $font-heading;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+
+.table-seat-turn-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $gold;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.6);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.table-seat-name {
+  font-size: 0.62rem;
+  color: $cream;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.table-seat-badges {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+.table-seat-meta {
+  font-size: 0.55rem;
+  color: $cream-muted;
+  text-align: center;
+  white-space: nowrap;
+}
+
+// ─── CARD BACK FAN ──────────────────────────
+.card-back-fan {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  height: 32px;
+  width: 50px;
+}
+
+.card-back-item {
+  position: absolute;
+  width: 22px;
+  height: 32px;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transform-origin: bottom center;
+}
+
+.card-count-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -6px;
+  background: $bg-panel;
+  border: 1px solid $border-gold;
+  border-radius: 8px;
+  font-size: 0.5rem;
+  color: $cream-muted;
+  padding: 0 4px;
+  line-height: 1.4;
+  z-index: 3;
+}
+
+// ─── PLAY AREA ──────────────────────────────
+.play-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(201, 162, 39, 0.03);
+  }
+
+  &.inspect-mode {
+    background: rgba(201, 162, 39, 0.04);
+  }
+}
+
+.play-area-round {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: $font-heading;
+  color: $cream-muted;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.play-area-card {
+  position: absolute;
+  width: 60px;
+  height: 84px;
+  left: 50%;
+  top: 50%;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transform: translate(
+    calc(-50% + var(--thrown-x, 0px)),
+    calc(-50% + var(--thrown-y, 0px))
+  ) rotate(var(--thrown-rotate, 0deg));
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.3s;
+  pointer-events: none;
+  z-index: 1;
+
+  &:last-child {
+    z-index: 2;
+  }
+}
+
+.play-area-card-label {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: $cream-muted;
+  font-family: monospace;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+
+  .inspect-mode & {
+    opacity: 1;
+  }
+}
+
+.play-area-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: $cream-muted;
+  font-style: italic;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+// ─── CARD FLY-IN ANIMATION ─────────────────
+.play-area-card.entering {
+  animation: card-fly-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes card-fly-in {
+  0% {
+    transform: translate(
+      calc(-50% + var(--seat-x, 0px)),
+      calc(-50% + var(--seat-y, 0px))
+    ) scale(0.4) rotate(0deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--thrown-x, 0px)),
+      calc(-50% + var(--thrown-y, 0px))
+    ) rotate(var(--thrown-rotate, 0deg));
+    opacity: 1;
+  }
+}
+
+.play-area-inspect-hint {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: rgba(201, 162, 39, 0.4);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  .play-area:hover & {
+    opacity: 1;
+  }
 }
 
 // ─── PLAYER HAND ────────────────────────────
