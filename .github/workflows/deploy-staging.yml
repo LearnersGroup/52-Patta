@@ -13,6 +13,7 @@ env:
   GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
   GOOGLE_CALLBACK_URL: ${{ vars.GOOGLE_CALLBACK_URL }}
   CLIENT_URL: ${{ vars.CLIENT_URL }}
+  REACT_APP_BASE_URL: ${{ vars.CLIENT_URL }}/api
 
 jobs:
   test-build-deploy:
@@ -20,11 +21,6 @@ jobs:
     environment: staging
 
     steps:
-      - name: Debug vars
-        run: |
-          echo "CLIENT_URL=${{ vars.CLIENT_URL }}"
-          echo "GOOGLE_CALLBACK_URL=${{ vars.GOOGLE_CALLBACK_URL }}"
-
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -64,7 +60,10 @@ jobs:
       - name: Build and push client image
         run: |
           cd client
-          docker build -t $ECR_REGISTRY/$CLIENT_IMAGE:staging -t $ECR_REGISTRY/$CLIENT_IMAGE:latest .
+          docker build \
+            --build-arg REACT_APP_BASE_URL=$REACT_APP_BASE_URL \
+            -t $ECR_REGISTRY/$CLIENT_IMAGE:staging \
+            -t $ECR_REGISTRY/$CLIENT_IMAGE:latest .
           docker push $ECR_REGISTRY/$CLIENT_IMAGE:staging
           docker push $ECR_REGISTRY/$CLIENT_IMAGE:latest
 
