@@ -243,6 +243,11 @@ const GameBoard = ({ userId, isAdmin }) => {
                                         ? game.tricks[game.tricks.length - 1].winner
                                         : null
                                 }
+                                lastTrickCards={
+                                    game.tricks?.length > 0
+                                        ? game.tricks[game.tricks.length - 1].cards
+                                        : null
+                                }
                             />
                         )}
                     />

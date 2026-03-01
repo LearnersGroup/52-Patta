@@ -6,21 +6,11 @@ import { useCardAnimation } from "./useCardAnimation";
  * Renders played cards in "thrown" (random pile) or "inspect" (neat arrangement) mode.
  * Click to toggle modes.
  *
- * When a trick completes (plays go from non-empty to empty while tricksCount increases),
- * the cards are held on the table for 2 seconds then sweep toward the winner before vanishing.
+ * When a trick completes, the last card flies in, all cards hold for 2s,
+ * then sweep toward the winner and vanish.
  *
- * @param {Array} plays - Array of { playerId, card } objects
- * @param {boolean} inspectMode - Whether cards are arranged neatly
- * @param {Function} onToggleInspect - Called when play area is clicked
- * @param {Function} getCardSvg - (card) => ReactComponent for rendering card faces
- * @param {Function} cardKeyFn - (card) => string for unique keys
- * @param {Function} getName - (playerId) => string for player names
- * @param {Object} seatPositionMap - { playerId: { left, top, angle } } from CircularTable
- * @param {number} tableSize - Table diameter in px (from CircularTable)
- * @param {string} roundLabel - Optional label like "Round 3"
- * @param {Array} seatOrder - Array of player IDs in seat order (for inspect layout)
- * @param {number} tricksCount - Number of completed tricks (for detecting trick completion)
- * @param {string|null} lastTrickWinner - Player ID of the last trick's winner
+ * Uses a single "effectivePlays" array so React reuses DOM elements for
+ * cards A,B,C (no flicker) when transitioning from current to departing.
  */
 const PlayArea = ({
     plays = [],
@@ -35,8 +25,9 @@ const PlayArea = ({
     seatOrder = [],
     tricksCount = 0,
     lastTrickWinner = null,
+    lastTrickCards = null,
 }) => {
-    // Key function for animation hook
+    // Key function for animation hook (only for current plays, not departing)
     const keyFn = useCallback(
         (play) => (cardKeyFn ? cardKeyFn(play.card) : `${play.playerId}_${plays.indexOf(play)}`),
         [cardKeyFn, plays]
@@ -45,34 +36,37 @@ const PlayArea = ({
     const { animatingCardKey } = useCardAnimation(plays, keyFn, 600);
 
     // ── Departing trick state ──
-    // When a trick completes, hold cards for 2s then sweep toward winner
-    const prevPlaysRef = useRef([]);
-    const prevTricksCountRef = useRef(0);
-    // departingState: null | { plays, winner, phase: 'hold' | 'sweep' }
+    // departingState: null | { plays, winner, phase: 'hold' | 'sweep', lastCardAnimating }
     const [departingState, setDepartingState] = useState(null);
+    const prevTricksCountRef = useRef(0);
 
-    // Detect trick completion: plays went non-empty → empty AND tricksCount increased
+    // Detect trick completion via tricksCount increasing + lastTrickCards available
     useEffect(() => {
-        const prevPlays = prevPlaysRef.current;
-        const prevCount = prevTricksCountRef.current;
-
         if (
-            prevPlays.length > 0 &&
-            plays.length === 0 &&
-            tricksCount > prevCount &&
+            tricksCount > prevTricksCountRef.current &&
+            lastTrickCards?.length > 0 &&
             lastTrickWinner
         ) {
-            // Trick just completed — hold the old cards
+            // Trick just completed — show all N cards with last card fly-in
             setDepartingState({
-                plays: prevPlays,
+                plays: lastTrickCards,
                 winner: lastTrickWinner,
                 phase: "hold",
+                lastCardAnimating: true,
             });
-        }
 
-        prevPlaysRef.current = plays;
+            // Clear fly-in flag after animation duration
+            const flyInTimer = setTimeout(() => {
+                setDepartingState((prev) =>
+                    prev ? { ...prev, lastCardAnimating: false } : null
+                );
+            }, 600);
+
+            prevTricksCountRef.current = tricksCount;
+            return () => clearTimeout(flyInTimer);
+        }
         prevTricksCountRef.current = tricksCount;
-    }, [plays, tricksCount, lastTrickWinner]);
+    }, [tricksCount, lastTrickCards, lastTrickWinner]);
 
     // Phase transitions: hold (2s) → sweep (0.8s) → clear
     useEffect(() => {
@@ -96,7 +90,6 @@ const PlayArea = ({
 
     /**
      * Deterministic pseudo-random position from card key string.
-     * Produces consistent offsets so cards don't jump on re-render.
      */
     const thrownPosition = (card) => {
         const key = cardKeyFn ? cardKeyFn(card) : `${card.suit}${card.rank}`;
@@ -105,20 +98,18 @@ const PlayArea = ({
             hash = ((hash << 5) - hash) + key.charCodeAt(i);
             hash |= 0;
         }
-        const x = ((hash & 0xFF) / 255) * 120 - 60;          // -60 to +60 px
-        const y = (((hash >> 8) & 0xFF) / 255) * 80 - 40;    // -40 to +40 px
-        const rotate = (((hash >> 16) & 0xFF) / 255) * 50 - 25; // -25 to +25 deg
+        const x = ((hash & 0xFF) / 255) * 120 - 60;
+        const y = (((hash >> 8) & 0xFF) / 255) * 80 - 40;
+        const rotate = (((hash >> 16) & 0xFF) / 255) * 50 - 25;
         return { x, y, rotate };
     };
 
     /**
-     * Inspect mode: place each card along a circle toward the player who played it.
-     * Uses the seat angle from seatPositionMap so each card points at its player.
+     * Inspect mode: place each card toward the player who played it.
      */
     const inspectPosition = (play) => {
         const pos = seatPositionMap[play.playerId];
         if (!pos) return { x: 0, y: 0, rotate: 0 };
-        // Radius keeps cards within the play area (table-center is 60% of tableSize)
         const inspectRadius = Math.min(tableSize * 0.6, 312) * 0.38;
         const x = Math.cos(pos.angle) * inspectRadius;
         const y = Math.sin(pos.angle) * inspectRadius;
@@ -126,26 +117,29 @@ const PlayArea = ({
     };
 
     /**
-     * Compute the seat direction offset for fly-in animation start position.
-     * Uses the pre-computed seat angle to point from center toward the player.
+     * Compute the seat direction offset for fly-in / sweep animations.
      */
     const seatDirection = (playerId) => {
         const pos = seatPositionMap[playerId];
         if (!pos) return { x: 0, y: -120 };
-        const scale = 120; // px from center — starts outside the play area
+        const scale = 120;
         return {
             x: Math.cos(pos.angle) * scale,
             y: Math.sin(pos.angle) * scale,
         };
     };
 
-    // Show "Waiting for cards..." only if no current plays AND no departing trick
-    const showEmpty = plays.length === 0 && !departingState;
+    // ── Unified rendering ──
+    // Use a single effectivePlays array so React reuses DOM elements (same keys)
+    const isDeparting = !!departingState;
+    const effectivePlays = isDeparting ? departingState.plays : plays;
+    const showEmpty = effectivePlays.length === 0;
+    const winnerDir = isDeparting ? seatDirection(departingState.winner) : { x: 0, y: 0 };
 
     return (
         <div
-            className={`play-area ${inspectMode ? "inspect-mode" : ""}`}
-            onClick={onToggleInspect}
+            className={`play-area ${inspectMode && !isDeparting ? "inspect-mode" : ""}`}
+            onClick={isDeparting ? undefined : onToggleInspect}
         >
             {roundLabel && (
                 <div className="play-area-round">{roundLabel}</div>
@@ -157,58 +151,40 @@ const PlayArea = ({
                 </div>
             )}
 
-            {/* Departing trick cards (hold or sweep phase) */}
-            {departingState?.plays?.map((play, index) => {
-                const key = cardKeyFn
-                    ? `dep_${cardKeyFn(play.card)}`
-                    : `dep_${play.playerId}_${index}`;
-                const CardSvg = getCardSvg ? getCardSvg(play.card) : null;
-                const pos = thrownPosition(play.card);
-                const winnerDir = seatDirection(departingState.winner);
-
-                return (
-                    <div
-                        key={key}
-                        className={`play-area-card ${
-                            departingState.phase === "sweep" ? "departing" : ""
-                        }`}
-                        style={{
-                            "--thrown-x": `${pos.x}px`,
-                            "--thrown-y": `${pos.y}px`,
-                            "--thrown-rotate": `${pos.rotate}deg`,
-                            "--winner-x": `${winnerDir.x}px`,
-                            "--winner-y": `${winnerDir.y}px`,
-                        }}
-                    >
-                        {CardSvg && (
-                            <CardSvg
-                                style={{ height: "100%", width: "100%" }}
-                            />
-                        )}
-                    </div>
-                );
-            })}
-
-            {/* Current trick cards */}
-            {plays.map((play, index) => {
+            {effectivePlays.map((play, index) => {
                 const key = cardKeyFn ? cardKeyFn(play.card) : `${play.playerId}_${index}`;
                 const CardSvg = getCardSvg ? getCardSvg(play.card) : null;
-                const isAnimating = key === animatingCardKey;
-                const pos = inspectMode
-                    ? inspectPosition(play)
-                    : thrownPosition(play.card);
+
+                // Animation classes
+                const isLastCardEntry =
+                    isDeparting &&
+                    departingState.lastCardAnimating &&
+                    index === effectivePlays.length - 1;
+                const isCurrentAnimating =
+                    !isDeparting && key === animatingCardKey && !inspectMode;
+                const isSweeping = departingState?.phase === "sweep";
+
+                // During departing hold/sweep: always use thrown positions
+                const pos =
+                    inspectMode && !isDeparting
+                        ? inspectPosition(play)
+                        : thrownPosition(play.card);
                 const seatDir = seatDirection(play.playerId);
 
                 return (
                     <div
                         key={key}
-                        className={`play-area-card ${isAnimating && !inspectMode ? "entering" : ""}`}
+                        className={`play-area-card ${
+                            isLastCardEntry || isCurrentAnimating ? "entering" : ""
+                        } ${isSweeping ? "departing" : ""}`}
                         style={{
                             "--thrown-x": `${pos.x}px`,
                             "--thrown-y": `${pos.y}px`,
                             "--thrown-rotate": `${pos.rotate}deg`,
                             "--seat-x": `${seatDir.x}px`,
                             "--seat-y": `${seatDir.y}px`,
+                            "--winner-x": `${winnerDir.x}px`,
+                            "--winner-y": `${winnerDir.y}px`,
                         }}
                     >
                         {CardSvg && (
@@ -223,7 +199,7 @@ const PlayArea = ({
                 );
             })}
 
-            {plays.length > 0 && !departingState && (
+            {effectivePlays.length > 0 && !isDeparting && (
                 <div className="play-area-inspect-hint">
                     {inspectMode ? "click to scatter" : "click to inspect"}
                 </div>
