@@ -10,6 +10,7 @@ const ShufflingPanel = ({
     getName = (pid) => pid?.substring(0, 8),
     currentGameNumber,
     totalGames,
+    isTableCenter = false,
 }) => {
     const isDealer = dealer === userId;
     const dealerName = getName(dealer);
@@ -44,11 +45,15 @@ const ShufflingPanel = ({
         overhand: "♦",
     };
 
+    const wrapperClass = isTableCenter
+        ? `shuffling-center-content ${isDealer ? "dealer-view" : "spectator-view"}`
+        : `shuffling-panel ${isDealer ? "dealer-view" : "spectator-view"}`;
+
     if (isDealer) {
         return (
-            <div className="shuffling-panel dealer-view">
+            <div className={wrapperClass}>
                 <div className="shuffling-header">
-                    <h3>🃏 You are the Dealer</h3>
+                    <h3>{isTableCenter ? "Shuffle & Deal" : "🃏 You are the Dealer"}</h3>
                     {totalGames > 1 && (
                         <div className="game-counter">
                             Game {currentGameNumber} of {totalGames}
@@ -130,9 +135,9 @@ const ShufflingPanel = ({
 
     // Non-dealer view
     return (
-        <div className="shuffling-panel spectator-view">
+        <div className={wrapperClass}>
             <div className="shuffling-header">
-                <h3>🃏 {dealerName} is the Dealer</h3>
+                <h3>{isTableCenter ? `${dealerName} is dealing` : `🃏 ${dealerName} is the Dealer`}</h3>
                 {totalGames > 1 && (
                     <div className="game-counter">
                         Game {currentGameNumber} of {totalGames}

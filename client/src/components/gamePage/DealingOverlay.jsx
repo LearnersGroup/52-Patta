@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { getCardComponent, cardKey } from "./utils/cardMapper";
+import { getCardComponent } from "./utils/cardMapper";
 
 const DealingOverlay = ({
     myHand = [],
     cutCard,
     dealingConfig,
     isDealer,
-    onComplete,
+    visibleCount = 0,
+    isTableCenter = false,
 }) => {
-    const [visibleCount, setVisibleCount] = useState(0);
     const [showCutCard, setShowCutCard] = useState(!!cutCard && isDealer);
 
-    const animDuration = dealingConfig?.animationDurationMs || 5000;
     const cutRevealMs = dealingConfig?.cutCardRevealMs || 1500;
 
     // Cut card reveal phase (dealer only)
@@ -26,32 +25,12 @@ const DealingOverlay = ({
         return () => clearTimeout(timer);
     }, [cutCard, isDealer, cutRevealMs]);
 
-    // Card dealing animation — reveal one card at a time
-    useEffect(() => {
-        if (myHand.length === 0) return;
-
-        const delay = showCutCard && isDealer ? cutRevealMs : 0;
-        const interval = animDuration / myHand.length;
-
-        const startTimer = setTimeout(() => {
-            let count = 0;
-            const dealInterval = setInterval(() => {
-                count++;
-                setVisibleCount(count);
-                if (count >= myHand.length) {
-                    clearInterval(dealInterval);
-                    if (onComplete) onComplete();
-                }
-            }, interval);
-
-            return () => clearInterval(dealInterval);
-        }, delay);
-
-        return () => clearTimeout(startTimer);
-    }, [myHand.length, showCutCard, isDealer, cutRevealMs, animDuration]);
+    const wrapperClass = isTableCenter
+        ? "dealing-overlay table-center-variant"
+        : "dealing-overlay";
 
     return (
-        <div className="dealing-overlay">
+        <div className={wrapperClass}>
             {/* Cut card reveal (dealer only) */}
             {showCutCard && cutCard && (
                 <div className="cut-card-reveal">

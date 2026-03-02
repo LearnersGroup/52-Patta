@@ -12,6 +12,7 @@ const PlayerSeat = ({
     isMe = false,
     isTurn = false,
     isLeader = false,
+    isDealer = false,
     isPartner = false,
     cardCount = 0,
     score = 0,
@@ -70,8 +71,11 @@ const PlayerSeat = ({
             </div>
 
             {/* Badges */}
-            {(isLeader || isPartner) && (
+            {(isLeader || isDealer || isPartner) && (
                 <div className="table-seat-badges">
+                    {isDealer && (
+                        <span className="dealer-badge">Dealer</span>
+                    )}
                     {isLeader && (
                         <span className="leader-badge">Leader</span>
                     )}
