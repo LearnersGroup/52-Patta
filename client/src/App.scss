@@ -1826,6 +1826,139 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   }
 }
 
+// ─── POWERHOUSE: COMPACT SUIT PICKER (CircularTable center) ─────
+.powerhouse-suit-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+
+  h3 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+
+  .suit-picker {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .suit-btn {
+    padding: 10px 8px;
+    gap: 3px;
+
+    .suit-symbol { font-size: 1.6rem; }
+    .suit-name { font-size: 0.58rem; }
+  }
+}
+
+// ─── POWERHOUSE: WAITING CENTER (non-leaders during powerhouse) ──
+.powerhouse-waiting-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  .waiting-suit-symbol {
+    font-size: 3.2rem;
+    line-height: 1;
+    opacity: 0.9;
+
+    &.red { color: $red-suit; }
+    &.black { color: $cream; }
+  }
+
+  .waiting-label {
+    font-family: $font-heading;
+    color: $cream-muted;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .waiting-name {
+    font-size: 0.75rem;
+    color: $gold;
+    letter-spacing: 0.04em;
+  }
+}
+
+// Container for CircularTable + overlays
+.circular-table-container {
+  position: relative;
+}
+
+// ─── PARTNER PICKER OVERLAY (backdrop over CircularTable) ────────
+.partner-picker-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 12, 18, 0.88);
+  backdrop-filter: blur(6px);
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 16px;
+  border-radius: 16px;
+  overflow-y: auto;
+
+  .partner-picker-content {
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+
+    .powerhouse-selected {
+      margin-bottom: 16px;
+    }
+
+    .partner-selection {
+      h3 {
+        font-family: $font-heading;
+        color: $gold;
+        font-size: 0.82rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 14px;
+      }
+    }
+
+    .btn-primary {
+      margin-top: 14px;
+    }
+  }
+}
+
+// ─── POWERSUIT WATERMARK (behind PlayArea during playing) ────────
+.powersuit-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7rem;
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
+  line-height: 1;
+
+  &.red { color: #cc2936; }
+  &.black { color: #f5f0e8; }
+}
+
 // ─── TRICK AREA ─────────────────────────────
 .trick-area {
   @include panel;

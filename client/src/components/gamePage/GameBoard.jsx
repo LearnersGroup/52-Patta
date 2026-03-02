@@ -11,7 +11,7 @@ import RemovedTwosDisplay from "./RemovedTwosDisplay";
 import PartnerCardDisplay from "./PartnerCardDisplay";
 import TeamScoreHUD from "./TeamScoreHUD";
 import { CircularTable, PlayArea } from "../shared";
-import { getCardComponent, cardKey } from "./utils/cardMapper";
+import { getCardComponent, cardKey, suitSymbol, isRedSuit } from "./utils/cardMapper";
 import ShufflingPanel from "./ShufflingPanel";
 import DealingOverlay from "./DealingOverlay";
 import SeriesFinishedPanel from "./SeriesFinishedPanel";
@@ -104,6 +104,8 @@ const GameBoard = ({ userId, isAdmin }) => {
                 return pid === game.dealer;
             case "bidding":
                 return pid === game.bidding?.currentTurn;
+            case "powerhouse":
+                return pid === game.leader;
             case "playing":
                 return pid === game.currentTrick?.currentTurn;
             default:
@@ -120,6 +122,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                 if (pid === userId) return dealingVisibleCount;
                 return game.handSizes?.[pid] ?? 0;
             case "bidding":
+            case "powerhouse":
                 return total;
             case "playing":
                 return computeCardCount(pid);
@@ -129,7 +132,7 @@ const GameBoard = ({ userId, isAdmin }) => {
     };
 
     const getTeamClass = (pid) => {
-        if (["shuffling", "dealing", "bidding"].includes(game.phase)) return "";
+        if (["shuffling", "dealing", "bidding", "powerhouse"].includes(game.phase)) return "";
         const isBidTeam = game.teams?.bid?.includes(pid);
         const isOppose = game.teams?.oppose?.includes(pid);
         if (isBidTeam) return "team-bid";
@@ -161,7 +164,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         }));
     };
 
-    const isTablePhase = ["shuffling", "dealing", "bidding", "playing"].includes(game.phase);
+    const isTablePhase = ["shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(game.phase);
     const isPlayingPhase = game.phase === "playing";
 
     // Center content for CircularTable based on phase
@@ -199,31 +202,76 @@ const GameBoard = ({ userId, isAdmin }) => {
                 />
             );
         }
-        // Playing phase
+        if (game.phase === "powerhouse") {
+            // Sub-phase 1: suit selection
+            if (!game.powerHouseSuit) {
+                if (isBidLeader) {
+                    return (
+                        <PowerHouseSelector
+                            isTableCenter
+                            powerHouseSuit={game.powerHouseSuit}
+                            partnerCards={game.partnerCards}
+                            myHand={game.myHand}
+                            configKey={game.configKey}
+                            partnerCardCount={game.partnerCardCount}
+                        />
+                    );
+                }
+                return (
+                    <div className="powerhouse-waiting-center">
+                        <div className="waiting-label">Selecting PowerHouse...</div>
+                        <div className="waiting-name">{getName(game.leader)}</div>
+                    </div>
+                );
+            }
+            // Sub-phase 2: partner selection — center shows suit + status
+            const phSuit = game.powerHouseSuit;
+            return (
+                <div className="powerhouse-waiting-center">
+                    <div className={`waiting-suit-symbol ${isRedSuit(phSuit) ? "red" : "black"}`}>
+                        {suitSymbol(phSuit)}
+                    </div>
+                    <div className="waiting-label">
+                        {isBidLeader ? "Select Partners" : "Selecting Partners..."}
+                    </div>
+                    {!isBidLeader && (
+                        <div className="waiting-name">{getName(game.leader)}</div>
+                    )}
+                </div>
+            );
+        }
+        // Playing phase — with powersuit watermark
         return (
-            <PlayArea
-                plays={game.currentTrick?.plays || []}
-                inspectMode={inspectMode}
-                onToggleInspect={() => setInspectMode(!inspectMode)}
-                getCardSvg={getCardComponent}
-                cardKeyFn={cardKey}
-                getName={getName}
-                seatPositionMap={seatPositionMap}
-                tableSize={tableSize}
-                roundLabel={`Round ${(game.currentRound || 0) + 1}`}
-                seatOrder={game.seatOrder}
-                tricksCount={game.tricks?.length || 0}
-                lastTrickWinner={
-                    game.tricks?.length > 0
-                        ? game.tricks[game.tricks.length - 1].winner
-                        : null
-                }
-                lastTrickCards={
-                    game.tricks?.length > 0
-                        ? game.tricks[game.tricks.length - 1].cards
-                        : null
-                }
-            />
+            <>
+                {game.powerHouseSuit && (
+                    <div className={`powersuit-watermark ${isRedSuit(game.powerHouseSuit) ? "red" : "black"}`}>
+                        {suitSymbol(game.powerHouseSuit)}
+                    </div>
+                )}
+                <PlayArea
+                    plays={game.currentTrick?.plays || []}
+                    inspectMode={inspectMode}
+                    onToggleInspect={() => setInspectMode(!inspectMode)}
+                    getCardSvg={getCardComponent}
+                    cardKeyFn={cardKey}
+                    getName={getName}
+                    seatPositionMap={seatPositionMap}
+                    tableSize={tableSize}
+                    roundLabel={`Round ${(game.currentRound || 0) + 1}`}
+                    seatOrder={game.seatOrder}
+                    tricksCount={game.tricks?.length || 0}
+                    lastTrickWinner={
+                        game.tricks?.length > 0
+                            ? game.tricks[game.tricks.length - 1].winner
+                            : null
+                    }
+                    lastTrickCards={
+                        game.tricks?.length > 0
+                            ? game.tricks[game.tricks.length - 1].cards
+                            : null
+                    }
+                />
+            </>
         );
     };
 
@@ -274,24 +322,6 @@ const GameBoard = ({ userId, isAdmin }) => {
                 />
             )}
 
-            {game.phase === "powerhouse" && isBidLeader && (
-                <PowerHouseSelector
-                    powerHouseSuit={game.powerHouseSuit}
-                    partnerCards={game.partnerCards}
-                    myHand={game.myHand}
-                    configKey={game.configKey}
-                    partnerCardCount={game.partnerCardCount}
-                />
-            )}
-
-            {game.phase === "powerhouse" && !isBidLeader && (
-                <div className="waiting-panel">
-                    <div className="waiting-text">
-                        Waiting for the bid winner to select PowerHouse and partners...
-                    </div>
-                </div>
-            )}
-
             {/* Table phases: CircularTable with phase-specific center content */}
             {isTablePhase && (
                 <>
@@ -312,10 +342,26 @@ const GameBoard = ({ userId, isAdmin }) => {
                         </>
                     )}
 
-                    <CircularTable
-                        players={buildPlayerList()}
-                        centerContent={renderCenterContent}
-                    />
+                    <div className="circular-table-container">
+                        <CircularTable
+                            players={buildPlayerList()}
+                            centerContent={renderCenterContent}
+                        />
+
+                        {/* Partner picker overlay — covers CircularTable during partner selection */}
+                        {game.phase === "powerhouse" && game.powerHouseSuit && isBidLeader && (
+                            <div className="partner-picker-overlay">
+                                <PowerHouseSelector
+                                    isOverlay
+                                    powerHouseSuit={game.powerHouseSuit}
+                                    partnerCards={game.partnerCards}
+                                    myHand={game.myHand}
+                                    configKey={game.configKey}
+                                    partnerCardCount={game.partnerCardCount}
+                                />
+                            </div>
+                        )}
+                    </div>
                 </>
             )}
 
