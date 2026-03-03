@@ -14,7 +14,7 @@ const passport = require("./config/passport");
 const ws_auth_middleware = require("./middleware/ws_auth");
 const { userJoinRoom, userCreateRoom, userLeaveRoom, userToggleReady } = require("./socket_handlers/game_room/");
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
-const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame } = require("./socket_handlers/game_play/");
+const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame, shuffleAction, undoShuffle, dealCardsHandler } = require("./socket_handlers/game_play/");
 require('dotenv').config()
 
 // Initialize Sentry error tracking (only if DSN is configured)
@@ -50,6 +50,11 @@ function setupSocketHandlers(io) {
         socket.on("game-request-state", requestGameState(socket, io));
         socket.on("game-next-round", nextRound(socket, io));
         socket.on("game-quit", quitGame(socket, io));
+
+        //game-play: shuffling & dealing
+        socket.on("game-shuffle-action", shuffleAction(socket, io));
+        socket.on("game-undo-shuffle", undoShuffle(socket, io));
+        socket.on("game-deal", dealCardsHandler(socket, io));
     });
 }
 

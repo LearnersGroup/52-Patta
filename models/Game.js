@@ -26,6 +26,10 @@ const GameSchema = new mongoose.Schema({
         type: Number,
         default: null,
     },
+    game_count: {
+        type: Number,
+        default: null,
+    },
     players: [{
         playerId: {
             type: mongoose.Schema.Types.ObjectId,

@@ -3,7 +3,7 @@ const User = require("../../models/User");
 const bcrypt = require("bcryptjs");
 
 module.exports = (socket, io) => async (data, callback) => {
-    const { roomname, roompass, player_count, deck_count, bid_threshold } = data;
+    const { roomname, roompass, player_count, deck_count, bid_threshold, game_count } = data;
 
     if (!roomname || typeof roomname !== 'string') {
         callback("Room name is required");
@@ -52,6 +52,13 @@ module.exports = (socket, io) => async (data, callback) => {
         // Store bid threshold for odd-player variants
         if (bid_threshold && typeof bid_threshold === 'number' && bid_threshold > 0) {
             gameData.bid_threshold = bid_threshold;
+        }
+        // Store game count (defaults to player_count if not provided)
+        const gc = parseInt(game_count, 10);
+        if (!isNaN(gc) && gc >= 1 && gc <= 20) {
+            gameData.game_count = gc;
+        } else {
+            gameData.game_count = count; // default to player count
         }
         game = new Game(gameData);
 

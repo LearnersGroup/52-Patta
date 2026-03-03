@@ -44,6 +44,18 @@ function buildPublicView(gameState) {
         seatOrder: gameState.seatOrder,
         playerNames: gameState.playerNames || {},
         removedTwos: gameState.removedTwos,
+
+        // Dealer & shuffling info
+        dealer: gameState.dealer || null,
+        dealerIndex: gameState.dealerIndex ?? 0,
+        shuffleQueue: gameState.shuffleQueue || [],
+        dealingConfig: gameState.dealingConfig || null,
+
+        // Game series tracking
+        currentGameNumber: gameState.currentGameNumber || 1,
+        totalGames: gameState.totalGames || 1,
+        finalRankings: gameState.finalRankings || null,
+
         bidding: gameState.bidding
             ? {
                   ...gameState.bidding,

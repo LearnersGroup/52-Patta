@@ -7,6 +7,7 @@ const PlayerList = ({
     revealedPartners = [],
     currentTurn,
     leader,
+    dealer,
     userId,
     scores = {},
     getName = (pid) => pid?.substring(0, 8),
@@ -16,6 +17,7 @@ const PlayerList = ({
             {seatOrder.map((pid) => {
                 const isMe = pid === userId;
                 const isLeader = pid === leader;
+                const isDealer = pid === dealer;
                 const isTurn = pid === currentTurn;
                 const isBidTeam = teams.bid?.includes(pid);
                 const isOppose = teams.oppose?.includes(pid);
@@ -41,6 +43,9 @@ const PlayerList = ({
                         <div className="seat-info">
                             <div className="seat-name">
                                 {displayName}
+                                {isDealer && (
+                                    <span className="dealer-badge">Dealer</span>
+                                )}
                                 {isLeader && (
                                     <span className="leader-badge">Leader</span>
                                 )}

@@ -614,6 +614,35 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   }
 
   &:focus { border-color: $gold; }
+
+  &.shake {
+    animation: shake 0.5s ease;
+    border-color: rgba(204, 41, 54, 0.7);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-5px); }
+  60%       { transform: translateX(5px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+.room-full-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(204, 41, 54, 0.1);
+  border: 1px solid rgba(204, 41, 54, 0.35);
+  border-radius: 20px;
+  padding: 3px 14px;
+  font-size: 0.78rem;
+  color: #ffb0b0;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 // ─── CREATE GAME PAGE ────────────────────────
@@ -1502,6 +1531,59 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   padding: 8px 0;
 }
 
+// ─── BID CENTER DISPLAY (inside CircularTable) ──
+.bid-center-display {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  .bid-center-label {
+    font-family: $font-heading;
+    color: $cream-muted;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .bid-center-amount {
+    font-family: $font-heading;
+    font-size: 2.6rem;
+    color: $gold;
+    font-weight: 700;
+    text-shadow: 0 0 20px rgba(201, 162, 39, 0.4);
+    line-height: 1;
+  }
+
+  .bid-center-bidder {
+    font-size: 0.8rem;
+    color: $cream-muted;
+    letter-spacing: 0.04em;
+  }
+}
+
+// ─── BIDDING CONTROLS BAR (below PlayerHand) ────
+.bidding-controls-bar {
+  padding: 10px 20px;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+
+  .bidding-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .bidding-passed, .bidding-waiting {
+    font-size: 0.85rem;
+  }
+}
+
 // ─── POWERHOUSE PANEL ───────────────────────
 .powerhouse-panel {
   @include panel;
@@ -1742,6 +1824,139 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
     font-style: italic;
     font-size: 0.95rem;
   }
+}
+
+// ─── POWERHOUSE: COMPACT SUIT PICKER (CircularTable center) ─────
+.powerhouse-suit-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+
+  h3 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+
+  .suit-picker {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .suit-btn {
+    padding: 10px 8px;
+    gap: 3px;
+
+    .suit-symbol { font-size: 1.6rem; }
+    .suit-name { font-size: 0.58rem; }
+  }
+}
+
+// ─── POWERHOUSE: WAITING CENTER (non-leaders during powerhouse) ──
+.powerhouse-waiting-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  .waiting-suit-symbol {
+    font-size: 3.2rem;
+    line-height: 1;
+    opacity: 0.9;
+
+    &.red { color: $red-suit; }
+    &.black { color: $cream; }
+  }
+
+  .waiting-label {
+    font-family: $font-heading;
+    color: $cream-muted;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .waiting-name {
+    font-size: 0.75rem;
+    color: $gold;
+    letter-spacing: 0.04em;
+  }
+}
+
+// Container for CircularTable + overlays
+.circular-table-container {
+  position: relative;
+}
+
+// ─── PARTNER PICKER OVERLAY (backdrop over CircularTable) ────────
+.partner-picker-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 12, 18, 0.88);
+  backdrop-filter: blur(6px);
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 16px;
+  border-radius: 16px;
+  overflow-y: auto;
+
+  .partner-picker-content {
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+
+    .powerhouse-selected {
+      margin-bottom: 16px;
+    }
+
+    .partner-selection {
+      h3 {
+        font-family: $font-heading;
+        color: $gold;
+        font-size: 0.82rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 14px;
+      }
+    }
+
+    .btn-primary {
+      margin-top: 14px;
+    }
+  }
+}
+
+// ─── POWERSUIT WATERMARK (behind PlayArea during playing) ────────
+.powersuit-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7rem;
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
+  line-height: 1;
+
+  &.red { color: #cc2936; }
+  &.black { color: #f5f0e8; }
 }
 
 // ─── TRICK AREA ─────────────────────────────
@@ -2539,6 +2754,678 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   overflow: hidden;
   opacity: 0.6;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+// ─── SHUFFLING PANEL ────────────────────────────
+.shuffling-panel {
+  @include panel;
+  padding: 24px;
+  text-align: center;
+  margin: 16px 0;
+
+  .shuffling-header {
+    margin-bottom: 20px;
+
+    h3 {
+      color: $gold;
+      font-family: $font-heading;
+      font-size: 1.2rem;
+      margin: 0 0 6px;
+    }
+
+    .game-counter {
+      font-size: 0.75rem;
+      color: $cream-muted;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  }
+}
+
+.shuffle-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.shuffle-btn {
+  @include btn-base;
+  background: $bg-panel-light;
+  color: $cream;
+  border: 1px solid $border-gold;
+  padding: 14px 24px;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 10px;
+  min-width: 90px;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(201, 162, 39, 0.12);
+    border-color: $border-gold-bright;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(201, 162, 39, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .shuffle-icon {
+    font-size: 1.5rem;
+  }
+
+  .shuffle-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  &.shuffle-riffle .shuffle-icon { color: $cream; }
+  &.shuffle-hindu .shuffle-icon { color: $red-suit; }
+  &.shuffle-overhand .shuffle-icon { color: $gold; }
+}
+
+.shuffle-queue-section {
+  margin-bottom: 20px;
+
+  .queue-header {
+    margin-bottom: 8px;
+
+    .queue-count {
+      font-size: 0.75rem;
+      color: $cream-muted;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+  }
+}
+
+.shuffle-queue {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+
+  &.spectator-queue {
+    background: none;
+    padding: 0;
+  }
+}
+
+.shuffle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid $border-gold;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: $cream;
+
+  &.small {
+    padding: 2px 8px;
+    font-size: 0.7rem;
+  }
+
+  .chip-icon {
+    font-size: 0.85rem;
+  }
+
+  .chip-undo {
+    background: none;
+    border: none;
+    color: $cream-muted;
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 0 2px;
+    margin-left: 2px;
+    line-height: 1;
+
+    &:hover {
+      color: $red-suit;
+    }
+  }
+}
+
+.queue-empty {
+  color: $cream-muted;
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 6px 0;
+}
+
+.deal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.deal-btn {
+  @include btn-base;
+  padding: 12px 32px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+
+  &.deal-normal {
+    background: linear-gradient(135deg, $gold-dark, $gold);
+    color: $bg-deep;
+    font-weight: 700;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, $gold, $gold-light);
+      box-shadow: 0 4px 20px rgba(201, 162, 39, 0.3);
+    }
+  }
+
+  &.deal-cut {
+    background: $bg-panel-light;
+    color: $gold;
+    border: 1px solid $border-gold-bright;
+
+    &:hover:not(:disabled) {
+      background: rgba(201, 162, 39, 0.15);
+      box-shadow: 0 4px 20px rgba(201, 162, 39, 0.2);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.shuffle-status {
+  .waiting-text {
+    color: $cream-muted;
+    font-size: 0.9rem;
+    padding: 20px 0;
+  }
+
+  .shuffle-progress-text {
+    color: $gold;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+}
+
+// ─── SHUFFLING CENTER CONTENT (inside CircularTable) ─────
+.shuffling-center-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px;
+
+  .shuffling-header {
+    margin-bottom: 4px;
+
+    h3 {
+      color: $gold;
+      font-family: $font-heading;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 0 0 2px;
+    }
+
+    .game-counter {
+      font-size: 0.65rem;
+      color: $cream-muted;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  }
+
+  .shuffle-buttons {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .shuffle-btn {
+    padding: 8px 14px;
+    min-width: 68px;
+    border-radius: 8px;
+
+    .shuffle-icon { font-size: 1.1rem; }
+    .shuffle-label { font-size: 0.6rem; }
+  }
+
+  .shuffle-queue-section {
+    margin-bottom: 8px;
+
+    .queue-header {
+      margin-bottom: 4px;
+
+      .queue-count {
+        font-size: 0.65rem;
+      }
+    }
+  }
+
+  .shuffle-queue {
+    min-height: 28px;
+    padding: 4px 6px;
+    gap: 5px;
+  }
+
+  .shuffle-chip {
+    padding: 2px 7px;
+    font-size: 0.65rem;
+    .chip-icon { font-size: 0.75rem; }
+  }
+
+  .queue-empty {
+    font-size: 0.68rem;
+    padding: 4px 0;
+  }
+
+  .deal-buttons {
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .deal-btn {
+    padding: 8px 20px;
+    font-size: 0.75rem;
+    border-radius: 6px;
+  }
+
+  .shuffle-status {
+    .waiting-text {
+      font-size: 0.8rem;
+      padding: 12px 0;
+    }
+
+    .shuffle-progress-text {
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+    }
+  }
+}
+
+// ─── DEALING OVERLAY ────────────────────────────
+.dealing-overlay {
+  @include panel;
+  padding: 24px;
+  text-align: center;
+  margin: 16px 0;
+
+  &.table-center-variant {
+    background: none;
+    border: none;
+    box-shadow: none;
+    margin: 0;
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    .cut-card-reveal {
+      padding: 12px 0;
+      gap: 10px;
+
+      .cut-card-container {
+        width: 72px;
+        height: 100px;
+      }
+
+      .cut-card-text {
+        font-size: 0.72rem;
+      }
+    }
+
+    .dealing-status {
+      padding: 8px 0;
+
+      .dealing-text {
+        font-size: 0.82rem;
+        margin-bottom: 8px;
+      }
+    }
+
+    .dealing-progress-bar {
+      max-width: 200px;
+    }
+  }
+}
+
+.cut-card-reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 0;
+  animation: fadeInScale 0.4s ease-out;
+
+  .cut-card-container {
+    width: 100px;
+    height: 140px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow:
+      0 0 30px rgba(201, 162, 39, 0.3),
+      0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .cut-card-text {
+    color: $gold;
+    font-family: $font-heading;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+  }
+
+  .cut-card-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-panel-light;
+    color: $cream;
+    font-size: 0.9rem;
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dealing-status {
+  padding: 16px 0;
+
+  .dealing-text {
+    color: $cream;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+}
+
+.dealing-progress-bar {
+  width: 100%;
+  max-width: 320px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.dealing-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $gold-dark, $gold);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+// ─── SERIES FINISHED PANEL ──────────────────────
+.series-finished-panel {
+  @include panel;
+  padding: 30px 24px;
+  text-align: center;
+  margin: 16px 0;
+  animation: fadeInScale 0.5s ease-out;
+
+  .series-header {
+    margin-bottom: 24px;
+
+    h2 {
+      color: $gold;
+      font-family: $font-heading;
+      font-size: 1.4rem;
+      margin: 0;
+    }
+  }
+}
+
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.podium-slot {
+  @include panel;
+  padding: 16px 20px;
+  text-align: center;
+  min-width: 100px;
+  transition: transform 0.2s ease;
+
+  &.gold {
+    border-color: $gold;
+    box-shadow: 0 0 24px rgba(201, 162, 39, 0.2);
+    order: 1;
+
+    .podium-badge { font-size: 2rem; }
+  }
+
+  &.silver {
+    border-color: #c0c0c0;
+    box-shadow: 0 0 16px rgba(192, 192, 192, 0.15);
+    order: 0;
+
+    .podium-badge { font-size: 1.6rem; }
+  }
+
+  &.bronze {
+    border-color: #cd7f32;
+    box-shadow: 0 0 16px rgba(205, 127, 50, 0.15);
+    order: 2;
+
+    .podium-badge { font-size: 1.4rem; }
+  }
+
+  &.is-me {
+    background: rgba(201, 162, 39, 0.08);
+  }
+
+  .podium-badge {
+    margin-bottom: 6px;
+  }
+
+  .podium-name {
+    color: $cream;
+    font-family: $font-heading;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+  }
+
+  .podium-score {
+    color: $gold;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+}
+
+.series-rest {
+  margin-bottom: 20px;
+}
+
+.series-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.08);
+
+  &.is-me {
+    background: rgba(201, 162, 39, 0.06);
+    border-radius: 6px;
+  }
+
+  .series-rank {
+    color: $cream-muted;
+    font-size: 0.8rem;
+    min-width: 30px;
+    text-align: left;
+  }
+
+  .series-name {
+    flex: 1;
+    color: $cream;
+    font-size: 0.85rem;
+    text-align: left;
+    padding-left: 8px;
+  }
+
+  .series-score {
+    color: $gold;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+}
+
+.series-footer {
+  margin-top: 16px;
+
+  .series-redirect {
+    color: $cream-muted;
+    font-size: 0.78rem;
+    font-style: italic;
+  }
+}
+
+// ─── DEALER BADGE ───────────────────────────────
+.dealer-badge {
+  font-size: 0.6rem;
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-left: 4px;
+  vertical-align: middle;
+  background: rgba(205, 127, 50, 0.15);
+  border: 1px solid rgba(205, 127, 50, 0.4);
+  color: #cd7f32;
+}
+
+// ─── AUTO COUNTDOWN (ScoreBoard) ────────────────
+.auto-countdown {
+  margin-bottom: 12px;
+
+  .countdown-text {
+    color: $gold;
+    font-family: $font-heading;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+}
+
+.countdown-bar {
+  width: 100%;
+  max-width: 280px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.countdown-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $gold-dark, $gold);
+  border-radius: 2px;
+}
+
+.game-counter-inline {
+  font-size: 0.75rem;
+  color: $cream-muted;
+  font-weight: 400;
+}
+
+// ─── HAND SORT TOGGLE ───────────────────────────
+.hand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.hand-sort-toggle {
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid $border-gold;
+  border-radius: 6px;
+  color: $cream-muted;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: $gold;
+    border-color: $border-gold-bright;
+    background: rgba(201, 162, 39, 0.12);
+  }
+}
+
+// ─── GAME COUNT WIDGET (CreateGamePage) ─────────
+.game-count-widget {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.game-count-info {
+  font-size: 0.75rem;
+  color: $cream-muted;
+  text-align: center;
+  margin-top: 4px;
+}
+
+// ─── REJOIN BANNER ──────────────────────────────
+.rejoin-banner {
+  @include panel;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  border-color: $gold;
+  background: rgba(201, 162, 39, 0.08);
+  animation: fadeInScale 0.3s ease-out;
+
+  .rejoin-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rejoin-icon {
+    font-size: 1.3rem;
+  }
+
+  .rejoin-text {
+    color: $cream;
+    font-size: 0.9rem;
+
+    strong {
+      color: $gold;
+    }
+  }
 }
 
 // ─── APP ROOT ────────────────────────────────

@@ -21,10 +21,11 @@ const CreateGamePage = () => {
     const [errors, setErrors] = useState([]);
     const [selectedVariant, setSelectedVariant] = useState("4P1D");
     const [bidThreshold, setBidThreshold] = useState(null);
+    const [gameCount, setGameCount] = useState(4); // default to first variant's player count
 
     const variant = GAME_VARIANTS.find((v) => v.key === selectedVariant) || GAME_VARIANTS[0];
 
-    // When variant changes, reset threshold to that variant's default
+    // When variant changes, reset threshold and game count to that variant's defaults
     const handleVariantSelect = (key) => {
         setSelectedVariant(key);
         const v = GAME_VARIANTS.find((vt) => vt.key === key);
@@ -33,6 +34,14 @@ const CreateGamePage = () => {
         } else {
             setBidThreshold(null);
         }
+        // Default game count to player count
+        if (v) {
+            setGameCount(v.players);
+        }
+    };
+
+    const adjustGameCount = (delta) => {
+        setGameCount((prev) => Math.max(1, Math.min(20, prev + delta)));
     };
 
     useEffect(() => {
@@ -56,6 +65,7 @@ const CreateGamePage = () => {
             roompass: pass,
             player_count: variant.players,
             deck_count: variant.decks,
+            game_count: gameCount,
         };
         if (variant.hasThreshold && bidThreshold) {
             data.bid_threshold = bidThreshold;
@@ -157,6 +167,32 @@ const CreateGamePage = () => {
                             </div>
                         </div>
                     )}
+
+                    <div className="form-group">
+                        <label>Number of Games</label>
+                        <div className="game-count-widget">
+                            <button
+                                className="bid-adjust"
+                                onClick={() => adjustGameCount(-1)}
+                                disabled={gameCount <= 1}
+                            >
+                                &minus;
+                            </button>
+                            <span className="threshold-value">
+                                {gameCount}
+                            </span>
+                            <button
+                                className="bid-adjust"
+                                onClick={() => adjustGameCount(1)}
+                                disabled={gameCount >= 20}
+                            >
+                                +
+                            </button>
+                        </div>
+                        <div className="game-count-info">
+                            Play {gameCount} game{gameCount !== 1 ? "s" : ""} in a series (default: {variant.players})
+                        </div>
+                    </div>
 
                     {errors.length !== 0 && (
                         <div className="form-errors">

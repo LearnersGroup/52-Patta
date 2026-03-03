@@ -127,6 +127,7 @@ const CircularTable = ({
                             isMe={false}
                             isTurn={player.isTurn}
                             isLeader={player.isLeader}
+                            isDealer={player.isDealer}
                             isPartner={player.isPartner}
                             cardCount={player.cardCount}
                             score={player.score}

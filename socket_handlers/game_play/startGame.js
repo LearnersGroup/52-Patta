@@ -1,8 +1,7 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
-const { getConfig } = require("../../game_engine/config");
-const { createDeck, removeTwos, dealCards } = require("../../game_engine/deck");
-const { initBidding } = require("../../game_engine/bidding");
+const { getConfig, SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
+const { createDeck, removeTwos } = require("../../game_engine/deck");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 
@@ -73,15 +72,9 @@ module.exports = (socket, io) => async (data, callback) => {
             playerNames[p.playerId._id.toString()] = p.playerId.name;
         }
 
-        // Create and prepare deck
+        // Create and prepare deck (but do NOT shuffle or deal — that's the dealer's job now)
         const fullDeck = createDeck(config.decks);
         const { remainingDeck, removedTwos: removed } = removeTwos(fullDeck, config.removeTwos);
-
-        // Deal cards
-        const hands = dealCards(remainingDeck, seatOrder);
-
-        // Initialize bidding
-        const bidding = initBidding(config, seatOrder);
 
         // Initialize scores
         const scores = {};
@@ -89,18 +82,42 @@ module.exports = (socket, io) => async (data, callback) => {
             scores[pid] = 0;
         }
 
-        // Build initial game state
+        // Determine total games (from room setting or default to player count)
+        const totalGames = game.game_count || playerCount;
+
+        // Build initial game state — shuffling phase (not bidding)
         const gameId = game._id.toString();
         const gameState = {
             gameId,
             roomname: game.roomname,
             config,
-            phase: "bidding",
+            phase: "shuffling",
             seatOrder,
             playerNames,
             removedTwos: removed,
-            hands,
-            bidding,
+
+            // Dealer system — admin is first dealer
+            dealerIndex: 0,
+            dealer: seatOrder[0],
+
+            // Shuffling state
+            shuffleQueue: [],
+            unshuffledDeck: remainingDeck,
+
+            // These will be populated after dealing
+            hands: {},
+            cutCard: null,
+            dealingConfig: {
+                animationDurationMs: SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS,
+                cutCardRevealMs: SHUFFLE_DEALING_CONFIG.CUT_CARD_REVEAL_MS,
+            },
+
+            // Game series tracking
+            currentGameNumber: 1,
+            totalGames,
+
+            // Bidding & gameplay state (populated after dealing)
+            bidding: null,
             leader: null,
             powerHouseSuit: null,
             partnerCards: [],
@@ -120,7 +137,7 @@ module.exports = (socket, io) => async (data, callback) => {
         setGameState(gameId, gameState);
 
         // Update game state in MongoDB
-        await Game.findByIdAndUpdate(gameId, { state: "bidding" });
+        await Game.findByIdAndUpdate(gameId, { state: "shuffling" });
         await persistCheckpoint(gameId);
 
         // Broadcast personalized state to all players
@@ -131,7 +148,7 @@ module.exports = (socket, io) => async (data, callback) => {
             io.to(game.roomname).emit("game-cards-removed", removed);
         }
 
-        io.to(game.roomname).emit("game-phase-change", "bidding");
+        io.to(game.roomname).emit("game-phase-change", "shuffling");
 
     } catch (error) {
         if (callback) callback("An error occurred starting the game");

@@ -26,22 +26,7 @@ const BiddingPanel = ({ bidding, userId, isMyTurn, getName = (pid) => pid?.subst
     const hasPassed = bidding?.passed?.includes(userId);
 
     return (
-        <div className="bidding-panel">
-            <div className="bidding-header">
-                <h3>Bidding Phase</h3>
-                <div className="current-bid-display">
-                    <span className="bid-label">Current Bid</span>
-                    <span className="bid-amount">
-                        {bidding?.currentBid || "None"}
-                    </span>
-                    {bidding?.highestBidder && (
-                        <span className="bid-leader-label">
-                            by {getName(bidding.highestBidder)}
-                        </span>
-                    )}
-                </div>
-            </div>
-
+        <div className="bidding-controls-bar">
             {isMyTurn && !hasPassed && (
                 <div className="bidding-controls">
                     <div className="bid-input-group">
@@ -89,7 +74,7 @@ const BiddingPanel = ({ bidding, userId, isMyTurn, getName = (pid) => pid?.subst
 
             {!isMyTurn && !hasPassed && (
                 <div className="bidding-waiting">
-                    Waiting for other players...
+                    Waiting for {getName(bidding?.currentTurn)}...
                 </div>
             )}
         </div>

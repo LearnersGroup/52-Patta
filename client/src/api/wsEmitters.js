@@ -103,6 +103,29 @@ export const WsRequestGameState = () => {
     socket.emit("game-request-state", {}, callback);
 };
 
+// --- Shuffling & Dealing Emitters ---
+
+export const WsShuffleAction = (type) => {
+    const callback = (err) => {
+        if (err) console.error("WS - shuffle action err - ", err);
+    };
+    socket.emit("game-shuffle-action", { type }, callback);
+};
+
+export const WsUndoShuffle = () => {
+    const callback = (err) => {
+        if (err) console.error("WS - undo shuffle err - ", err);
+    };
+    socket.emit("game-undo-shuffle", {}, callback);
+};
+
+export const WsDeal = (dealType) => {
+    const callback = (err) => {
+        if (err) console.error("WS - deal err - ", err);
+    };
+    socket.emit("game-deal", { dealType }, callback);
+};
+
 export const WsQuitGame = () => {
     const callback = (err) => {
         if (err) console.error("WS - quit game err - ", err);

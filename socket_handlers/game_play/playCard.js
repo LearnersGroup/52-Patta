@@ -3,6 +3,7 @@ const { calculateGameResult, applyScoring } = require("../../game_engine/scoring
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
+const { scheduleAutoNextGame } = require("./autoNextGame");
 
 module.exports = (socket, io) => async (data, callback) => {
     try {
@@ -75,6 +76,9 @@ module.exports = (socket, io) => async (data, callback) => {
 
             io.to(gameState.roomname).emit("game-phase-change", "finished");
             io.to(gameState.roomname).emit("game-result", scoringResult);
+
+            // Schedule auto-progression to next game (or series end)
+            scheduleAutoNextGame(io, gameState.gameId);
         }
 
         setGameState(gameState.gameId, newState);
