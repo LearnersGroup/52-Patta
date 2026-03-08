@@ -65,6 +65,11 @@ module.exports = (socket, io) => async (data, callback) => {
             config.bidThreshold = game.bid_threshold;
         }
 
+        // Inject custom bidding window (ms) — falls back to SHUFFLE_DEALING_CONFIG default
+        config.biddingWindowMs = game.bid_window
+            ? game.bid_window * 1000
+            : SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
+
         // Build seat order and player name map from player list (clockwise)
         const seatOrder = game.players.map((p) => p.playerId._id.toString());
         const playerNames = {};

@@ -39,13 +39,18 @@ const PlayerSeat = ({
         };
     };
 
-    const showBadges = isLeader || isDealer || (isPartner && !relation) || relation;
+    // "potential-teammate" is a private visual cue (yellow tint) — no badge shown
+    const showRelationBadges = (isPartner && !relation) || (relation && relation !== "potential-teammate");
 
     return (
         <>
-            {/* Card back fan */}
+            {/* Card back fan — tinted by relation once known */}
             {cardCount > 0 && (
-                <div className="card-back-fan">
+                <div className={[
+                    "card-back-fan",
+                    relation === "opponent"           ? "card-back-fan--opponent"           : "",
+                    relation === "potential-teammate" ? "card-back-fan--potential-teammate" : "",
+                ].filter(Boolean).join(" ")}>
                     {fanCards.map((i) => (
                         <div
                             key={i}
@@ -65,10 +70,28 @@ const PlayerSeat = ({
                 </div>
             )}
 
-            {/* Avatar */}
-            <div className="table-seat-avatar">
-                {avatarInitial}
-                {isTurn && <div className="table-seat-turn-dot" />}
+            {/* Avatar — with B (Bidder) and D (Dealer) chips overlaid on corners */}
+            <div className="table-seat-avatar-wrap">
+                <div className="table-seat-avatar">
+                    {avatarInitial}
+                    {isTurn && <div className="table-seat-turn-dot" />}
+                </div>
+                {isDealer && (
+                    <span
+                        className="dealer-badge badge-on-avatar badge-on-avatar--dealer"
+                        data-tooltip="Dealer"
+                    >
+                        D
+                    </span>
+                )}
+                {isLeader && (
+                    <span
+                        className="leader-badge badge-on-avatar badge-on-avatar--bidder"
+                        data-tooltip="Bidder"
+                    >
+                        B
+                    </span>
+                )}
             </div>
 
             {/* Name */}
@@ -76,15 +99,9 @@ const PlayerSeat = ({
                 {isMe ? "You" : name}
             </div>
 
-            {/* Badges */}
-            {showBadges && (
+            {/* Relation badges only (Partner / Teammate / Opponent) */}
+            {showRelationBadges && (
                 <div className="table-seat-badges">
-                    {isDealer && (
-                        <span className="dealer-badge">Dealer</span>
-                    )}
-                    {isLeader && (
-                        <span className="leader-badge">Leader</span>
-                    )}
                     {/* Show Partner badge only while team relation isn't known yet */}
                     {isPartner && !relation && (
                         <span className="partner-badge">Partner</span>

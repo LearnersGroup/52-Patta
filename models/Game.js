@@ -12,7 +12,11 @@ const GameSchema = new mongoose.Schema({
     },
     roompass: {
         type: String,
-        required: true
+        default: null,  // null for public rooms
+    },
+    isPublic: {
+        type: Boolean,
+        default: false,
     },
     player_count: {
         type: Number,
@@ -24,6 +28,10 @@ const GameSchema = new mongoose.Schema({
     },
     bid_threshold: {
         type: Number,
+        default: null,
+    },
+    bid_window: {
+        type: Number,  // bidding window in seconds (null = use server default of 15)
         default: null,
     },
     game_count: {

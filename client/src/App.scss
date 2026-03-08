@@ -789,48 +789,118 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   .btn-primary   { flex: 2; }
 }
 
-.variant-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+// ─── Deck count toggle ──────────────────────────
+.deck-toggle {
+  display: flex;
   gap: 8px;
 }
 
-.variant-btn {
+.deck-btn {
+  flex: 1;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(201, 162, 39, 0.15);
+  border: 1px solid rgba(201, 162, 39, 0.18);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 10px 0;
   cursor: pointer;
-  text-align: left;
+  color: $cream-muted;
+  font-family: $font-heading;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   transition: all 0.2s ease;
 
-  &:hover {
-    border-color: rgba(201, 162, 39, 0.4);
-    background: rgba(201, 162, 39, 0.06);
+  &:hover:not(:disabled) {
+    border-color: rgba(201, 162, 39, 0.45);
+    background: rgba(201, 162, 39, 0.07);
+    color: $cream;
   }
 
   &.active {
     border-color: $gold;
-    background: rgba(201, 162, 39, 0.12);
+    background: rgba(201, 162, 39, 0.14);
+    color: $gold;
     box-shadow: 0 0 12px rgba(201, 162, 39, 0.15);
   }
 
-  .variant-label {
-    color: $cream;
-    font-family: $font-heading;
-    font-size: 0.78rem;
-    letter-spacing: 0.06em;
-    margin-bottom: 3px;
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.deck-warning {
+  margin-top: 6px;
+  font-size: 0.73rem;
+  color: #e8a040;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+// ─── Room name display ───────────────────────────
+.room-name-display {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.75);
+  letter-spacing: 0.02em;
+}
+
+// ─── Visibility toggle (Private / Public) ────────
+.visibility-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.visibility-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 9px 0;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+
+  &:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.75);
   }
 
-  .variant-meta {
-    color: $cream-muted;
-    font-size: 0.65rem;
-    letter-spacing: 0.03em;
+  &.active {
+    background: rgba(201, 162, 39, 0.16);
+    border-color: rgba(201, 162, 39, 0.45);
+    color: #f0d060;
   }
+}
 
-  &.active .variant-label {
-    color: $gold;
+.visibility-hint {
+  margin-top: 6px;
+  font-size: 0.73rem;
+  color: rgba(255, 255, 255, 0.40);
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+// ─── Computed game info row ─────────────────────
+.game-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px 10px;
+  background: rgba(201, 162, 39, 0.06);
+  border: 1px solid rgba(201, 162, 39, 0.12);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  color: $cream-muted;
+  letter-spacing: 0.04em;
+
+  .game-info-dot {
+    color: rgba(201, 162, 39, 0.35);
   }
 }
 
@@ -1370,25 +1440,85 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   gap: 6px;
 }
 
-.leader-badge, .partner-badge {
+// ─── PARTNER BADGE ─────────────────────────────────
+.partner-badge {
   font-size: 0.6rem;
   padding: 1px 6px;
   border-radius: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 700;
-}
-
-.leader-badge {
-  background: rgba(201, 162, 39, 0.15);
-  border: 1px solid $border-gold;
-  color: $gold;
-}
-
-.partner-badge {
   background: rgba(46, 204, 113, 0.12);
   border: 1px solid rgba(46, 204, 113, 0.35);
   color: #2ecc71;
+}
+
+// ─── AVATAR WRAP + B/D COMPACT CHIP BADGES ─────────
+.table-seat-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// Compact chip badge overlaid on avatar corners
+.badge-on-avatar {
+  position: absolute;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: $font-heading;
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0;
+  cursor: default;
+  z-index: 3;
+  opacity: 1;
+
+  // Tooltip via data-tooltip attribute
+  &::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 12, 18, 0.94);
+    border: 1px solid rgba(201, 162, 39, 0.2);
+    color: $cream;
+    font-size: 0.6rem;
+    font-family: $font-body;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    z-index: 100;
+  }
+
+  &:hover::after {
+    opacity: 1;
+  }
+
+  // Dealer: bottom-left of avatar
+  &--dealer {
+    bottom: -3px;
+    left: -4px;
+  }
+
+  // Bidder: bottom-right of avatar
+  &--bidder {
+    bottom: -3px;
+    right: -4px;
+  }
 }
 
 .seat-meta {
@@ -1538,14 +1668,49 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
 
+  // ── Live countdown timer ──────────────────────────
+  .bid-center-timer {
+    font-family: $font-heading;
+    font-size: 0.72rem;
+    color: $cream-muted;
+    letter-spacing: 0.04em;
+    padding: 2px 10px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(201, 162, 39, 0.12);
+
+    strong {
+      font-size: 0.9rem;
+      color: $gold;
+    }
+
+    &--urgent {
+      animation: bidding-urgent-flash 0.6s ease-in-out infinite alternate;
+      border-color: rgba(231, 76, 60, 0.4);
+      background: rgba(231, 76, 60, 0.08);
+    }
+  }
+
+  .bid-center-countdown--urgent {
+    color: #e74c3c !important;
+  }
+
+  .bid-center-timer-text {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  // ── Current bid ───────────────────────────────────
   .bid-center-label {
     font-family: $font-heading;
     color: $cream-muted;
     font-size: 0.7rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
+    margin-top: 2px;
   }
 
   .bid-center-amount {
@@ -1558,19 +1723,78 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   }
 
   .bid-center-bidder {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: $cream-muted;
     letter-spacing: 0.04em;
+  }
+
+  .bid-center-bidder-name {
+    color: $cream;
+    font-weight: 600;
   }
 }
 
 // ─── BIDDING CONTROLS BAR (below PlayerHand) ────
 .bidding-controls-bar {
-  padding: 10px 20px;
+  padding: 8px 20px 12px;
   text-align: center;
   position: relative;
   z-index: 10;
 
+  // ── Timer + current bid row ──────────────────
+  .bidding-timer-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+
+    &.bidding-timer--urgent {
+      animation: bidding-urgent-flash 0.6s ease-in-out infinite alternate;
+    }
+  }
+
+  .bidding-timer {
+    font-family: $font-heading;
+    font-size: 0.82rem;
+    color: $cream-muted;
+    letter-spacing: 0.04em;
+  }
+
+  .bidding-countdown {
+    font-size: 1.1rem;
+    color: $gold;
+    transition: color 0.3s;
+
+    &--urgent {
+      color: #e74c3c;
+    }
+  }
+
+  .bidding-current {
+    font-family: $font-heading;
+    font-size: 0.82rem;
+    color: $cream-muted;
+
+    strong {
+      color: $cream;
+      font-size: 0.95rem;
+    }
+  }
+
+  .bidding-leader {
+    color: $gold;
+    font-size: 0.78rem;
+  }
+
+  .bidding-no-bid {
+    color: $cream-muted;
+    font-style: italic;
+    font-size: 0.78rem;
+  }
+
+  // ── Bid controls ─────────────────────────────
   .bidding-controls {
     display: flex;
     align-items: center;
@@ -1582,6 +1806,16 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   .bidding-passed, .bidding-waiting {
     font-size: 0.85rem;
   }
+
+  .bidding-passed {
+    color: $cream-muted;
+    font-style: italic;
+  }
+}
+
+@keyframes bidding-urgent-flash {
+  from { opacity: 1; }
+  to   { opacity: 0.6; }
 }
 
 // ─── POWERHOUSE PANEL ───────────────────────
@@ -1949,8 +2183,8 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 7rem;
-  opacity: 0.07;
+  font-size: 14rem;
+  opacity: 0.14;
   pointer-events: none;
   z-index: 0;
   line-height: 1;
@@ -2632,6 +2866,28 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   transform-origin: bottom center;
 }
 
+// Red tint overlay on opponent card backs (once teams are revealed)
+.card-back-fan--opponent .card-back-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(204, 41, 54, 0.42);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+// Gold tint on bidder's card backs when user *might* hold the partner card (2-deck, 1 copy)
+.card-back-fan--potential-teammate .card-back-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(201, 162, 39, 0.38);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .card-count-badge {
   position: absolute;
   bottom: -2px;
@@ -2938,6 +3194,49 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
 
 // ─── MY TURN INDICATOR (local player) ───────
 // Shown at the top of the screen when it's your turn
+// ─── TEAMMATE REVEAL ANNOUNCEMENT ──────────────────
+.reveal-announcement {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 500;
+  padding: 14px 28px;
+  background: rgba(10, 14, 20, 0.94);
+  border: 1px solid rgba(46, 204, 113, 0.55);
+  border-radius: 14px;
+  box-shadow:
+    0 0 30px rgba(46, 204, 113, 0.2),
+    0 4px 24px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: $font-heading;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  color: $cream;
+  text-align: center;
+  pointer-events: none;
+  animation: reveal-announce 2s ease-in-out forwards;
+
+  .reveal-announcement-player {
+    color: #2ecc71;
+    font-weight: 900;
+  }
+
+  .reveal-announcement-bidder {
+    color: $gold;
+    font-weight: 900;
+  }
+}
+
+@keyframes reveal-announce {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.04); }
+  20%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  78%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+}
+
 .my-turn-indicator {
   position: fixed;
   top: 12px;
@@ -3851,18 +4150,22 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   }
 }
 
-// ─── DEALER BADGE ───────────────────────────────
+// ─── BIDDER (B) + DEALER (D) COMPACT CHIP COLORS ─
+// Shape/size comes from .badge-on-avatar; these provide colors only.
+.leader-badge {
+  background: $gold;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #1a1200;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.5);
+  opacity: 1;
+}
+
 .dealer-badge {
-  font-size: 0.6rem;
-  padding: 1px 6px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-left: 4px;
-  vertical-align: middle;
-  background: rgba(205, 127, 50, 0.15);
-  border: 1px solid rgba(205, 127, 50, 0.4);
-  color: #cd7f32;
+  background: #cd7f32;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #1a0e00;
+  box-shadow: 0 0 7px rgba(205, 127, 50, 0.45);
+  opacity: 1;
 }
 
 // ─── AUTO COUNTDOWN (ScoreBoard) ────────────────

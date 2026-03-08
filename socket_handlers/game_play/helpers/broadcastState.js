@@ -58,14 +58,16 @@ function buildPublicView(gameState) {
 
         bidding: gameState.bidding
             ? {
-                  ...gameState.bidding,
-                  currentTurn:
-                      gameState.seatOrder[gameState.bidding.turnIndex] || null,
-                  passed: gameState.bidding.passes || [],
-                  highestBidder: gameState.bidding.currentBidder,
-                  increment: gameState.config?.bidIncrement || 5,
-                  startingBid: gameState.bidding.startingBid,
-                  maxBid: gameState.config?.bidMax || 500,
+                  currentBid:           gameState.bidding.currentBid,
+                  currentBidder:        gameState.bidding.currentBidder,
+                  passed:               gameState.bidding.passes || [],
+                  startingBid:          gameState.bidding.startingBid,
+                  biddingComplete:      gameState.bidding.biddingComplete,
+                  increment:            gameState.config?.bidIncrement || 5,
+                  maxBid:               gameState.config?.bidMax || 500,
+                  biddingWindowMs:      gameState.config?.biddingWindowMs || 15000,
+                  biddingWindowOpensAt: gameState.bidding.biddingWindowOpensAt,
+                  biddingExpiresAt:     gameState.bidding.biddingExpiresAt,
               }
             : null,
         leader: gameState.leader,
