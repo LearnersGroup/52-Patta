@@ -70,6 +70,11 @@ module.exports = (socket, io) => async (data, callback) => {
             ? game.bid_window * 1000
             : SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
 
+        // Inject custom card inspect window (ms) — falls back to SHUFFLE_DEALING_CONFIG default
+        config.inspectWindowMs = game.inspect_time
+            ? game.inspect_time * 1000
+            : SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;
+
         // Build seat order and player name map from player list (clockwise)
         const seatOrder = game.players.map((p) => p.playerId._id.toString());
         const playerNames = {};

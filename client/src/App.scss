@@ -563,14 +563,16 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   color: $cream;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+}
 
-  &::before {
-    content: '♠';
-    color: $gold;
-    opacity: 0.5;
-    font-size: 0.8rem;
-  }
+.room-visibility-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &--public  { opacity: 0.75; }
+  &--private { opacity: 0.65; }
 }
 
 .room-admin-cell {
@@ -2277,11 +2279,20 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
 }
 
 // ─── TEAM SCORE HUD ────────────────────────
-.team-score-hud {
+
+// Outer fixed wrapper (column: pill row + pile below)
+.hud-wrapper {
   position: fixed;
   top: 12px;
   left: 12px;
   z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.team-score-hud {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2352,6 +2363,111 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
     opacity: 1;
     transform: scale(1.15);
   }
+}
+
+// ─── REMOVED 2s PILE (inside HUD wrapper) ────────────────────
+
+.removed-pile-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+// The clickable pile trigger button
+.removed-pile-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba($bg-panel, 0.92);
+  border: 1px solid $border-gold;
+  border-radius: 14px;
+  padding: 4px 10px 4px 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover, &.open {
+    border-color: $gold;
+    background: rgba($bg-panel, 0.98);
+  }
+}
+
+// The stacked mini-card visual
+.removed-pile-stack {
+  position: relative;
+  width: 28px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+.removed-pile-card {
+  position: absolute;
+  width: 24px;
+  height: 34px;
+  border-radius: 3px;
+  overflow: hidden;
+  opacity: 0.85;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  // Stack effect: each card offset slightly
+  top:  calc(var(--pile-i, 0) * -2px);
+  left: calc(var(--pile-i, 0) * 2px);
+  transform: rotate(calc(var(--pile-i, 0) * 4deg));
+  z-index: calc(3 - var(--pile-i, 0));
+}
+
+.removed-pile-label {
+  font-size: 0.72rem;
+  font-family: $font-heading;
+  color: $gold;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+// Expanded card list that pops out below the pile trigger
+@keyframes pile-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+.removed-pile-expanded {
+  background: rgba($bg-panel, 0.96);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+  padding: 8px 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  animation: pile-pop-in 0.22s ease;
+}
+
+.removed-pile-title {
+  display: block;
+  font-size: 0.65rem;
+  font-family: $font-heading;
+  color: $cream-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+
+.removed-pile-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-width: 160px; // ~4 cards per row
+}
+
+.removed-pile-item {
+  width: 30px;
+  height: 42px;
+  border-radius: 3px;
+  overflow: hidden;
+  opacity: 0.85;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+  animation: pile-pop-in 0.18s ease both;
+  animation-delay: calc(var(--item-i, 0) * 30ms);
 }
 
 // ─── SCOREBOARD MODAL ────────────────────────────────────────
@@ -2653,6 +2769,20 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
     color: #2ecc71;
     font-weight: 700;
   }
+}
+
+.partner-copy-num {
+  font-size: 0.55rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: #f0c040;
+  letter-spacing: 0.05em;
+  background: rgba(240, 192, 64, 0.15);
+  border: 1px solid rgba(240, 192, 64, 0.4);
+  border-radius: 3px;
+  padding: 0 4px;
+  line-height: 1.4;
+  text-align: center;
 }
 
 @keyframes partner-reveal {

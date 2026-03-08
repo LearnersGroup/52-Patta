@@ -7,7 +7,6 @@ import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
 import PlayerList from "./PlayerList";
 import ScoreBoard from "./ScoreBoard";
-import RemovedTwosDisplay from "./RemovedTwosDisplay";
 import PartnerCardDisplay from "./PartnerCardDisplay";
 import TeamScoreHUD from "./TeamScoreHUD";
 import DealRevealOverlay from "./DealRevealOverlay";
@@ -131,6 +130,56 @@ const GameBoard = ({ userId, isAdmin }) => {
         if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
     }, []);
 
+    // ── Partner / relation logic ───────────────────────────────────────────
+    // These must all live ABOVE any early return (Rules of Hooks).
+
+    const allPartnersRevealed =
+        (game.partnerCards?.length ?? 0) > 0 &&
+        game.partnerCards.every((pc) => pc.revealed);
+
+    // Server-confirmed team membership (public info as reveals happen)
+    const myTeam = game.teams?.bid?.includes(userId)
+        ? "bid"
+        : game.teams?.oppose?.includes(userId)
+        ? "oppose"
+        : null;
+
+    // Private hand-based inference (only the local user sees this)
+    const myKnownRelation = useMemo(() => {
+        const partnerCards = game.partnerCards;
+        if (!partnerCards?.length || !game.myHand?.length) return null;
+        if (!["powerhouse", "playing"].includes(game.phase)) return null;
+        if (myTeam) return null;
+
+        const deckCount = game.configKey?.includes("2D") ? 2 : 1;
+        let hasCertain = false;
+        let hasPotential = false;
+
+        for (const pc of partnerCards) {
+            if (!pc.card) continue;
+            const copiesInHand = game.myHand.filter(
+                (c) => c.suit === pc.card.suit && c.rank === pc.card.rank
+            ).length;
+
+            if (deckCount === 1 && copiesInHand >= 1) { hasCertain = true; break; }
+            else if (deckCount === 2) {
+                if (copiesInHand >= 2) { hasCertain = true; break; }
+                else if (copiesInHand === 1) hasPotential = true;
+            }
+        }
+
+        if (hasCertain) return "certain-teammate";
+        if (hasPotential) return "potential-teammate";
+        return "certain-not-teammate";
+    }, [game.partnerCards, game.myHand, game.configKey, game.phase, myTeam]); // eslint-disable-line
+
+    // Effective team: server wins, then fall back to local certainty
+    const myEffectiveTeam = myTeam
+        ?? (myKnownRelation === "certain-teammate"     ? "bid"    : null)
+        ?? (myKnownRelation === "certain-not-teammate" ? "oppose" : null);
+
+    // ── Early return (after all hooks) ────────────────────────────────────
+
     if (!game.phase) {
         return <div className="game-board-loading">Loading game state...</div>;
     }
@@ -211,58 +260,6 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
     });
 
-    // ── Partner / relation logic ───────────────────────────────────────────
-
-    const allPartnersRevealed =
-        (game.partnerCards?.length ?? 0) > 0 &&
-        game.partnerCards.every((pc) => pc.revealed);
-
-    // Server-confirmed team membership (public info as reveals happen)
-    const myTeam = game.teams?.bid?.includes(userId)
-        ? "bid"
-        : game.teams?.oppose?.includes(userId)
-        ? "oppose"
-        : null;
-
-    // ── Private hand-based inference (only the local user sees this) ──────
-    // Determines whether the user holds a partner card before it's publicly revealed.
-    //   "certain-teammate"     – holds the partner card definitively
-    //   "potential-teammate"   – holds one copy (2-deck only); might be the partner card
-    //   "certain-not-teammate" – holds no copies of any partner card
-    const myKnownRelation = useMemo(() => {
-        const partnerCards = game.partnerCards;
-        if (!partnerCards?.length || !game.myHand?.length) return null;
-        if (!["powerhouse", "playing"].includes(game.phase)) return null;
-        // Don't override once server has confirmed our team
-        if (myTeam) return null;
-
-        const deckCount = game.configKey?.includes("2D") ? 2 : 1;
-        let hasCertain = false;
-        let hasPotential = false;
-
-        for (const pc of partnerCards) {
-            if (!pc.card) continue;
-            const copiesInHand = game.myHand.filter(
-                (c) => c.suit === pc.card.suit && c.rank === pc.card.rank
-            ).length;
-
-            if (deckCount === 1 && copiesInHand >= 1) { hasCertain = true; break; }
-            else if (deckCount === 2) {
-                if (copiesInHand >= 2) { hasCertain = true; break; }
-                else if (copiesInHand === 1) hasPotential = true;
-            }
-        }
-
-        if (hasCertain) return "certain-teammate";
-        if (hasPotential) return "potential-teammate";
-        return "certain-not-teammate";
-    }, [game.partnerCards, game.myHand, game.configKey, game.phase, myTeam]); // eslint-disable-line
-
-    // Effective team: server wins, then fall back to local certainty
-    const myEffectiveTeam = myTeam
-        ?? (myKnownRelation === "certain-teammate"     ? "bid"    : null)
-        ?? (myKnownRelation === "certain-not-teammate" ? "oppose" : null);
-
     // ── Relation resolver (per opponent seat) ─────────────────────────────
     // Returns "teammate" | "opponent" | "potential-teammate" | null
     const getRelation = (pid) => {
@@ -271,21 +268,31 @@ const GameBoard = ({ userId, isAdmin }) => {
         const pidIsLeader          = pid === game.leader;
         const pidIsRevealedPartner = (game.revealedPartners || []).includes(pid);
         const pidOnBid             = (game.teams?.bid || []).includes(pid);
+        const hasAnyReveal         = (game.revealedPartners || []).length > 0;
 
-        // A player's team is publicly known if they've been revealed or all are revealed
-        const pidTeamPublic = pidIsLeader || pidIsRevealedPartner || allPartnersRevealed;
+        // ── Bidder (leader) seat — handled separately ─────────────────────
+        // We always know the bidder is on the "bid" team, but we can only colour
+        // them relative to ourselves under specific conditions:
+        if (pidIsLeader) {
+            // Certain teammate: I hold a partner card definitively
+            if (myEffectiveTeam === "bid") return "teammate";
+            // Potential teammate: I hold 1 copy in a 2-deck game
+            // (true for every player that holds one copy, even if split between two players)
+            if (myKnownRelation === "potential-teammate") return "potential-teammate";
+            // Opponent: only once partner reveals have started; before that partner
+            // selection isn't complete and colouring the bidder red is premature
+            if (myEffectiveTeam === "oppose" && (hasAnyReveal || allPartnersRevealed)) return "opponent";
+            return null;
+        }
+
+        // ── All other seats: only visible once publicly revealed ──────────
+        const pidTeamPublic = pidIsRevealedPartner || allPartnersRevealed;
         if (!pidTeamPublic) return null;
 
         const pidTeam = pidOnBid ? "bid" : "oppose";
 
-        // Use confirmed effective team if we have it
         if (myEffectiveTeam) {
             return pidTeam === myEffectiveTeam ? "teammate" : "opponent";
-        }
-
-        // Potential teammate (2-deck, 1 copy) — visible only for the bidder seat
-        if (myKnownRelation === "potential-teammate" && pidIsLeader) {
-            return "potential-teammate";
         }
 
         return null;
@@ -450,8 +457,6 @@ const GameBoard = ({ userId, isAdmin }) => {
 
             {game.error && <div className="game-error-banner">{game.error}</div>}
 
-            {game.removedTwos?.length > 0 && <RemovedTwosDisplay cards={game.removedTwos} />}
-
             {/* Non-table phases: use horizontal player list */}
             {!isTablePhase && (
                 <PlayerList
@@ -482,6 +487,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                         leader={game.leader}
                         partnerCards={game.partnerCards}
                         phase={game.phase}
+                        removedTwos={game.removedTwos || []}
                     />
 
                     {isPlayingPhase && (

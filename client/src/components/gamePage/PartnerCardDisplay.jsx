@@ -42,6 +42,11 @@ const PartnerCardDisplay = ({
                                     revealed ? "revealed" : ""
                                 }`}
                             >
+                                {partnerCards.length > 1 && (
+                                    <div className="partner-copy-num">
+                                        #{idx + 1}
+                                    </div>
+                                )}
                                 <div
                                     className={`partner-card-mini ${
                                         isRedSuit(pc.card.suit) ? "red" : ""

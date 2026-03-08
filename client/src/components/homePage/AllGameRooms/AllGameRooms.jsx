@@ -9,7 +9,7 @@ import { notify } from "../../../redux/slices/alert";
 const AllGameRooms = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const [pass, setPass] = useState("");
+    const [passes, setPasses] = useState({});          // per-room password map
     const [shakingRoomId, setShakingRoomId] = useState(null);
     const { data, status } = useQuery("all-game-rooms", get_all_rooms);
 
@@ -39,7 +39,8 @@ const AllGameRooms = () => {
         setTimeout(() => setShakingRoomId(null), 500);
     };
 
-    const handleJoinRoom = (roomname, roompass, id) => {
+    const handleJoinRoom = (roomname, id, isPublic) => {
+        const roompass = isPublic ? "" : (passes[id] || "");
         socket.emit("user-join-room", { roomname, roompass, id }, (err) => {
             if (err === "Invalid Credentials") {
                 triggerShake(id);
@@ -83,10 +84,18 @@ const AllGameRooms = () => {
                         <tbody>
                             {data.map((room) => {
                                 const isFull = room.players.length >= room.player_count;
+                                const roomId = room["_id"];
+                                const isPublic = !!room.isPublic;
                                 return (
-                                    <tr key={room["_id"]}>
+                                    <tr key={roomId}>
                                         <td>
                                             <span className="room-name-cell">
+                                                <span
+                                                    className={`room-visibility-icon ${isPublic ? "room-visibility-icon--public" : "room-visibility-icon--private"}`}
+                                                    title={isPublic ? "Public room" : "Private room"}
+                                                >
+                                                    {isPublic ? "🌐" : "🔒"}
+                                                </span>
                                                 {room.roomname}
                                             </span>
                                         </td>
@@ -103,24 +112,29 @@ const AllGameRooms = () => {
                                         <td>
                                             {isFull ? (
                                                 <span className="room-full-badge">Full</span>
+                                            ) : isPublic ? (
+                                                <div className="join-cell">
+                                                    <button
+                                                        className="btn-primary"
+                                                        onClick={() => handleJoinRoom(room.roomname, roomId, true)}
+                                                    >
+                                                        Join
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 <div className="join-cell">
                                                     <input
                                                         type="password"
-                                                        className={`join-input${shakingRoomId === room["_id"] ? " shake" : ""}`}
-                                                        value={pass}
-                                                        onChange={(e) => setPass(e.target.value)}
+                                                        className={`join-input${shakingRoomId === roomId ? " shake" : ""}`}
+                                                        value={passes[roomId] || ""}
+                                                        onChange={(e) =>
+                                                            setPasses((prev) => ({ ...prev, [roomId]: e.target.value }))
+                                                        }
                                                         placeholder="Password"
                                                     />
                                                     <button
                                                         className="btn-primary"
-                                                        onClick={() =>
-                                                            handleJoinRoom(
-                                                                room.roomname,
-                                                                pass,
-                                                                room["_id"]
-                                                            )
-                                                        }
+                                                        onClick={() => handleJoinRoom(room.roomname, roomId, false)}
                                                     >
                                                         Join
                                                     </button>

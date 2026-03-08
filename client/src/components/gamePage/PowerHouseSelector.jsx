@@ -45,36 +45,49 @@ const PowerHouseSelector = ({
         return selectedCards.some((c) => c.suit === suit && c.rank === rank);
     }
 
-    function getSelectedCard(suit, rank) {
-        return selectedCards.find((c) => c.suit === suit && c.rank === rank);
+    function isCopySelected(suit, rank, copyNum) {
+        return selectedCards.some(
+            (c) => c.suit === suit && c.rank === rank && c.whichCopy === copyNum
+        );
     }
 
     function toggleCard(card) {
-        if (isSelected(card.suit, card.rank)) {
-            setSelectedCards(
-                selectedCards.filter(
+        const holdCount = myHand.filter(
+            (c) => c.suit === card.suit && c.rank === card.rank
+        ).length;
+
+        if (is2Deck && holdCount === 0) {
+            // Thumbnail click = toggle copy 1 independently
+            if (isCopySelected(card.suit, card.rank, 1)) {
+                setSelectedCards(selectedCards.filter(
+                    (c) => !(c.suit === card.suit && c.rank === card.rank && c.whichCopy === 1)
+                ));
+            } else if (selectedCards.length < partnerCount) {
+                setSelectedCards([...selectedCards, { ...card, whichCopy: 1 }]);
+            }
+        } else {
+            // 1-deck or leader holds 1 copy: simple toggle
+            if (isSelected(card.suit, card.rank)) {
+                setSelectedCards(selectedCards.filter(
                     (c) => !(c.suit === card.suit && c.rank === card.rank)
-                )
-            );
-        } else if (selectedCards.length < partnerCount) {
-            const holdCount = myHand.filter(
-                (c) => c.suit === card.suit && c.rank === card.rank
-            ).length;
-            // whichCopy only needed when leader holds 0 copies in 2-deck
-            const whichCopy = is2Deck && holdCount === 0 ? 1 : null;
-            setSelectedCards([...selectedCards, { ...card, whichCopy }]);
+                ));
+            } else if (selectedCards.length < partnerCount) {
+                setSelectedCards([...selectedCards, { ...card, whichCopy: null }]);
+            }
         }
     }
 
-    function setCopyForCard(suit, rank, copyNum, e) {
+    function toggleCopyForCard(suit, rank, copyNum, e) {
         e.stopPropagation();
-        setSelectedCards(
-            selectedCards.map((c) =>
-                c.suit === suit && c.rank === rank
-                    ? { ...c, whichCopy: copyNum }
-                    : c
-            )
-        );
+        if (isCopySelected(suit, rank, copyNum)) {
+            // Remove just this copy
+            setSelectedCards(selectedCards.filter(
+                (c) => !(c.suit === suit && c.rank === rank && c.whichCopy === copyNum)
+            ));
+        } else if (selectedCards.length < partnerCount) {
+            // Add this copy independently
+            setSelectedCards([...selectedCards, { suit, rank, whichCopy: copyNum }]);
+        }
     }
 
     function toggleSuitExpanded(suit) {
@@ -160,9 +173,14 @@ const PowerHouseSelector = ({
                                         <div className="suit-cards-row">
                                             {displayCards.map((card) => {
                                                 const CardSvg = getCardComponent(card);
+                                                const holdCount = myHand.filter(
+                                                    (c) => c.suit === card.suit && c.rank === card.rank
+                                                ).length;
                                                 const selected = isSelected(card.suit, card.rank);
-                                                const selData = selected ? getSelectedCard(card.suit, card.rank) : null;
-                                                const showCopyBtns = selected && is2Deck && selData?.whichCopy !== null;
+                                                const copy1Active = isCopySelected(card.suit, card.rank, 1);
+                                                const copy2Active = isCopySelected(card.suit, card.rank, 2);
+                                                // Show independent copy buttons when 2-deck and leader holds 0 copies
+                                                const showCopyBtns = selected && is2Deck && holdCount === 0;
                                                 const disabled = !selected && atLimit;
 
                                                 return (
@@ -178,13 +196,13 @@ const PowerHouseSelector = ({
                                                         {showCopyBtns && (
                                                             <div className="copy-btns">
                                                                 <button
-                                                                    className={`copy-btn${selData.whichCopy === 1 ? " active" : ""}`}
-                                                                    onClick={(e) => setCopyForCard(card.suit, card.rank, 1, e)}
+                                                                    className={`copy-btn${copy1Active ? " active" : ""}${!copy1Active && atLimit ? " disabled" : ""}`}
+                                                                    onClick={(e) => toggleCopyForCard(card.suit, card.rank, 1, e)}
                                                                     title="1st copy"
                                                                 >1</button>
                                                                 <button
-                                                                    className={`copy-btn${selData.whichCopy === 2 ? " active" : ""}`}
-                                                                    onClick={(e) => setCopyForCard(card.suit, card.rank, 2, e)}
+                                                                    className={`copy-btn${copy2Active ? " active" : ""}${!copy2Active && atLimit ? " disabled" : ""}`}
+                                                                    onClick={(e) => toggleCopyForCard(card.suit, card.rank, 2, e)}
                                                                     title="2nd copy"
                                                                 >2</button>
                                                             </div>
@@ -281,9 +299,13 @@ const PowerHouseSelector = ({
                                     <div className="suit-cards-row">
                                         {displayCards.map((card) => {
                                             const CardSvg = getCardComponent(card);
+                                            const holdCount = myHand.filter(
+                                                (c) => c.suit === card.suit && c.rank === card.rank
+                                            ).length;
                                             const selected = isSelected(card.suit, card.rank);
-                                            const selData = selected ? getSelectedCard(card.suit, card.rank) : null;
-                                            const showCopyBtns = selected && is2Deck && selData?.whichCopy !== null;
+                                            const copy1Active = isCopySelected(card.suit, card.rank, 1);
+                                            const copy2Active = isCopySelected(card.suit, card.rank, 2);
+                                            const showCopyBtns = selected && is2Deck && holdCount === 0;
                                             const disabled = !selected && atLimit;
 
                                             return (
@@ -296,8 +318,8 @@ const PowerHouseSelector = ({
                                                     {CardSvg && <CardSvg style={{ height: "100%", width: "100%" }} />}
                                                     {showCopyBtns && (
                                                         <div className="copy-btns">
-                                                            <button className={`copy-btn${selData.whichCopy === 1 ? " active" : ""}`} onClick={(e) => setCopyForCard(card.suit, card.rank, 1, e)} title="1st copy">1</button>
-                                                            <button className={`copy-btn${selData.whichCopy === 2 ? " active" : ""}`} onClick={(e) => setCopyForCard(card.suit, card.rank, 2, e)} title="2nd copy">2</button>
+                                                            <button className={`copy-btn${copy1Active ? " active" : ""}${!copy1Active && atLimit ? " disabled" : ""}`} onClick={(e) => toggleCopyForCard(card.suit, card.rank, 1, e)} title="1st copy">1</button>
+                                                            <button className={`copy-btn${copy2Active ? " active" : ""}${!copy2Active && atLimit ? " disabled" : ""}`} onClick={(e) => toggleCopyForCard(card.suit, card.rank, 2, e)} title="2nd copy">2</button>
                                                         </div>
                                                     )}
                                                 </div>

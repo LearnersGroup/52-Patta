@@ -95,10 +95,12 @@ module.exports = (socket, io) => async (data, callback) => {
             const currentState = getGameState(gameId);
             if (!currentState || currentState.phase !== "dealing") return;
 
-            const revealMs = SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;  // 7500ms
-            // Use the per-room configured window if available, else the global default
+            // Use per-room configured inspect window if available, else the global default (15s)
+            const revealMs = currentState.config?.inspectWindowMs
+                || SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;
+            // Use per-room configured bidding window if available, else the global default (15s)
             const windowMs = currentState.config?.biddingWindowMs
-                || SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;  // 15000ms default
+                || SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
 
             currentState.phase = "bidding";
             currentState.cutCard = null; // clear cut card after reveal

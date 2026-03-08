@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const { checkConfig } = require("../../game_engine/config");
 
 module.exports = (socket, io) => async (data, callback) => {
-    const { roomname, roompass, isPublic, player_count, deck_count, bid_threshold, game_count, bid_window } = data;
+    const { roomname, roompass, isPublic, player_count, deck_count, bid_threshold, game_count, bid_window, inspect_time } = data;
 
     if (!roomname || typeof roomname !== 'string') {
         callback("Room name is required");
@@ -70,6 +70,11 @@ module.exports = (socket, io) => async (data, callback) => {
         const bw = parseInt(bid_window, 10);
         if (!isNaN(bw) && bw >= 5 && bw <= 60) {
             gameData.bid_window = bw;
+        }
+        // Store card inspect time (seconds, 5–30, default null → server uses 15)
+        const it = parseInt(inspect_time, 10);
+        if (!isNaN(it) && it >= 5 && it <= 30) {
+            gameData.inspect_time = it;
         }
         // Store game count (defaults to player_count if not provided)
         const gc = parseInt(game_count, 10);

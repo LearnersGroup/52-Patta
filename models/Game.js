@@ -34,6 +34,10 @@ const GameSchema = new mongoose.Schema({
         type: Number,  // bidding window in seconds (null = use server default of 15)
         default: null,
     },
+    inspect_time: {
+        type: Number,  // card inspect time in seconds (null = use server default of 15)
+        default: null,
+    },
     game_count: {
         type: Number,
         default: null,

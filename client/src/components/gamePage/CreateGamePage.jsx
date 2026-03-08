@@ -52,6 +52,7 @@ const CreateGamePage = () => {
     const [bidThreshold, setBidThreshold] = useState(null);
     const [gameCount, setGameCount]     = useState(4);
     const [bidWindow, setBidWindow]     = useState(15);
+    const [inspectTime, setInspectTime] = useState(15);
 
     const config      = useMemo(() => computeClientConfig(playerCount, deckCount), [playerCount, deckCount]);
     const oneDeckOk   = useMemo(() => isDeckCountValid(playerCount, 1),            [playerCount]);
@@ -81,8 +82,9 @@ const CreateGamePage = () => {
         setGameCount(next); // keep game count in sync with player count default
     };
 
-    const adjustGameCount  = (delta) => setGameCount(prev => Math.max(1, Math.min(20, prev + delta)));
-    const adjustBidWindow  = (delta) => setBidWindow(prev => Math.max(5, Math.min(60, prev + delta)));
+    const adjustGameCount   = (delta) => setGameCount(prev => Math.max(1, Math.min(20, prev + delta)));
+    const adjustBidWindow   = (delta) => setBidWindow(prev => Math.max(5, Math.min(60, prev + delta)));
+    const adjustInspectTime = (delta) => setInspectTime(prev => Math.max(5, Math.min(30, prev + delta)));
 
     const adjustThreshold = (delta) => {
         if (!config?.isOdd) return;
@@ -117,6 +119,7 @@ const CreateGamePage = () => {
             deck_count:   deckCount,
             game_count:   gameCount,
             bid_window:   bidWindow,
+            inspect_time: inspectTime,
         };
         if (config?.isOdd && bidThreshold) {
             data.bid_threshold = bidThreshold;
@@ -324,6 +327,31 @@ const CreateGamePage = () => {
                         </div>
                         <div className="game-count-info">
                             Time each player has to bid after the last bid (5&ndash;60s)
+                        </div>
+                    </div>
+
+                    {/* Card Inspect Time */}
+                    <div className="form-group">
+                        <label>Card Inspect Time</label>
+                        <div className="game-count-widget">
+                            <button
+                                className="bid-adjust"
+                                onClick={() => adjustInspectTime(-5)}
+                                disabled={inspectTime <= 5}
+                            >
+                                &minus;
+                            </button>
+                            <span className="threshold-value">{inspectTime}s</span>
+                            <button
+                                className="bid-adjust"
+                                onClick={() => adjustInspectTime(5)}
+                                disabled={inspectTime >= 30}
+                            >
+                                +
+                            </button>
+                        </div>
+                        <div className="game-count-info">
+                            How long players can view their cards before bidding opens (5&ndash;30s)
                         </div>
                     </div>
 

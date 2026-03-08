@@ -33,7 +33,12 @@ function shuffleDeck(cards) {
 }
 
 /**
- * Randomly remove N twos from the deck.
+ * Remove N twos from the deck with balanced suit distribution.
+ * Picks one from each suit per round (round-robin), so:
+ *   remove 2 → 1 from each of 2 random suits
+ *   remove 4 → 1 from each suit
+ *   remove 6 → 1 from each suit + 2 from 2 random suits
+ *   remove 8 → 2 from each suit (2-deck)
  * Returns { remainingDeck, removedTwos }.
  */
 function removeTwos(deck, removeCount) {
@@ -41,20 +46,41 @@ function removeTwos(deck, removeCount) {
         return { remainingDeck: [...deck], removedTwos: [] };
     }
 
-    const twos = [];
+    // Group twos by suit
+    const twosBySuit = {};
     const others = [];
     for (const card of deck) {
         if (card.rank === "2") {
-            twos.push(card);
+            if (!twosBySuit[card.suit]) twosBySuit[card.suit] = [];
+            twosBySuit[card.suit].push(card);
         } else {
             others.push(card);
         }
     }
 
-    // Shuffle the twos so removal is random
-    const shuffledTwos = shuffleDeck(twos);
-    const removedTwos = shuffledTwos.slice(0, removeCount);
-    const keptTwos = shuffledTwos.slice(removeCount);
+    // Shuffle within each suit for intra-suit randomness
+    const suits = Object.keys(twosBySuit);
+    for (const suit of suits) {
+        twosBySuit[suit] = shuffleDeck(twosBySuit[suit]);
+    }
+
+    // Round-robin across suits: each pass shuffles the suit order so that
+    // when removeCount % 4 != 0 the extra cards come from random suits.
+    const removedTwos = [];
+    while (removedTwos.length < removeCount) {
+        const roundSuits = shuffleDeck([...suits]);
+        for (const suit of roundSuits) {
+            if (removedTwos.length >= removeCount) break;
+            if (twosBySuit[suit].length > 0) {
+                removedTwos.push(twosBySuit[suit].pop());
+            }
+        }
+        // Safety: stop if all suits are exhausted
+        if (suits.every((s) => twosBySuit[s].length === 0)) break;
+    }
+
+    // Remaining twos stay in the deck
+    const keptTwos = suits.flatMap((s) => twosBySuit[s]);
 
     return {
         remainingDeck: [...keptTwos, ...others],

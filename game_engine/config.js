@@ -139,7 +139,7 @@ const SHUFFLE_DEALING_CONFIG = {
     SCOREBOARD_DISPLAY_MS: 5000,
     SHUFFLE_TYPES: ["riffle", "hindu", "overhand"],
     // Non-sequential bidding timing
-    BIDDING_REVEAL_MS: 7500,   // how long the card-reveal overlay stays before bidding opens
+    BIDDING_REVEAL_MS: 15000,  // how long the card-reveal overlay stays before bidding opens (default 15s)
     BIDDING_WINDOW_MS: 15000,  // bidding window duration (resets on every new bid)
 };
 
