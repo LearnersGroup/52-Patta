@@ -1,6 +1,10 @@
+import { useState } from "react";
+import ScoreboardModal from "./ScoreboardModal";
+
 /**
- * Compact team score HUD for the playing phase.
- * Positioned top-left as a fixed overlay.
+ * Compact HUD fixed to the top-left.
+ * - During playing phase: shows bid-vs-oppose score pills + scoreboard button.
+ * - All other table phases: shows only the scoreboard button.
  *
  * Before all partners are revealed:
  *   - Bid team score = only the leader's trick points
@@ -15,7 +19,11 @@ const TeamScoreHUD = ({
     teams = {},
     leader,
     partnerCards = [],
+    phase = "playing",
 }) => {
+    const [showScoreboard, setShowScoreboard] = useState(false);
+    const isPlaying = phase === "playing";
+
     // Compute per-player trick points for current round
     const playerTrickPoints = {};
     tricks.forEach((t) => {
@@ -45,19 +53,38 @@ const TeamScoreHUD = ({
         : null; // null = "???"
 
     return (
-        <div className="team-score-hud">
-            <div className="hud-team hud-bid">
-                <span className="hud-dot bid-dot" />
-                <span className="hud-score">{bidScore}</span>
+        <>
+            <div className="team-score-hud">
+                {isPlaying && (
+                    <>
+                        <div className="hud-team hud-bid">
+                            <span className="hud-dot bid-dot" />
+                            <span className="hud-score">{bidScore}</span>
+                        </div>
+                        <span className="hud-vs">vs</span>
+                        <div className="hud-team hud-oppose">
+                            <span className="hud-dot oppose-dot" />
+                            <span className="hud-score">
+                                {opposeScore !== null ? opposeScore : "???"}
+                            </span>
+                        </div>
+                        <div className="hud-divider" />
+                    </>
+                )}
+
+                <button
+                    className="hud-scoreboard-btn"
+                    onClick={() => setShowScoreboard(true)}
+                    title="View full scoreboard"
+                >
+                    ⊞
+                </button>
             </div>
-            <span className="hud-vs">vs</span>
-            <div className="hud-team hud-oppose">
-                <span className="hud-dot oppose-dot" />
-                <span className="hud-score">
-                    {opposeScore !== null ? opposeScore : "???"}
-                </span>
-            </div>
-        </div>
+
+            {showScoreboard && (
+                <ScoreboardModal onClose={() => setShowScoreboard(false)} />
+            )}
+        </>
     );
 };
 

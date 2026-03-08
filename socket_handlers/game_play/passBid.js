@@ -1,6 +1,5 @@
 const { passBid: passBidEngine } = require("../../game_engine/bidding");
-const { initBidding } = require("../../game_engine/bidding");
-const { createDeck, removeTwos, dealCards } = require("../../game_engine/deck");
+const { createDeck, removeTwos } = require("../../game_engine/deck");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
@@ -30,26 +29,32 @@ module.exports = (socket, io) => async (data, callback) => {
             return;
         }
 
-        // Everyone passed with no bids — re-deal
+        // Minor 5: All players passed with no bids → re-enter SHUFFLING with same dealer.
+        // This re-runs the full shuffle → deal → bid cycle without rotating the dealer.
         if (result.redeal) {
             io.to(gameState.roomname).emit(
                 "room-message",
-                "All players passed! Re-dealing cards..."
+                "All players passed! Reshuffling with same dealer..."
             );
 
-            const { config, seatOrder, playerNames, scores } = gameState;
-
-            // Fresh deck and deal
+            // Prepare a fresh unshuffled deck so the dealer can shuffle+deal again
+            const { config, seatOrder } = gameState;
             const fullDeck = createDeck(config.decks);
-            const { remainingDeck, removedTwos: removed } = removeTwos(fullDeck, config.removeTwos);
-            const hands = dealCards(remainingDeck, seatOrder);
-            const bidding = initBidding(config, seatOrder);
+            const { remainingDeck, removedTwos: removed } = removeTwos(
+                fullDeck,
+                config.removeTwos
+            );
 
             const newState = {
                 ...gameState,
+                phase: "shuffling",
+                unshuffledDeck: remainingDeck,
                 removedTwos: removed,
-                hands,
-                bidding,
+                hands: {},
+                handSizes: {},
+                shuffleQueue: [],
+                bidding: null,
+                cutCard: null,
                 leader: null,
                 powerHouseSuit: null,
                 partnerCards: [],
@@ -63,6 +68,7 @@ module.exports = (socket, io) => async (data, callback) => {
 
             setGameState(gameState.gameId, newState);
             await broadcastGameState(io, newState);
+            io.to(gameState.roomname).emit("game-phase-change", "shuffling");
 
             if (removed.length > 0) {
                 io.to(gameState.roomname).emit("game-cards-removed", removed);
@@ -73,7 +79,7 @@ module.exports = (socket, io) => async (data, callback) => {
 
         const newState = { ...gameState, bidding: result.state };
 
-        // Check if bidding is complete
+        // Check if bidding is complete (only one bidder remains)
         if (result.state.biddingComplete) {
             newState.leader = result.state.currentBidder;
             newState.phase = "powerhouse";

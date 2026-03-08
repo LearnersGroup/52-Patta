@@ -86,11 +86,14 @@
 > Add Google and Facebook OAuth alongside existing email/password auth.
 > **Depends on:** EPIC 1 (security)
 
-- [ ] Add Passport.js with Google OAuth 2.0 strategy
-- [ ] Add Facebook OAuth strategy
-- [ ] Update User model with `provider` and `providerId` fields
-- [ ] Update login/register UI with social sign-in buttons
-- [ ] Handle account linking (same email across different providers)
+- [x] Add Passport.js with Google OAuth 2.0 strategy
+- [x] Update User model with `provider` and `providerId` fields
+- [x] Update login/register UI with social sign-in buttons
+- [x] Handle account linking (same email across different providers)
+- [ ] Add Facebook OAuth strategy — **BLOCKED: issues registering Facebook developer account**
+  - Once unblocked: create FB app, get `FACEBOOK_APP_ID` + `FACEBOOK_APP_SECRET`
+  - Add `FACEBOOK_APP_SECRET` to GitHub Secrets, `FACEBOOK_APP_ID` + `FACEBOOK_CALLBACK_URL` to GitHub Variables
+  - Update deploy workflows to sync FB creds to EC2 `.env`
 - [ ] Update JWT payload to include auth provider info
 
 ---
@@ -178,10 +181,42 @@
 
 ---
 
-## EPIC 11: Migrate off Create React App [P11 - Future]
+## EPIC 11: Friends & Invite System [P11 - Medium]
+
+> Let players build a friends list and invite them directly into game rooms.
+> **Depends on:** EPIC 5 (SSO / user accounts), EPIC 4 (stable infra)
+
+- [ ] Friend request flow (send, accept, decline, cancel)
+- [ ] Friends list UI (online/offline presence indicators)
+- [ ] In-game invite: send a room link / notification to a friend
+- [ ] Push / in-app notifications for friend requests and game invites
+- [ ] Block / remove friend functionality
+- [ ] Backend: friends collection, request state machine, presence tracking
+- [ ] Mobile deep-link support for invite URLs (ties into EPIC 9)
+
+---
+
+## EPIC 12: Leaderboard [P12 - Medium]
+
+> Global and friends-only leaderboards to drive engagement and replayability.
+> **Depends on:** EPIC 11 (friends), EPIC 6 (multiple games for per-game boards)
+
+- [ ] Define ranking metric (win rate, total wins, ELO-style rating)
+- [ ] Backend: aggregate scores per user per game type after each game
+- [ ] Global leaderboard API endpoint (paginated, filterable by game type)
+- [ ] Friends leaderboard (rank among your friends list)
+- [ ] Leaderboard UI component (rank, avatar, name, score, trend arrow)
+- [ ] Weekly / all-time toggle
+- [ ] Personal stats page (win/loss record, favourite game, best streak)
+- [ ] Badges / achievements system (first win, 10-game streak, etc.)
+
+---
+
+## EPIC 13: Migrate off Create React App [P13 - Future]
 
 > CRA is effectively unmaintained and locks 57 dependency vulnerabilities that cannot be patched.
 > Migrating to Vite (or Next.js) unblocks all client-side vulnerability fixes and improves DX (faster builds, HMR).
+> **Depends on:** none (can be done any time)
 
 - [ ] Evaluate Vite vs Next.js (Vite recommended — minimal migration, keeps SPA architecture)
 - [ ] Set up Vite project with React plugin
@@ -200,9 +235,10 @@ EPIC 1 (Security) ──┬──> EPIC 2 (Refactor) ──> EPIC 3 (Docs) ─�
                      │                │
                      │                └──> EPIC 6 (New Games) ──> EPIC 8 (Revenue)
                      │
-                     └──> EPIC 5 (SSO) ──┐
-                                         ├──> EPIC 9 (Mobile) ──> EPIC 10 (TV)
-                          EPIC 4 (DevOps)┘
+                     └──> EPIC 5 (SSO) ──┬──> EPIC 11 (Friends & Invite) ──> EPIC 12 (Leaderboard)
+                                         │
+                          EPIC 4 (DevOps)┴──> EPIC 9 (Mobile) ──> EPIC 10 (TV)
 
 EPIC 7 (UI/UX) can run in parallel with EPICs 4-6
+EPIC 13 (Migrate off CRA) can run any time
 ```

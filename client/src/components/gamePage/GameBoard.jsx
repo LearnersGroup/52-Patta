@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { WsRequestGameState, WsQuitGame } from "../../api/wsEmitters";
 import BiddingPanel from "./BiddingPanel";
@@ -10,6 +10,7 @@ import ScoreBoard from "./ScoreBoard";
 import RemovedTwosDisplay from "./RemovedTwosDisplay";
 import PartnerCardDisplay from "./PartnerCardDisplay";
 import TeamScoreHUD from "./TeamScoreHUD";
+import DealRevealOverlay from "./DealRevealOverlay";
 import { CircularTable, PlayArea } from "../shared";
 import { getCardComponent, cardKey, suitSymbol, isRedSuit } from "./utils/cardMapper";
 import ShufflingPanel from "./ShufflingPanel";
@@ -26,48 +27,69 @@ const GameBoard = ({ userId, isAdmin }) => {
     const game = useSelector((state) => state.game);
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [inspectMode, setInspectMode] = useState(false);
+    const [showDealReveal, setShowDealReveal] = useState(false);
+    // Minor 4: dealing animation counter
     const [dealingVisibleCount, setDealingVisibleCount] = useState(0);
+    const prevPhaseRef = useRef(null);
+    // Stable key so the overlay remounts fresh for each deal
+    const dealRevealKeyRef = useRef(0);
+    const dealingAnimRef = useRef(null);
 
     useEffect(() => {
         WsRequestGameState();
     }, []);
+
+    // Trigger deal reveal when dealing phase completes → bidding begins
+    useEffect(() => {
+        const prev = prevPhaseRef.current;
+        const curr = game.phase;
+        if (prev === "dealing" && curr === "bidding") {
+            dealRevealKeyRef.current += 1;
+            setShowDealReveal(true);
+        }
+        prevPhaseRef.current = curr;
+    }, [game.phase]);
+
+    const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
+
+    // Minor 4: animate dealingVisibleCount from 0 → myHand.length during dealing phase
+    useEffect(() => {
+        if (dealingAnimRef.current) {
+            clearInterval(dealingAnimRef.current);
+            dealingAnimRef.current = null;
+        }
+
+        if (game.phase !== "dealing" || game.myHand.length === 0) {
+            setDealingVisibleCount(0);
+            return;
+        }
+
+        const total = game.myHand.length;
+        let count = 0;
+        setDealingVisibleCount(0);
+
+        dealingAnimRef.current = setInterval(() => {
+            count++;
+            setDealingVisibleCount(count);
+            if (count >= total) {
+                clearInterval(dealingAnimRef.current);
+                dealingAnimRef.current = null;
+            }
+        }, 200); // 200 ms per card
+
+        return () => {
+            if (dealingAnimRef.current) {
+                clearInterval(dealingAnimRef.current);
+                dealingAnimRef.current = null;
+            }
+        };
+    }, [game.phase, game.myHand.length]);
 
     // Reset inspect mode when trick clears
     const playsCount = game.currentTrick?.plays?.length || 0;
     useEffect(() => {
         if (playsCount === 0) setInspectMode(false);
     }, [playsCount]);
-
-    // Dealing card reveal timer — reveals cards one-by-one
-    useEffect(() => {
-        if (game.phase !== "dealing" || !game.myHand?.length) {
-            setDealingVisibleCount(0);
-            return;
-        }
-
-        const animDuration = game.dealingConfig?.animationDurationMs || 5000;
-        const isDealerUser = game.dealer === userId;
-        const cutRevealMs = game.dealingConfig?.cutCardRevealMs || 1500;
-        const delay = (game.cutCard && isDealerUser) ? cutRevealMs : 0;
-        const interval = animDuration / game.myHand.length;
-        let intervalId = null;
-
-        const startTimerId = setTimeout(() => {
-            let count = 0;
-            intervalId = setInterval(() => {
-                count++;
-                setDealingVisibleCount(count);
-                if (count >= game.myHand.length) {
-                    clearInterval(intervalId);
-                }
-            }, interval);
-        }, delay);
-
-        return () => {
-            clearTimeout(startTimerId);
-            if (intervalId) clearInterval(intervalId);
-        };
-    }, [game.phase, game.myHand?.length, game.dealingConfig, game.cutCard, game.dealer, userId]);
 
     if (!game.phase) {
         return <div className="game-board-loading">Loading game state...</div>;
@@ -119,7 +141,7 @@ const GameBoard = ({ userId, isAdmin }) => {
             case "shuffling":
                 return 0;
             case "dealing":
-                if (pid === userId) return dealingVisibleCount;
+                // Show hand sizes as they arrive from server during dealing
                 return game.handSizes?.[pid] ?? 0;
             case "bidding":
             case "powerhouse":
@@ -148,6 +170,24 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
     });
 
+    // Minor 6: teammate/opponent relation — shown once all partners are revealed
+    const allPartnersRevealed =
+        (game.partnerCards?.length ?? 0) > 0 &&
+        game.partnerCards.every((pc) => pc.revealed);
+
+    const myTeam = game.teams?.bid?.includes(userId)
+        ? "bid"
+        : game.teams?.oppose?.includes(userId)
+        ? "oppose"
+        : null;
+
+    const getRelation = (pid) => {
+        if (!allPartnersRevealed || !myTeam || pid === userId) return null;
+        const pidOnBid = (game.teams?.bid || []).includes(pid);
+        const pidTeam = pidOnBid ? "bid" : "oppose";
+        return pidTeam === myTeam ? "teammate" : "opponent";
+    };
+
     const buildPlayerList = () => {
         return (game.seatOrder || []).map((pid) => ({
             id: pid,
@@ -161,6 +201,7 @@ const GameBoard = ({ userId, isAdmin }) => {
             cardCount: getCardCount(pid),
             score: playerTrickPoints[pid] ?? 0,
             avatarInitial: getName(pid).charAt(0).toUpperCase(),
+            relation: getRelation(pid), // "teammate" | "opponent" | null
         }));
     };
 
@@ -183,6 +224,7 @@ const GameBoard = ({ userId, isAdmin }) => {
             );
         }
         if (game.phase === "dealing") {
+            const dealerIndex = (game.seatOrder || []).indexOf(game.dealer);
             return (
                 <DealingOverlay
                     isTableCenter
@@ -191,6 +233,11 @@ const GameBoard = ({ userId, isAdmin }) => {
                     dealingConfig={game.dealingConfig}
                     isDealer={game.dealer === userId}
                     visibleCount={dealingVisibleCount}
+                    seatOrder={game.seatOrder || []}
+                    dealerIndex={dealerIndex >= 0 ? dealerIndex : 0}
+                    userId={userId}
+                    seatPositionMap={seatPositionMap}
+                    tableSize={tableSize}
                 />
             );
         }
@@ -325,21 +372,29 @@ const GameBoard = ({ userId, isAdmin }) => {
             {/* Table phases: CircularTable with phase-specific center content */}
             {isTablePhase && (
                 <>
-                    {isPlayingPhase && (
-                        <>
-                            <TeamScoreHUD
-                                tricks={game.tricks}
-                                teams={game.teams}
-                                leader={game.leader}
-                                partnerCards={game.partnerCards}
-                            />
+                    {/* Minor 1: TeamScoreHUD (with scoreboard button) shows during ALL table phases */}
+                    <TeamScoreHUD
+                        tricks={game.tricks}
+                        teams={game.teams}
+                        leader={game.leader}
+                        partnerCards={game.partnerCards}
+                        phase={game.phase}
+                    />
 
-                            <PartnerCardDisplay
-                                partnerCards={game.partnerCards}
-                                powerHouseSuit={game.powerHouseSuit}
-                                getName={getName}
-                            />
-                        </>
+                    {isPlayingPhase && (
+                        <PartnerCardDisplay
+                            partnerCards={game.partnerCards}
+                            powerHouseSuit={game.powerHouseSuit}
+                            getName={getName}
+                        />
+                    )}
+
+                    {/* Minor 3: "Your turn" pulse strip for local player */}
+                    {isMyTurn && (
+                        <div className="my-turn-indicator">
+                            <span className="my-turn-dot" />
+                            Your turn
+                        </div>
                     )}
 
                     <div className="circular-table-container">
@@ -394,26 +449,35 @@ const GameBoard = ({ userId, isAdmin }) => {
                 />
             )}
 
-            {/* Player hand — progressive reveal during dealing */}
-            {game.phase !== "finished" && game.phase !== "series-finished" && game.phase !== "shuffling" && (
+            {/* Player hand — hidden during shuffling/dealing and while reveal overlay is active */}
+            {game.phase !== "finished" &&
+             game.phase !== "series-finished" &&
+             game.phase !== "shuffling" &&
+             game.phase !== "dealing" &&
+             !showDealReveal && (
                 <PlayerHand
-                    cards={
-                        game.phase === "dealing"
-                            ? (game.myHand || []).slice(0, dealingVisibleCount)
-                            : game.myHand
-                    }
+                    cards={game.myHand}
                     validPlays={game.validPlays}
                     isMyTurn={isMyTurn && game.phase === "playing"}
                 />
             )}
 
             {/* Bidding controls below the hand */}
-            {game.phase === "bidding" && (
+            {game.phase === "bidding" && !showDealReveal && (
                 <BiddingPanel
                     bidding={game.bidding}
                     userId={userId}
                     isMyTurn={isMyTurn}
                     getName={getName}
+                />
+            )}
+
+            {/* Click-to-reveal overlay: triggers after dealing phase completes */}
+            {showDealReveal && game.myHand.length > 0 && (
+                <DealRevealOverlay
+                    key={dealRevealKeyRef.current}
+                    cards={game.myHand}
+                    onComplete={handleRevealComplete}
                 />
             )}
         </div>

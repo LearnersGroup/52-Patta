@@ -5,6 +5,9 @@ import { getCardBackComponent } from "../gamePage/utils/cardMapper";
  * Reusable player seat for circular table.
  * Shows avatar, name, badges, card-back fan (representing hand size), and score.
  * No Redux dependency — all data via props.
+ *
+ * @prop {string|null} relation - "teammate" | "opponent" | null
+ *   Shown once all partners are revealed (provided by GameBoard).
  */
 const PlayerSeat = ({
     name = "",
@@ -16,6 +19,7 @@ const PlayerSeat = ({
     isPartner = false,
     cardCount = 0,
     score = 0,
+    relation = null, // "teammate" | "opponent" | null
 }) => {
     const CardBack = getCardBackComponent();
 
@@ -34,6 +38,8 @@ const PlayerSeat = ({
             zIndex: i,
         };
     };
+
+    const showBadges = isLeader || isDealer || (isPartner && !relation) || relation;
 
     return (
         <>
@@ -71,7 +77,7 @@ const PlayerSeat = ({
             </div>
 
             {/* Badges */}
-            {(isLeader || isDealer || isPartner) && (
+            {showBadges && (
                 <div className="table-seat-badges">
                     {isDealer && (
                         <span className="dealer-badge">Dealer</span>
@@ -79,8 +85,16 @@ const PlayerSeat = ({
                     {isLeader && (
                         <span className="leader-badge">Leader</span>
                     )}
-                    {isPartner && (
+                    {/* Show Partner badge only while team relation isn't known yet */}
+                    {isPartner && !relation && (
                         <span className="partner-badge">Partner</span>
+                    )}
+                    {/* Once all partners revealed: show Teammate / Opponent */}
+                    {relation === "teammate" && (
+                        <span className="teammate-badge">Teammate</span>
+                    )}
+                    {relation === "opponent" && (
+                        <span className="opponent-badge">Opponent</span>
                     )}
                 </div>
             )}

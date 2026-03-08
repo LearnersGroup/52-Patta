@@ -2096,6 +2096,262 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   font-style: italic;
 }
 
+.hud-divider {
+  width: 1px;
+  height: 16px;
+  background: $border-gold;
+  margin: 0 2px;
+}
+
+.hud-scoreboard-btn {
+  background: none;
+  border: none;
+  padding: 0 2px;
+  cursor: pointer;
+  color: $gold;
+  font-size: 1rem;
+  line-height: 1;
+  opacity: 0.75;
+  transition: opacity 0.15s, transform 0.15s;
+
+  &:hover {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+// ─── SCOREBOARD MODAL ────────────────────────────────────────
+// Full-screen overlay triggered by the HUD button.
+
+.ssb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: ssb-fade-in 0.2s ease-out;
+}
+
+@keyframes ssb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ssb-panel {
+  @include panel;
+  width: min(92vw, 560px);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ssb-slide-up 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ssb-slide-up {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+// Header row: title + series badge + close button
+.ssb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid $border-gold;
+  flex-shrink: 0;
+}
+
+.ssb-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ssb-title {
+  font-family: $font-heading;
+  font-size: 0.88rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: $gold;
+  margin: 0;
+}
+
+.ssb-series-badge {
+  font-family: $font-body;
+  font-size: 0.68rem;
+  color: $cream-muted;
+  letter-spacing: 0.06em;
+}
+
+.ssb-close-btn {
+  background: none;
+  border: none;
+  color: $cream-muted;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+
+  &:hover {
+    color: $cream;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+// Empty state — first game in progress
+.ssb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.ssb-empty-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.ssb-empty-text {
+  font-family: $font-heading;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $cream;
+}
+
+.ssb-empty-sub {
+  font-size: 0.72rem;
+  color: $cream-muted;
+}
+
+// Scrollable table wrapper
+.ssb-table-wrap {
+  overflow-y: auto;
+  overflow-x: auto;
+  flex: 1;
+  padding: 16px 20px 0;
+}
+
+.ssb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+// Table headers
+.ssb-th {
+  font-family: $font-heading;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $cream-muted;
+  padding: 6px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+
+  &.ssb-th-player {
+    text-align: left;
+    min-width: 100px;
+  }
+  &.ssb-th-game { min-width: 44px; }
+  &.ssb-th-total {
+    color: $gold;
+    min-width: 52px;
+  }
+}
+
+// Live game column header badge
+.ssb-live-badge {
+  display: inline-block;
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.6rem;
+  color: $gold;
+  letter-spacing: 0.08em;
+}
+
+// Table rows
+.ssb-row, .ssb-row-leader {
+  transition: background 0.15s;
+
+  &:hover { background: rgba(201, 162, 39, 0.04); }
+}
+
+.ssb-row-leader {
+  background: rgba(201, 162, 39, 0.05);
+}
+
+// Table cells
+.ssb-td {
+  padding: 9px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: $cream;
+
+  &.ssb-td-player {
+    text-align: left;
+    font-family: $font-body;
+    font-weight: 600;
+    color: $cream;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &.ssb-td-game {
+    font-family: $font-heading;
+    font-size: 0.8rem;
+  }
+
+  &.ssb-td-total {
+    font-family: $font-heading;
+    font-size: 0.92rem;
+    font-weight: 700;
+    border-left: 1px solid rgba(201, 162, 39, 0.2);
+  }
+}
+
+// Value colour helpers
+.ssb-pos   { color: #2ecc71; }
+.ssb-neg   { color: $red-suit; }
+.ssb-dash  { color: $cream-muted; opacity: 0.45; }
+.ssb-live  { color: $gold; font-style: italic; }
+
+.ssb-total-val {
+  color: $cream;
+}
+
+// Crown for the current leader
+.ssb-rank-crown {
+  color: $gold;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+// Footer note
+.ssb-footer {
+  padding: 10px 20px 14px;
+  border-top: 1px solid rgba(201, 162, 39, 0.12);
+  flex-shrink: 0;
+}
+
+.ssb-footer-note {
+  font-size: 0.64rem;
+  color: $cream-muted;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+
 // ─── PARTNER CARD DISPLAY ───────────────────
 .partner-display {
   position: fixed;
@@ -2330,6 +2586,33 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   white-space: nowrap;
 }
 
+// ─── TEAM RELATION BADGES (Teammate / Opponent) ─────────────
+.teammate-badge {
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-family: $font-heading;
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+}
+
+.opponent-badge {
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-family: $font-heading;
+  background: rgba(204, 41, 54, 0.18);
+  border: 1px solid rgba(204, 41, 54, 0.4);
+  color: #fca5a5;
+}
+
 // ─── CARD BACK FAN ──────────────────────────
 .card-back-fan {
   display: flex;
@@ -2516,6 +2799,185 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   }
 }
 
+// ─── DEAL REVEAL OVERLAY ─────────────────────
+// Full-screen overlay that slides up from the hand area after dealing.
+// The player clicks to reveal their cards one-by-one, then the hand
+// animates back down to the table.
+
+.deal-reveal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+// Dimmed + blurred backdrop behind the stage
+.drv-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+
+  .drv-entering & { animation: drv-backdrop-in 0.55s ease-out forwards; }
+  .drv-exiting  & { animation: drv-backdrop-out 0.65s ease-in  forwards; }
+}
+
+@keyframes drv-backdrop-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes drv-backdrop-out { from { opacity: 1; } to { opacity: 0; } }
+
+// Stage: title + card container
+.drv-stage {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+
+  .drv-entering & { animation: drv-stage-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  .drv-exiting  & { animation: drv-stage-exit  0.7s  cubic-bezier(0.64, 0, 0.78, 0) forwards; }
+}
+
+@keyframes drv-stage-enter {
+  from { transform: translateY(52vh) scale(0.62); opacity: 0.3; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1;   }
+}
+
+@keyframes drv-stage-exit {
+  from { transform: translateY(0)    scale(1);    opacity: 1;   }
+  to   { transform: translateY(52vh) scale(0.62); opacity: 0;   }
+}
+
+// Title above the cards
+.drv-title {
+  font-family: $font-heading;
+  font-size: 0.88rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: $gold;
+  text-shadow: 0 0 14px rgba(201, 162, 39, 0.55);
+}
+
+// Relative container that holds all absolutely-positioned cards
+.drv-cards {
+  position: relative;
+  perspective: 700px;
+}
+
+// Individual card in the overlay
+.drv-card {
+  position: absolute;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  transition: left 0.28s ease, top 0.22s ease, opacity 0.2s ease;
+  will-change: transform;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// Topmost unrevealed card — glowing gold outline to indicate it's clickable
+.drv-card--top {
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.55),
+    0 0 0 2px rgba(201, 162, 39, 0.6),
+    0 0 18px rgba(201, 162, 39, 0.28);
+  animation: drv-top-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes drv-top-pulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(0,0,0,.55), 0 0 0 2px rgba(201,162,39,.6),  0 0 18px rgba(201,162,39,.28); }
+  50%       { box-shadow: 0 4px 14px rgba(0,0,0,.55), 0 0 0 2px rgba(201,162,39,.85), 0 0 26px rgba(201,162,39,.5);  }
+}
+
+// Card flip-reveal animation (triggers when class is added)
+.drv-card--just-revealed {
+  animation: drv-card-reveal 0.4s ease-out forwards;
+}
+
+@keyframes drv-card-reveal {
+  0%   { transform: perspective(700px) rotateY(90deg) scale(0.85); opacity: 0.5; }
+  55%  { transform: perspective(700px) rotateY(0deg)  scale(1.06); opacity: 1;   }
+  100% { transform: perspective(700px) rotateY(0deg)  scale(1);    opacity: 1;   }
+}
+
+// Remaining-count hint text
+.drv-hint {
+  font-family: $font-body;
+  font-size: 0.72rem;
+  color: $cream-muted;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+// "Sorting…" hint shown while sort animation plays
+.drv-hint--done {
+  color: $gold;
+  opacity: 0.8;
+  animation: drv-hint-blink 0.8s ease-in-out infinite;
+}
+
+@keyframes drv-hint-blink {
+  0%, 100% { opacity: 0.8; }
+  50%       { opacity: 0.4; }
+}
+
+// During sort/exit phase: use a slower transition so the sort is visually smooth
+.drv-card--sorting {
+  transition: left 0.45s cubic-bezier(0.34, 1.3, 0.64, 1), top 0.22s ease, opacity 0.2s ease !important;
+}
+
+// ─── MY TURN INDICATOR (local player) ───────
+// Shown at the top of the screen when it's your turn
+.my-turn-indicator {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 16px;
+  background: rgba($bg-panel, 0.92);
+  border: 1px solid rgba(201, 162, 39, 0.55);
+  border-radius: 20px;
+  box-shadow: 0 0 16px rgba(201, 162, 39, 0.25), 0 2px 8px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: my-turn-pulse 1.4s ease-in-out infinite;
+  pointer-events: none;
+  font-family: $font-heading;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $gold;
+}
+
+.my-turn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $gold;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.8);
+  flex-shrink: 0;
+  animation: pulse-glow 1.4s ease-in-out infinite;
+}
+
+@keyframes my-turn-pulse {
+  0%, 100% { box-shadow: 0 0 16px rgba(201, 162, 39, 0.25), 0 2px 8px rgba(0,0,0,.45); }
+  50%       { box-shadow: 0 0 28px rgba(201, 162, 39, 0.5),  0 2px 8px rgba(0,0,0,.45); }
+}
+
 // ─── PLAYER HAND ────────────────────────────
 .player-hand-area {
   position: relative;
@@ -2569,7 +3031,8 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
     border: 2px solid rgba(46, 204, 113, 0.4);
   }
 
-  &.hovered {
+  // Pop-out shadow only for playable cards, not disabled ones
+  &.hovered:not(.disabled) {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
   }
 
@@ -2579,8 +3042,9 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
   }
 
   &.disabled {
-    opacity: 0.42;
-    filter: grayscale(0.3);
+    opacity: 1;
+    filter: grayscale(0.25) brightness(0.75);
+    cursor: default;
   }
 }
 
@@ -3066,10 +3530,14 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
     box-shadow: none;
     margin: 0;
     padding: 12px 8px;
+    // Needs relative positioning so flying cards can be placed from center
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    // Allow cards to fly outside this element toward seats
+    overflow: visible;
 
     .cut-card-reveal {
       padding: 12px 0;
@@ -3098,6 +3566,85 @@ $font-body:    'Lato', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
       max-width: 200px;
     }
   }
+}
+
+// ─── FLYING CARD (Dealing Animation) ─────────────────────────────────────────
+// Absolutely positioned from the center of .dealing-overlay.table-center-variant.
+// Flies toward each player's seat using CSS custom properties --fly-dx / --fly-dy.
+.dealing-fly-card {
+  position: absolute;
+  // Centered on the element (which is centered on the table)
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 50px;
+  border-radius: 4px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 30;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
+  // Start centered; animation translates + scales + fades
+  animation: deal-fly var(--deal-fly-dur, 0.38s) cubic-bezier(0.2, 0.6, 0.5, 1) forwards;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  // Card flying toward "me" (downward) gets a subtle glow
+  &.dealing-fly-card--me {
+    box-shadow:
+      0 3px 10px rgba(0, 0, 0, 0.6),
+      0 0 10px rgba(201, 162, 39, 0.35);
+  }
+}
+
+@keyframes deal-fly {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--fly-dx, 0px)),
+      calc(-50% + var(--fly-dy, 0px))
+    ) scale(0.55);
+    opacity: 0;
+  }
+}
+
+// ─── DEALING DECK VISUAL ─────────────────────────────────────────────────────
+// Three stacked card-back layers to represent the central deck
+.dealing-deck {
+  position: relative;
+  width: 44px;
+  height: 62px;
+  margin: 0 auto 12px;
+}
+
+.dealing-deck-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #1a2a3a 0%, #0f1a24 100%);
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.dealing-deck-top {
+  // Top card — full card back SVG
+  overflow: hidden;
+  // Subtle pulse to show the deck is "active"
+  animation: deck-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes deck-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,.5), 0 0 0 1px rgba(201,162,39,.25); }
+  50%       { box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 1px rgba(201,162,39,.55); }
 }
 
 .cut-card-reveal {

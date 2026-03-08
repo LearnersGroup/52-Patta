@@ -5,6 +5,7 @@ import { get_all_user_in_room } from "../../api/apiHandler";
 import { useAuth } from "../hooks/useAuth";
 import { socket } from "../../socket";
 import { registerGameListeners } from "../../api/wsGameListeners";
+import { WsRequestGameState } from "../../api/wsEmitters";
 import LobbyView from "./LobbyView";
 import GameBoard from "./GameBoard";
 
@@ -65,14 +66,30 @@ const GamePage = () => {
         // Register game listeners early so we receive game-state-update
         const cleanupGameListeners = registerGameListeners();
 
+        // Safety net: if the socket (re)connects while GamePage is mounted,
+        // request the game state explicitly. This covers the race condition where
+        // onConnect.js pushes game-state-update before our listener is registered,
+        // and also handles reconnect events during gameplay.
+        const onSocketConnect = () => {
+            WsRequestGameState();
+        };
+        socket.on("connect", onSocketConnect);
+
         // Initial fetch
         onFetchUsersInRoom();
+
+        // If the socket is already connected, request game state now
+        // (onConnect.js already fired before this effect ran)
+        if (socket.connected) {
+            WsRequestGameState();
+        }
 
         return () => {
             socket.off("room-message", onRoomMessage);
             socket.off("fetch-users-in-room", onFetchUsersInRoom);
             socket.off("redirect-to-home-page", goToHomePage);
             socket.off("game-phase-change", onPhaseChange);
+            socket.off("connect", onSocketConnect);
             cleanupGameListeners();
         };
     }, []);
