@@ -22,7 +22,6 @@ const HAND_HOVER_SCALE = 1.08;
 
 const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
     const [hoveredIndex, setHoveredIndex] = useState(-1);
-    const [isHandHovered, setIsHandHovered] = useState(false);
     const dispatch = useDispatch();
     const handSorted = useSelector((state) => state.game.handSorted);
 
@@ -50,8 +49,8 @@ const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
     const N = displayCards.length;
     if (N === 0) return null;
 
-    // Apply scale when hand area is hovered
-    const scale = isHandHovered ? HAND_HOVER_SCALE : 1;
+    // Zoom triggers when any card is hovered (not the whole hand area)
+    const scale = hoveredIndex >= 0 ? HAND_HOVER_SCALE : 1;
     const cardW = Math.round(CARD_W * scale);
     const cardH = Math.round(CARD_H * scale);
     const overlap = Math.round(OVERLAP * scale);
@@ -65,8 +64,7 @@ const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
     return (
         <div
             className="player-hand-area"
-            onMouseEnter={() => setIsHandHovered(true)}
-            onMouseLeave={() => { setIsHandHovered(false); setHoveredIndex(-1); }}
+            onMouseLeave={() => setHoveredIndex(-1)}
         >
             <div className="hand-header">
                 <div className="hand-label">Your Hand</div>
@@ -88,7 +86,12 @@ const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
                         const isValid = isMyTurn && isCardInList(card, validPlays);
                         const isDisabled = isMyTurn && !isValid;
                         const isHovered = i === hoveredIndex;
-                        const isRight = hoveredIndex >= 0 && i > hoveredIndex;
+                        // Disabled cards: no pop-out — suppress lift, expose-shift, and right-spread
+                        const hoveredIsDisabled =
+                            hoveredIndex >= 0 &&
+                            isMyTurn &&
+                            !isCardInList(displayCards[hoveredIndex], validPlays);
+                        const isRight = hoveredIndex >= 0 && i > hoveredIndex && !hoveredIsDisabled;
 
                         // Arc rotation: edges tilt outward from center
                         const arcRotate = (i - center) * ARC_DEG;
@@ -97,9 +100,9 @@ const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
                         const arcY = Math.abs(i - center) * 1.2;
                         // Only right-side cards spread outward; hovered card shifts left to expose more
                         const spreadX = isRight ? SPREAD : 0;
-                        const hoverShiftX = isHovered ? -HOVER_EXPOSE : 0;
-                        // When hovered, card rises LIFT px above its normal arc position
-                        const liftY = isHovered ? LIFT + arcY : arcY;
+                        // Disabled cards get no pop-out shift or lift
+                        const hoverShiftX = isHovered && !isDisabled ? -HOVER_EXPOSE : 0;
+                        const liftY = isHovered && !isDisabled ? LIFT + arcY : arcY;
 
                         // Cards are positioned from bottom of container upward
                         const translateY = containerH - cardH - liftY;

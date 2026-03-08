@@ -37,6 +37,10 @@ const initialState = {
     currentGameNumber: 1,
     totalGames: 1,
     finalRankings: null,
+
+    // Client-side per-game score history (accumulated from scoringResult events)
+    // Each entry: { gameNumber, playerDeltas, bidTeamSuccess }
+    gameHistory: [],
 };
 
 const gameSlice = createSlice({
@@ -77,6 +81,29 @@ const gameSlice = createSlice({
             state.currentGameNumber = data.currentGameNumber || 1;
             state.totalGames = data.totalGames || 1;
             state.finalRankings = data.finalRankings || null;
+
+            // Accumulate per-game score history when a game finishes
+            if (data.scoringResult && data.phase === "finished") {
+                const gameNum = data.currentGameNumber || 1;
+                const alreadyRecorded = state.gameHistory.some(
+                    (g) => g.gameNumber === gameNum
+                );
+                if (!alreadyRecorded) {
+                    state.gameHistory.push({
+                        gameNumber: gameNum,
+                        playerDeltas: data.scoringResult.playerDeltas || {},
+                        bidTeamSuccess: data.scoringResult.bidTeamSuccess,
+                    });
+                }
+            }
+
+            // Reset history when a fresh series starts (game 1, pre-deal phases)
+            if (
+                (data.currentGameNumber === 1 || !data.currentGameNumber) &&
+                ["shuffling", "dealing"].includes(data.phase)
+            ) {
+                state.gameHistory = [];
+            }
 
             // Reset next-round readiness when a new game state arrives
             if (data.phase !== "finished") {
