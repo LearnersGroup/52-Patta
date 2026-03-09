@@ -42,6 +42,11 @@ const PartnerCardDisplay = ({
                                     revealed ? "revealed" : ""
                                 }`}
                             >
+                                {pc.whichCopy !== null && (
+                                    <div className="partner-copy-num">
+                                        #{pc.whichCopy === "1st" ? 1 : 2}
+                                    </div>
+                                )}
                                 <div
                                     className={`partner-card-mini ${
                                         isRedSuit(pc.card.suit) ? "red" : ""

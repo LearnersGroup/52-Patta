@@ -1,167 +1,118 @@
 /**
- * Game configuration table for all KaliTiri variants.
+ * Dynamic game configuration for KaliTiri.
  *
- * One Deck: 4-6 players (250 max points)
- * Two Decks: 6-10 players (500 max points)
+ * Supports 4–13 players with 1 or 2 decks.
+ * Config is computed on-the-fly from playerCount + deckCount rather than a fixed table,
+ * so any valid combination is supported automatically.
  *
- * For 6 players, both 1D and 2D are valid — room creator chooses.
- * Odd-player configs have a bidThreshold: if bid >= threshold,
- * the bidder earns an extra teammate (flipping team advantage).
+ * Rules:
+ *  - 1 deck = 52 cards, max 4 twos can be removed
+ *  - 2 decks = 104 cards, max 8 twos can be removed
+ *  - Invalid if (baseCards % players) > maxTwos
+ *    (currently only 9P1D and 11P1D are invalid)
+ *
+ * Bid scale:
+ *  - 1 deck: bidStart=150, bidMax=250, maxPoints=250
+ *  - 2 decks: bidStart=300, bidMax=500, maxPoints=500
+ *
+ * Teams:
+ *  - Even players: bid = N/2, oppose = N/2 (no advantage threshold)
+ *  - Odd players:  bid = floor(N/2), oppose = ceil(N/2) by default
+ *                  if bid >= bidThreshold → bid = ceil(N/2), oppose = floor(N/2)
  */
-
-const GAME_CONFIGS = {
-    "4P1D": {
-        players: 4,
-        decks: 1,
-        totalCards: 52,
-        removeTwos: 0,
-        cardsPerPlayer: 13,
-        rounds: 13,
-        defaultTeams: { bid: 2, oppose: 2 },
-        advantageTeams: null,
-        partnerCards: 1,
-        maxPoints: 250,
-        bidStart: 150,
-        bidMax: 250,
-        bidIncrement: 5,
-        bidThreshold: null,
-    },
-    "5P1D": {
-        players: 5,
-        decks: 1,
-        totalCards: 50,
-        removeTwos: 2,
-        cardsPerPlayer: 10,
-        rounds: 10,
-        defaultTeams: { bid: 2, oppose: 3 },
-        advantageTeams: { bid: 3, oppose: 2 },
-        partnerCards: 1,
-        maxPoints: 250,
-        bidStart: 150,
-        bidMax: 250,
-        bidIncrement: 5,
-        bidThreshold: 200, // default, can be overridden by room creator
-    },
-    "6P1D": {
-        players: 6,
-        decks: 1,
-        totalCards: 48,
-        removeTwos: 4,
-        cardsPerPlayer: 8,
-        rounds: 8,
-        defaultTeams: { bid: 3, oppose: 3 },
-        advantageTeams: null,
-        partnerCards: 2,
-        maxPoints: 250,
-        bidStart: 150,
-        bidMax: 250,
-        bidIncrement: 5,
-        bidThreshold: null,
-    },
-    "6P2D": {
-        players: 6,
-        decks: 2,
-        totalCards: 102,
-        removeTwos: 2,
-        cardsPerPlayer: 17,
-        rounds: 17,
-        defaultTeams: { bid: 3, oppose: 3 },
-        advantageTeams: null,
-        partnerCards: 2,
-        maxPoints: 500,
-        bidStart: 300,
-        bidMax: 500,
-        bidIncrement: 5,
-        bidThreshold: null,
-    },
-    "7P2D": {
-        players: 7,
-        decks: 2,
-        totalCards: 98,
-        removeTwos: 6,
-        cardsPerPlayer: 14,
-        rounds: 14,
-        defaultTeams: { bid: 3, oppose: 4 },
-        advantageTeams: { bid: 4, oppose: 3 },
-        partnerCards: 2,
-        maxPoints: 500,
-        bidStart: 300,
-        bidMax: 500,
-        bidIncrement: 5,
-        bidThreshold: 400,
-    },
-    "8P2D": {
-        players: 8,
-        decks: 2,
-        totalCards: 104,
-        removeTwos: 0,
-        cardsPerPlayer: 13,
-        rounds: 13,
-        defaultTeams: { bid: 4, oppose: 4 },
-        advantageTeams: null,
-        partnerCards: 3,
-        maxPoints: 500,
-        bidStart: 300,
-        bidMax: 500,
-        bidIncrement: 5,
-        bidThreshold: null,
-    },
-    "9P2D": {
-        players: 9,
-        decks: 2,
-        totalCards: 99,
-        removeTwos: 5,
-        cardsPerPlayer: 11,
-        rounds: 11,
-        defaultTeams: { bid: 4, oppose: 5 },
-        advantageTeams: { bid: 5, oppose: 4 },
-        partnerCards: 3,
-        maxPoints: 500,
-        bidStart: 300,
-        bidMax: 500,
-        bidIncrement: 5,
-        bidThreshold: 400,
-    },
-    "10P2D": {
-        players: 10,
-        decks: 2,
-        totalCards: 100,
-        removeTwos: 8,
-        cardsPerPlayer: 10,
-        rounds: 10,
-        defaultTeams: { bid: 5, oppose: 5 },
-        advantageTeams: null,
-        partnerCards: 4,
-        maxPoints: 500,
-        bidStart: 300,
-        bidMax: 500,
-        bidIncrement: 5,
-        bidThreshold: null,
-    },
-};
 
 const SUITS = ["S", "H", "D", "C"];
 const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
 const RANK_ORDER = Object.fromEntries(RANKS.map((r, i) => [r, i]));
 
 /**
- * Look up config by player count and deck count.
- * For 6 players, deckCount is required (1 or 2).
+ * Check whether a (playerCount, deckCount) combination is valid.
+ * Returns { valid, removeTwos } on success, { valid: false, reason } on failure.
+ */
+function checkConfig(playerCount, deckCount) {
+    const N = playerCount;
+    const D = deckCount;
+    if (N < 4 || N > 13) return { valid: false, reason: `Player count must be 4–13 (got ${N})` };
+    if (D !== 1 && D !== 2) return { valid: false, reason: `Deck count must be 1 or 2 (got ${D})` };
+
+    const baseCards = 52 * D;
+    const maxTwos = 4 * D;
+    const removeTwos = baseCards % N;
+
+    if (removeTwos > maxTwos) {
+        return {
+            valid: false,
+            reason: `${N} players with ${D} deck${D > 1 ? "s" : ""} would need ${removeTwos} twos removed but only ${maxTwos} are available. Try 2 decks.`,
+        };
+    }
+    return { valid: true, removeTwos };
+}
+
+/**
+ * Compute game configuration dynamically from playerCount + deckCount.
+ * Throws an error if the combination is invalid.
+ */
+function computeConfig(playerCount, deckCount) {
+    const N = playerCount;
+    const D = deckCount;
+
+    const check = checkConfig(N, D);
+    if (!check.valid) throw new Error(check.reason);
+
+    const baseCards = 52 * D;
+    const removeTwos = check.removeTwos;
+    const totalCards = baseCards - removeTwos;
+    const cardsPerPlayer = totalCards / N;
+
+    // Bid scale
+    const bidStart = D === 1 ? 150 : 300;
+    const bidMax = D === 1 ? 250 : 500;
+    const maxPoints = bidMax;
+    const bidIncrement = 5;
+
+    // Teams
+    const isOdd = N % 2 === 1;
+    const bidTeamDefault = Math.floor(N / 2);
+    const opposeTeamDefault = Math.ceil(N / 2);
+    const defaultTeams = { bid: bidTeamDefault, oppose: opposeTeamDefault };
+    const advantageTeams = isOdd ? { bid: opposeTeamDefault, oppose: bidTeamDefault } : null;
+
+    // Partner cards = bid team size − 1 (leader plays their own partner card)
+    const partnerCards = bidTeamDefault - 1;
+
+    // Bid threshold: midpoint of bidStart..bidMax, rounded to nearest 5 (odd players only)
+    const rawThreshold = (bidStart + bidMax) / 2;
+    const bidThreshold = isOdd ? Math.round(rawThreshold / 5) * 5 : null;
+
+    const key = `${N}P${D}D`;
+
+    return {
+        key,
+        players: N,
+        decks: D,
+        totalCards,
+        removeTwos,
+        cardsPerPlayer,
+        rounds: cardsPerPlayer,
+        defaultTeams,
+        advantageTeams,
+        partnerCards,
+        maxPoints,
+        bidStart,
+        bidMax,
+        bidIncrement,
+        bidThreshold,
+    };
+}
+
+/**
+ * Get config by player count and deck count.
+ * deckCount defaults to 1 for ≤5 players and 2 for ≥6 players if not provided.
+ * (Kept for backward compatibility — internally uses computeConfig.)
  */
 function getConfig(playerCount, deckCount) {
-    if (playerCount === 6 && !deckCount) {
-        throw new Error("6-player games require deckCount to be specified (1 or 2)");
-    }
-
     const dc = deckCount || (playerCount <= 5 ? 1 : 2);
-    const key = `${playerCount}P${dc}D`;
-    const config = GAME_CONFIGS[key];
-
-    if (!config) {
-        throw new Error(`No config found for ${key}`);
-    }
-
-    return { ...config, key };
+    return computeConfig(playerCount, dc);
 }
 
 /**
@@ -187,14 +138,18 @@ const SHUFFLE_DEALING_CONFIG = {
     DEALING_ANIMATION_MS: 5000,
     SCOREBOARD_DISPLAY_MS: 5000,
     SHUFFLE_TYPES: ["riffle", "hindu", "overhand"],
+    // Non-sequential bidding timing
+    BIDDING_REVEAL_MS: 15000,  // how long the card-reveal overlay stays before bidding opens (default 15s)
+    BIDDING_WINDOW_MS: 15000,  // bidding window duration (resets on every new bid)
 };
 
 module.exports = {
-    GAME_CONFIGS,
     SUITS,
     RANKS,
     RANK_ORDER,
     SHUFFLE_DEALING_CONFIG,
+    checkConfig,
+    computeConfig,
     getConfig,
     getCardPoints,
     compareRanks,

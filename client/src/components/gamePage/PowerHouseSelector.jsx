@@ -22,6 +22,8 @@ const PowerHouseSelector = ({
     // selectedCards: [{suit, rank, whichCopy}] — whichCopy is 1|2|null
     const [selectedCards, setSelectedCards] = useState([]);
     const [expandedSuits, setExpandedSuits] = useState({});
+    // Copy picker popup: { suit, rank } of the card whose popup is open, or null
+    const [copyPopup, setCopyPopup] = useState(null);
 
     const is2Deck = configKey?.includes("2D");
     const partnerCount = partnerCardCount || getPartnerCount(configKey);
@@ -45,36 +47,49 @@ const PowerHouseSelector = ({
         return selectedCards.some((c) => c.suit === suit && c.rank === rank);
     }
 
-    function getSelectedCard(suit, rank) {
-        return selectedCards.find((c) => c.suit === suit && c.rank === rank);
+    function isCopySelected(suit, rank, copyNum) {
+        return selectedCards.some(
+            (c) => c.suit === suit && c.rank === rank && c.whichCopy === copyNum
+        );
     }
 
     function toggleCard(card) {
-        if (isSelected(card.suit, card.rank)) {
-            setSelectedCards(
-                selectedCards.filter(
+        const holdCount = myHand.filter(
+            (c) => c.suit === card.suit && c.rank === card.rank
+        ).length;
+
+        if (is2Deck && holdCount === 0) {
+            // Open / close copy-picker popup (don't auto-select anything)
+            if (copyPopup && copyPopup.suit === card.suit && copyPopup.rank === card.rank) {
+                setCopyPopup(null);
+            } else {
+                setCopyPopup({ suit: card.suit, rank: card.rank });
+            }
+        } else {
+            // 1-deck or leader holds 1 copy: simple toggle
+            setCopyPopup(null);
+            if (isSelected(card.suit, card.rank)) {
+                setSelectedCards(selectedCards.filter(
                     (c) => !(c.suit === card.suit && c.rank === card.rank)
-                )
-            );
-        } else if (selectedCards.length < partnerCount) {
-            const holdCount = myHand.filter(
-                (c) => c.suit === card.suit && c.rank === card.rank
-            ).length;
-            // whichCopy only needed when leader holds 0 copies in 2-deck
-            const whichCopy = is2Deck && holdCount === 0 ? 1 : null;
-            setSelectedCards([...selectedCards, { ...card, whichCopy }]);
+                ));
+            } else if (selectedCards.length < partnerCount) {
+                setSelectedCards([...selectedCards, { ...card, whichCopy: null }]);
+            }
         }
     }
 
-    function setCopyForCard(suit, rank, copyNum, e) {
+    function handleCopySelect(suit, rank, copyNum, e) {
         e.stopPropagation();
-        setSelectedCards(
-            selectedCards.map((c) =>
-                c.suit === suit && c.rank === rank
-                    ? { ...c, whichCopy: copyNum }
-                    : c
-            )
-        );
+        if (isCopySelected(suit, rank, copyNum)) {
+            // Deselect this copy
+            setSelectedCards(selectedCards.filter(
+                (c) => !(c.suit === suit && c.rank === rank && c.whichCopy === copyNum)
+            ));
+        } else if (selectedCards.length < partnerCount) {
+            // Select this copy
+            setSelectedCards([...selectedCards, { suit, rank, whichCopy: copyNum }]);
+        }
+        setCopyPopup(null); // close popup after each action
     }
 
     function toggleSuitExpanded(suit) {
@@ -137,7 +152,7 @@ const PowerHouseSelector = ({
                 {partnerCards?.length === 0 && (
                     <div className="partner-selection">
                         <h3>
-                            Select Partner Cards ({selectedCards.length}/{partnerCount})
+                            Select Teammate Cards ({selectedCards.length}/{partnerCount})
                         </h3>
 
                         <div className="partner-card-picker">
@@ -160,33 +175,45 @@ const PowerHouseSelector = ({
                                         <div className="suit-cards-row">
                                             {displayCards.map((card) => {
                                                 const CardSvg = getCardComponent(card);
+                                                const holdCount = myHand.filter(
+                                                    (c) => c.suit === card.suit && c.rank === card.rank
+                                                ).length;
                                                 const selected = isSelected(card.suit, card.rank);
-                                                const selData = selected ? getSelectedCard(card.suit, card.rank) : null;
-                                                const showCopyBtns = selected && is2Deck && selData?.whichCopy !== null;
+                                                const copy1Active = isCopySelected(card.suit, card.rank, 1);
+                                                const copy2Active = isCopySelected(card.suit, card.rank, 2);
+                                                const showPopup = copyPopup && copyPopup.suit === card.suit && copyPopup.rank === card.rank;
+                                                const hasCopyUI = is2Deck && holdCount === 0;
                                                 const disabled = !selected && atLimit;
 
                                                 return (
-                                                    <div
-                                                        key={`${card.suit}${card.rank}`}
-                                                        className={`partner-card-thumb${selected ? " selected" : ""}${disabled ? " disabled" : ""}${isRedSuit(suit) ? " red" : ""}`}
-                                                        onClick={() => !disabled && toggleCard(card)}
-                                                        title={`${card.rank} of ${SUIT_NAMES[suit]}`}
-                                                    >
-                                                        {CardSvg && (
-                                                            <CardSvg style={{ height: "100%", width: "100%" }} />
-                                                        )}
-                                                        {showCopyBtns && (
-                                                            <div className="copy-btns">
+                                                    <div key={`${card.suit}${card.rank}`} className="partner-card-wrap">
+                                                        <div
+                                                            className={`partner-card-thumb${selected ? " selected" : ""}${disabled ? " disabled" : ""}${isRedSuit(suit) ? " red" : ""}`}
+                                                            onClick={() => !disabled && toggleCard(card)}
+                                                            title={`${card.rank} of ${SUIT_NAMES[suit]}`}
+                                                        >
+                                                            {CardSvg && (
+                                                                <CardSvg style={{ height: "100%", width: "100%" }} />
+                                                            )}
+                                                            {hasCopyUI && selected && (
+                                                                <div className="copy-selected-badges">
+                                                                    {copy1Active && <span className="copy-sel-badge">1</span>}
+                                                                    {copy2Active && <span className="copy-sel-badge">2</span>}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {showPopup && (
+                                                            <div className="copy-popup" onClick={(e) => e.stopPropagation()}>
                                                                 <button
-                                                                    className={`copy-btn${selData.whichCopy === 1 ? " active" : ""}`}
-                                                                    onClick={(e) => setCopyForCard(card.suit, card.rank, 1, e)}
-                                                                    title="1st copy"
-                                                                >1</button>
+                                                                    className={`copy-popup-btn${copy1Active ? " active" : ""}`}
+                                                                    onClick={(e) => handleCopySelect(card.suit, card.rank, 1, e)}
+                                                                    disabled={!copy1Active && atLimit}
+                                                                >1st</button>
                                                                 <button
-                                                                    className={`copy-btn${selData.whichCopy === 2 ? " active" : ""}`}
-                                                                    onClick={(e) => setCopyForCard(card.suit, card.rank, 2, e)}
-                                                                    title="2nd copy"
-                                                                >2</button>
+                                                                    className={`copy-popup-btn${copy2Active ? " active" : ""}`}
+                                                                    onClick={(e) => handleCopySelect(card.suit, card.rank, 2, e)}
+                                                                    disabled={!copy2Active && atLimit}
+                                                                >2nd</button>
                                                             </div>
                                                         )}
                                                     </div>
@@ -215,7 +242,7 @@ const PowerHouseSelector = ({
 
                         {selectedCards.length === partnerCount && (
                             <button className="btn-primary" onClick={handleSubmitPartners}>
-                                Confirm Partners
+                                Confirm Teammates
                             </button>
                         )}
                     </div>
@@ -261,7 +288,7 @@ const PowerHouseSelector = ({
 
             {partnerCards?.length === 0 && (
                 <div className="partner-selection">
-                    <h3>Select Partner Cards ({selectedCards.length}/{partnerCount})</h3>
+                    <h3>Select Teammate Cards ({selectedCards.length}/{partnerCount})</h3>
                     <div className="partner-card-picker">
                         {SUITS.map((suit) => {
                             const available = getAvailableCardsForSuit(suit);
@@ -281,23 +308,43 @@ const PowerHouseSelector = ({
                                     <div className="suit-cards-row">
                                         {displayCards.map((card) => {
                                             const CardSvg = getCardComponent(card);
+                                            const holdCount = myHand.filter(
+                                                (c) => c.suit === card.suit && c.rank === card.rank
+                                            ).length;
                                             const selected = isSelected(card.suit, card.rank);
-                                            const selData = selected ? getSelectedCard(card.suit, card.rank) : null;
-                                            const showCopyBtns = selected && is2Deck && selData?.whichCopy !== null;
+                                            const copy1Active = isCopySelected(card.suit, card.rank, 1);
+                                            const copy2Active = isCopySelected(card.suit, card.rank, 2);
+                                            const showPopup = copyPopup && copyPopup.suit === card.suit && copyPopup.rank === card.rank;
+                                            const hasCopyUI = is2Deck && holdCount === 0;
                                             const disabled = !selected && atLimit;
 
                                             return (
-                                                <div
-                                                    key={`${card.suit}${card.rank}`}
-                                                    className={`partner-card-thumb${selected ? " selected" : ""}${disabled ? " disabled" : ""}${isRedSuit(suit) ? " red" : ""}`}
-                                                    onClick={() => !disabled && toggleCard(card)}
-                                                    title={`${card.rank} of ${SUIT_NAMES[suit]}`}
-                                                >
-                                                    {CardSvg && <CardSvg style={{ height: "100%", width: "100%" }} />}
-                                                    {showCopyBtns && (
-                                                        <div className="copy-btns">
-                                                            <button className={`copy-btn${selData.whichCopy === 1 ? " active" : ""}`} onClick={(e) => setCopyForCard(card.suit, card.rank, 1, e)} title="1st copy">1</button>
-                                                            <button className={`copy-btn${selData.whichCopy === 2 ? " active" : ""}`} onClick={(e) => setCopyForCard(card.suit, card.rank, 2, e)} title="2nd copy">2</button>
+                                                <div key={`${card.suit}${card.rank}`} className="partner-card-wrap">
+                                                    <div
+                                                        className={`partner-card-thumb${selected ? " selected" : ""}${disabled ? " disabled" : ""}${isRedSuit(suit) ? " red" : ""}`}
+                                                        onClick={() => !disabled && toggleCard(card)}
+                                                        title={`${card.rank} of ${SUIT_NAMES[suit]}`}
+                                                    >
+                                                        {CardSvg && <CardSvg style={{ height: "100%", width: "100%" }} />}
+                                                        {hasCopyUI && selected && (
+                                                            <div className="copy-selected-badges">
+                                                                {copy1Active && <span className="copy-sel-badge">1</span>}
+                                                                {copy2Active && <span className="copy-sel-badge">2</span>}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {showPopup && (
+                                                        <div className="copy-popup" onClick={(e) => e.stopPropagation()}>
+                                                            <button
+                                                                className={`copy-popup-btn${copy1Active ? " active" : ""}`}
+                                                                onClick={(e) => handleCopySelect(card.suit, card.rank, 1, e)}
+                                                                disabled={!copy1Active && atLimit}
+                                                            >1st</button>
+                                                            <button
+                                                                className={`copy-popup-btn${copy2Active ? " active" : ""}`}
+                                                                onClick={(e) => handleCopySelect(card.suit, card.rank, 2, e)}
+                                                                disabled={!copy2Active && atLimit}
+                                                            >2nd</button>
                                                         </div>
                                                     )}
                                                 </div>
@@ -315,7 +362,7 @@ const PowerHouseSelector = ({
                         })}
                     </div>
                     {selectedCards.length === partnerCount && (
-                        <button className="btn-primary" onClick={handleSubmitPartners}>Confirm Partners</button>
+                        <button className="btn-primary" onClick={handleSubmitPartners}>Confirm Teammates</button>
                     )}
                 </div>
             )}

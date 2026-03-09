@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { WsRequestGameState, WsQuitGame } from "../../api/wsEmitters";
 import BiddingPanel from "./BiddingPanel";
@@ -7,7 +7,6 @@ import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
 import PlayerList from "./PlayerList";
 import ScoreBoard from "./ScoreBoard";
-import RemovedTwosDisplay from "./RemovedTwosDisplay";
 import PartnerCardDisplay from "./PartnerCardDisplay";
 import TeamScoreHUD from "./TeamScoreHUD";
 import DealRevealOverlay from "./DealRevealOverlay";
@@ -34,21 +33,31 @@ const GameBoard = ({ userId, isAdmin }) => {
     // Stable key so the overlay remounts fresh for each deal
     const dealRevealKeyRef = useRef(0);
     const dealingAnimRef = useRef(null);
+    // Teammate reveal announcement
+    const [revealAnnouncement, setRevealAnnouncement] = useState(null); // { playerName, bidderName }
+    const prevRevealedPartnersRef = useRef([]);
+    const revealAnnouncementTimerRef = useRef(null);
 
     useEffect(() => {
         WsRequestGameState();
     }, []);
 
-    // Trigger deal reveal when dealing phase completes → bidding begins
+    // Trigger deal reveal when dealing phase completes → bidding begins.
+    // Auto-close the overlay when the reveal window expires (biddingWindowOpensAt).
     useEffect(() => {
         const prev = prevPhaseRef.current;
         const curr = game.phase;
         if (prev === "dealing" && curr === "bidding") {
             dealRevealKeyRef.current += 1;
             setShowDealReveal(true);
+
+            // Auto-close when the reveal window ends (server timestamp)
+            const opensAt = game.bidding?.biddingWindowOpensAt;
+            const delayMs = opensAt ? Math.max(0, opensAt - Date.now()) : 7500;
+            setTimeout(() => setShowDealReveal(false), delayMs);
         }
         prevPhaseRef.current = curr;
-    }, [game.phase]);
+    }, [game.phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
 
@@ -91,6 +100,144 @@ const GameBoard = ({ userId, isAdmin }) => {
         if (playsCount === 0) setInspectMode(false);
     }, [playsCount]);
 
+    // Detect newly revealed teammates and show a 2-second announcement.
+    // Compare by LENGTH so a player who reveals twice (holds both teammate
+    // cards) still triggers the second announcement correctly.
+    useEffect(() => {
+        const curr = game.revealedPartners || [];
+        const prev = prevRevealedPartnersRef.current;
+
+        if (curr.length > prev.length) {
+            // The newly appended reveal is always the last element
+            const newPartnerId = curr[curr.length - 1];
+            const playerNames = game.playerNames || {};
+            const resolveName = (pid) => playerNames[pid] || pid?.substring(0, 8);
+
+            if (revealAnnouncementTimerRef.current) {
+                clearTimeout(revealAnnouncementTimerRef.current);
+            }
+            setRevealAnnouncement({
+                playerName: resolveName(newPartnerId),
+                bidderName: resolveName(game.leader),
+            });
+            revealAnnouncementTimerRef.current = setTimeout(
+                () => setRevealAnnouncement(null),
+                2000
+            );
+        }
+        // Store a snapshot so length comparisons survive re-renders
+        prevRevealedPartnersRef.current = [...curr];
+    }, [game.revealedPartners]); // eslint-disable-line
+
+    // Cleanup timer on unmount
+    useEffect(() => () => {
+        if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
+    }, []);
+
+    // ── Partner / relation logic ───────────────────────────────────────────
+    // These must all live ABOVE any early return (Rules of Hooks).
+
+    const allPartnersRevealed =
+        (game.partnerCards?.length ?? 0) > 0 &&
+        game.partnerCards.every((pc) => pc.revealed);
+
+    // Server-confirmed team membership (public info as reveals happen)
+    const myTeam = game.teams?.bid?.includes(userId)
+        ? "bid"
+        : game.teams?.oppose?.includes(userId)
+        ? "oppose"
+        : null;
+
+    // Private hand-based inference (only the local user sees this).
+    // Groups partner cards by {suit, rank} and uses whichCopy to determine
+    // how many copies are actually available to non-leader players.
+    //   whichCopy === null   → leader holds 1 copy, only 1 copy available
+    //   whichCopy !== null   → leader holds 0 copies, 2 copies available
+    const myKnownRelation = useMemo(() => {
+        const partnerCards = game.partnerCards;
+        if (!partnerCards?.length || !game.myHand?.length) return null;
+        if (!["powerhouse", "playing"].includes(game.phase)) return null;
+        // Only skip inference when server has confirmed us on the bid team
+        // (after our partner card was revealed). "oppose" is the default for
+        // ALL non-leaders, so we still need to infer when myTeam === "oppose".
+        if (myTeam === "bid") return null;
+        // When all partners are revealed, server data is fully authoritative — skip inference
+        if (allPartnersRevealed) return null;
+
+        const is2Deck = game.configKey?.includes("2D");
+
+        if (!is2Deck) {
+            // 1-deck: if I hold any UNREVEALED partner card slot → certain teammate.
+            // Skip revealed slots — those are already filled by the revealed player.
+            for (const pc of partnerCards) {
+                if (!pc.card || pc.revealed) continue;
+                const inHand = game.myHand.some(
+                    (c) => c.suit === pc.card.suit && c.rank === pc.card.rank
+                );
+                if (inHand) return "certain-teammate";
+            }
+            return "certain-not-teammate";
+        }
+
+        // 2-deck: group UNREVEALED partner card slots by {suit, rank}.
+        // Revealed slots are already filled — the remaining copy in my hand
+        // is just a regular card, not a partner card.
+        const groups = {};
+        for (const pc of partnerCards) {
+            if (!pc.card || pc.revealed) continue;
+            const key = `${pc.card.suit}_${pc.card.rank}`;
+            if (!groups[key]) {
+                groups[key] = {
+                    suit: pc.card.suit,
+                    rank: pc.card.rank,
+                    slots: 0,              // how many OPEN partner slots for this card
+                    leaderHoldsOne: false,  // true if leader holds a copy (whichCopy === null)
+                };
+            }
+            groups[key].slots += 1;
+            if (pc.whichCopy === null) groups[key].leaderHoldsOne = true;
+        }
+
+        let hasCertain = false;
+        let hasPotential = false;
+
+        for (const g of Object.values(groups)) {
+            const myCount = game.myHand.filter(
+                (c) => c.suit === g.suit && c.rank === g.rank
+            ).length;
+            if (myCount === 0) continue;
+
+            // Copies available to non-leader players (1 if leader holds one, else 2)
+            const copiesAvailable = g.leaderHoldsOne ? 1 : 2;
+            // Non-partner copies among available
+            const nonPartnerCopies = copiesAvailable - g.slots;
+
+            if (myCount > nonPartnerCopies) {
+                // I must hold at least one partner copy
+                hasCertain = true;
+                break;
+            } else {
+                // My copies could all be non-partner copies
+                hasPotential = true;
+            }
+        }
+
+        return hasCertain ? "certain-teammate" : hasPotential ? "potential-teammate" : "certain-not-teammate";
+    }, [game.partnerCards, game.myHand, game.configKey, game.phase, myTeam, allPartnersRevealed]); // eslint-disable-line
+
+    // Effective team: private inference overrides the server's default "oppose"
+    // assignment (all non-leaders start on oppose until partner card reveal).
+    // Only server-confirmed "bid" (after reveal) takes absolute priority.
+    const myEffectiveTeam =
+        allPartnersRevealed                               ? myTeam   :  // all revealed → server is fully authoritative
+        myTeam === "bid"                                  ? "bid"    :  // server confirmed (partner revealed)
+        myKnownRelation === "certain-teammate"            ? "bid"    :  // I definitely hold a partner card
+        myKnownRelation === "certain-not-teammate"        ? "oppose" :  // I definitely don't
+        myKnownRelation === "potential-teammate"          ? null     :  // maybe — can't commit either way
+        myTeam;                                                         // fall back to server (null or "oppose")
+
+    // ── Early return (after all hooks) ────────────────────────────────────
+
     if (!game.phase) {
         return <div className="game-board-loading">Loading game state...</div>;
     }
@@ -100,7 +247,8 @@ const GameBoard = ({ userId, isAdmin }) => {
     const isBidLeader = game.leader === userId;
     const isMyTurn =
         game.phase === "bidding"
-            ? game.bidding?.currentTurn === userId
+            // Open bidding: any non-passed active player "has a turn"
+            ? !game.bidding?.passed?.includes(userId)
             : game.phase === "playing"
             ? game.currentTrick?.currentTurn === userId
             : false;
@@ -170,22 +318,48 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
     });
 
-    // Minor 6: teammate/opponent relation — shown once all partners are revealed
-    const allPartnersRevealed =
-        (game.partnerCards?.length ?? 0) > 0 &&
-        game.partnerCards.every((pc) => pc.revealed);
-
-    const myTeam = game.teams?.bid?.includes(userId)
-        ? "bid"
-        : game.teams?.oppose?.includes(userId)
-        ? "oppose"
-        : null;
-
+    // ── Relation resolver (per opponent seat) ─────────────────────────────
+    // Returns "teammate" | "opponent" | "potential-teammate" | null
     const getRelation = (pid) => {
-        if (!allPartnersRevealed || !myTeam || pid === userId) return null;
-        const pidOnBid = (game.teams?.bid || []).includes(pid);
+        if (pid === userId) return null;
+
+        const pidIsLeader          = pid === game.leader;
+        const pidIsRevealedPartner = (game.revealedPartners || []).includes(pid);
+        const pidOnBid             = (game.teams?.bid || []).includes(pid);
+        const partnerCardsChosen   = (game.partnerCards?.length ?? 0) > 0;
+
+        // ── Bidder (leader) seat ─────────────────────────────────────────
+        // Relation only appears after partner cards are selected (not during
+        // powerhouse suit/card picking).
+        if (pidIsLeader) {
+            let leaderResult = null;
+            if (!partnerCardsChosen) leaderResult = null;
+            else if (myEffectiveTeam === "bid") leaderResult = "teammate";
+            else if (myKnownRelation === "potential-teammate") leaderResult = "potential-teammate";
+            else if (myEffectiveTeam === "oppose") leaderResult = "opponent";
+            return leaderResult;
+        }
+
+        // ── All other seats: only visible once publicly revealed ──────────
+        const pidTeamPublic = pidIsRevealedPartner || allPartnersRevealed;
+        if (!pidTeamPublic) return null;
+
         const pidTeam = pidOnBid ? "bid" : "oppose";
-        return pidTeam === myTeam ? "teammate" : "opponent";
+
+        if (myEffectiveTeam) {
+            return pidTeam === myEffectiveTeam ? "teammate" : "opponent";
+        }
+
+        // myEffectiveTeam is null → I'm a potential-teammate and don't yet know
+        // which side I'll end up on. A revealed bid-team member (e.g. P2) is
+        // therefore only a *potential* teammate from my perspective — they could
+        // be my teammate or my opponent depending on whether I turn out to be
+        // on the bid team or not.
+        if (myKnownRelation === "potential-teammate" && pidTeam === "bid") {
+            return "potential-teammate";
+        }
+
+        return null;
     };
 
     const buildPlayerList = () => {
@@ -279,7 +453,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                         {suitSymbol(phSuit)}
                     </div>
                     <div className="waiting-label">
-                        {isBidLeader ? "Select Partners" : "Selecting Partners..."}
+                        {isBidLeader ? "Select Teammates" : "Selecting Teammates..."}
                     </div>
                     {!isBidLeader && (
                         <div className="waiting-name">{getName(game.leader)}</div>
@@ -347,8 +521,6 @@ const GameBoard = ({ userId, isAdmin }) => {
 
             {game.error && <div className="game-error-banner">{game.error}</div>}
 
-            {game.removedTwos?.length > 0 && <RemovedTwosDisplay cards={game.removedTwos} />}
-
             {/* Non-table phases: use horizontal player list */}
             {!isTablePhase && (
                 <PlayerList
@@ -379,6 +551,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                         leader={game.leader}
                         partnerCards={game.partnerCards}
                         phase={game.phase}
+                        removedTwos={game.removedTwos || []}
                     />
 
                     {isPlayingPhase && (
@@ -394,6 +567,16 @@ const GameBoard = ({ userId, isAdmin }) => {
                         <div className="my-turn-indicator">
                             <span className="my-turn-dot" />
                             Your turn
+                        </div>
+                    )}
+
+                    {/* Teammate reveal announcement — 2-second toast */}
+                    {revealAnnouncement && (
+                        <div className="reveal-announcement" key={revealAnnouncement.playerName}>
+                            <span className="reveal-announcement-player">{revealAnnouncement.playerName}</span>
+                            {" is "}
+                            <span className="reveal-announcement-bidder">{revealAnnouncement.bidderName}</span>
+                            {"'s teammate!"}
                         </div>
                     )}
 
@@ -467,8 +650,6 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <BiddingPanel
                     bidding={game.bidding}
                     userId={userId}
-                    isMyTurn={isMyTurn}
-                    getName={getName}
                 />
             )}
 

@@ -1,32 +1,41 @@
 /**
+ * Non-sequential (open) bidding engine.
+ * Any active (non-passed) player may bid at any time during the bidding window.
+ * A player may bid multiple times — each new bid must exceed the current highest.
+ * Timestamps (biddingWindowOpensAt, biddingExpiresAt) are injected by dealCardsHandler
+ * after transitioning to the "bidding" phase.
+ */
+
+/**
  * Initialize bidding state for a new game.
+ * Timestamps are null until the server switches to "bidding" phase.
  */
 function initBidding(config, seatOrder) {
     return {
         currentBid: 0,
         currentBidder: null,
-        turnIndex: 0, // first player in seat order starts
         passes: [],
         startingBid: config.bidStart,
         biddingComplete: false,
+        biddingWindowOpensAt: null,
+        biddingExpiresAt: null,
     };
 }
 
 /**
- * Place a bid.
- * Returns { state } on success, or { error } on failure.
+ * Place a bid (open / non-sequential).
+ * Any active (non-passed) player may bid as long as the amount exceeds the current highest.
+ * Returns { state } on success, { error } on failure.
  */
 function placeBid(biddingState, seatOrder, config, playerId, amount) {
     if (biddingState.biddingComplete) {
         return { error: "Bidding is already complete" };
     }
 
-    // Validate it's this player's turn
-    if (seatOrder[biddingState.turnIndex] !== playerId) {
-        return { error: "Not your turn to bid" };
+    if (!seatOrder.includes(playerId)) {
+        return { error: "Player is not in this game" };
     }
 
-    // Validate player hasn't already passed
     if (biddingState.passes.includes(playerId)) {
         return { error: "You have already passed" };
     }
@@ -52,10 +61,9 @@ function placeBid(biddingState, seatOrder, config, playerId, amount) {
         ...biddingState,
         currentBid: amount,
         currentBidder: playerId,
-        turnIndex: getNextBidderIndex(seatOrder, biddingState.turnIndex, biddingState.passes),
     };
 
-    // If bid is the max, bidding ends immediately
+    // Hitting the max bid ends bidding immediately
     if (amount === config.bidMax) {
         newState.biddingComplete = true;
     }
@@ -64,16 +72,17 @@ function placeBid(biddingState, seatOrder, config, playerId, amount) {
 }
 
 /**
- * Pass on bidding.
- * Returns { state, allPassed } where allPassed is true if everyone passed this round.
+ * Pass on bidding (open / non-sequential).
+ * Once passed a player may not bid again.
+ * Returns { state }, { state } with biddingComplete: true, or { redeal: true }.
  */
 function passBid(biddingState, seatOrder, config, playerId) {
     if (biddingState.biddingComplete) {
         return { error: "Bidding is already complete" };
     }
 
-    if (seatOrder[biddingState.turnIndex] !== playerId) {
-        return { error: "Not your turn to bid" };
+    if (!seatOrder.includes(playerId)) {
+        return { error: "Player is not in this game" };
     }
 
     if (biddingState.passes.includes(playerId)) {
@@ -83,8 +92,13 @@ function passBid(biddingState, seatOrder, config, playerId) {
     const newPasses = [...biddingState.passes, playerId];
     const activePlayers = seatOrder.filter((id) => !newPasses.includes(id));
 
-    // If only one player hasn't passed and someone has bid, bidding is complete
-    if (activePlayers.length === 1 && biddingState.currentBidder !== null) {
+    // Everyone passed with no bids → reshuffle (same dealer)
+    if (activePlayers.length === 0 && biddingState.currentBidder === null) {
+        return { redeal: true };
+    }
+
+    // One or zero active players left and someone has bid → bidding complete
+    if (activePlayers.length <= 1 && biddingState.currentBidder !== null) {
         return {
             state: {
                 ...biddingState,
@@ -94,34 +108,23 @@ function passBid(biddingState, seatOrder, config, playerId) {
         };
     }
 
-    // If everyone passed (no one has bid yet), re-deal
-    if (activePlayers.length === 0 && biddingState.currentBidder === null) {
-        return { redeal: true };
-    }
-
     return {
         state: {
             ...biddingState,
             passes: newPasses,
-            turnIndex: getNextBidderIndex(seatOrder, biddingState.turnIndex, newPasses),
         },
     };
 }
 
 /**
- * Get the index of the next active bidder (skipping passed players).
+ * Resolve an expired bidding timer.
+ * Returns { winner: playerId } if someone bid, or { redeal: true } if nobody bid.
  */
-function getNextBidderIndex(seatOrder, currentIndex, passes) {
-    const len = seatOrder.length;
-    let nextIndex = (currentIndex + 1) % len;
-    let attempts = 0;
-
-    while (passes.includes(seatOrder[nextIndex]) && attempts < len) {
-        nextIndex = (nextIndex + 1) % len;
-        attempts++;
+function resolveBiddingExpiry(biddingState) {
+    if (biddingState.currentBidder) {
+        return { winner: biddingState.currentBidder };
     }
-
-    return nextIndex;
+    return { redeal: true };
 }
 
 /**
@@ -136,5 +139,6 @@ module.exports = {
     initBidding,
     placeBid,
     passBid,
+    resolveBiddingExpiry,
     getBidWinner,
 };

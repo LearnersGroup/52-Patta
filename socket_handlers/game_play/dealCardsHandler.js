@@ -5,6 +5,8 @@ const { processShuffleBatch, dealFromDealer } = require("../../game_engine/shuff
 const { initBidding } = require("../../game_engine/bidding");
 const { getGameState, setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
+const { startBiddingTimer } = require("./helpers/biddingTimer");
+const { expireBidding } = require("./helpers/expireBidding");
 
 module.exports = (socket, io) => async (data, callback) => {
     try {
@@ -93,8 +95,19 @@ module.exports = (socket, io) => async (data, callback) => {
             const currentState = getGameState(gameId);
             if (!currentState || currentState.phase !== "dealing") return;
 
+            // Use per-room configured inspect window if available, else the global default (15s)
+            const revealMs = currentState.config?.inspectWindowMs
+                || SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;
+            // Use per-room configured bidding window if available, else the global default (15s)
+            const windowMs = currentState.config?.biddingWindowMs
+                || SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
+
             currentState.phase = "bidding";
             currentState.cutCard = null; // clear cut card after reveal
+            // Stamp the reveal window and bidding expiry on the bidding state
+            currentState.bidding.biddingWindowOpensAt = Date.now() + revealMs;
+            currentState.bidding.biddingExpiresAt = Date.now() + revealMs + windowMs;
+
             setGameState(gameId, currentState);
 
             await Game.findByIdAndUpdate(gameId, { state: "bidding" });
@@ -102,6 +115,9 @@ module.exports = (socket, io) => async (data, callback) => {
 
             await broadcastGameState(io, currentState);
             io.to(currentState.roomname).emit("game-phase-change", "bidding");
+
+            // Start the expiry timer: reveal window + bidding window
+            startBiddingTimer(gameId, revealMs + windowMs, () => expireBidding(io, gameId));
         }, totalDelay);
 
     } catch (error) {

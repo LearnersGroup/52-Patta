@@ -1,18 +1,11 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import ScoreboardModal from "./ScoreboardModal";
+import { getCardComponent, cardKey } from "./utils/cardMapper";
 
 /**
  * Compact HUD fixed to the top-left.
- * - During playing phase: shows bid-vs-oppose score pills + scoreboard button.
- * - All other table phases: shows only the scoreboard button.
- *
- * Before all partners are revealed:
- *   - Bid team score = only the leader's trick points
- *   - Oppose team score = "???"
- *
- * After all partners revealed:
- *   - Bid team score = sum of all bid team members' trick points
- *   - Oppose team score = sum of all oppose team members' trick points
+ * Row 1 (pill): bid-vs-oppose score + scoreboard button.
+ * Row 2 (pile): removed 2s shown as a stacked pile; click to fan out for 3s.
  */
 const TeamScoreHUD = ({
     tricks = [],
@@ -20,8 +13,11 @@ const TeamScoreHUD = ({
     leader,
     partnerCards = [],
     phase = "playing",
+    removedTwos = [],
 }) => {
     const [showScoreboard, setShowScoreboard] = useState(false);
+    const [isPileOpen, setIsPileOpen]         = useState(false);
+    const pileTimerRef                        = useRef(null);
     const isPlaying = phase === "playing";
 
     // Compute per-player trick points for current round
@@ -52,33 +48,123 @@ const TeamScoreHUD = ({
           )
         : null; // null = "???"
 
+    // ── Pile toggle ────────────────────────────────────────────────────────
+    const handlePileClick = () => {
+        if (isPileOpen) {
+            // Manual close
+            if (pileTimerRef.current) clearTimeout(pileTimerRef.current);
+            setIsPileOpen(false);
+        } else {
+            setIsPileOpen(true);
+            pileTimerRef.current = setTimeout(() => {
+                setIsPileOpen(false);
+            }, 3000);
+        }
+    };
+
+    // Cleanup on unmount
+    useEffect(() => () => {
+        if (pileTimerRef.current) clearTimeout(pileTimerRef.current);
+    }, []);
+
+    // Up to 3 cards shown in the pile stack visual
+    const pilePreview = removedTwos.slice(0, 3);
+
     return (
         <>
-            <div className="team-score-hud">
-                {isPlaying && (
-                    <>
-                        <div className="hud-team hud-bid">
-                            <span className="hud-dot bid-dot" />
-                            <span className="hud-score">{bidScore}</span>
-                        </div>
-                        <span className="hud-vs">vs</span>
-                        <div className="hud-team hud-oppose">
-                            <span className="hud-dot oppose-dot" />
-                            <span className="hud-score">
-                                {opposeScore !== null ? opposeScore : "???"}
-                            </span>
-                        </div>
-                        <div className="hud-divider" />
-                    </>
-                )}
+            <div className="hud-wrapper">
+                {/* ── Score pill row ── */}
+                <div className="team-score-hud">
+                    {isPlaying && (
+                        <>
+                            <div className="hud-team hud-bid">
+                                <span className="hud-dot bid-dot" />
+                                <span className="hud-score">{bidScore}</span>
+                            </div>
+                            <span className="hud-vs">vs</span>
+                            <div className="hud-team hud-oppose">
+                                <span className="hud-dot oppose-dot" />
+                                <span className="hud-score">
+                                    {opposeScore !== null ? opposeScore : "???"}
+                                </span>
+                            </div>
+                            <div className="hud-divider" />
+                        </>
+                    )}
 
-                <button
-                    className="hud-scoreboard-btn"
-                    onClick={() => setShowScoreboard(true)}
-                    title="View full scoreboard"
-                >
-                    ⊞
-                </button>
+                    <button
+                        className="hud-scoreboard-btn"
+                        onClick={() => setShowScoreboard(true)}
+                        title="View full scoreboard"
+                    >
+                        ⊞
+                    </button>
+                </div>
+
+                {/* ── Removed 2s pile ── */}
+                {removedTwos.length > 0 && (
+                    <div className="removed-pile-wrap">
+                        {/* Pile trigger */}
+                        <button
+                            className={`removed-pile-trigger ${isPileOpen ? "open" : ""}`}
+                            onClick={handlePileClick}
+                            title="Removed 2s"
+                        >
+                            <div className="removed-pile-stack">
+                                {pilePreview.map((card, i) => {
+                                    const CardSvg = getCardComponent(card);
+                                    return (
+                                        <div
+                                            key={cardKey(card) + i}
+                                            className="removed-pile-card"
+                                            style={{ "--pile-i": i }}
+                                        >
+                                            {CardSvg && (
+                                                <CardSvg
+                                                    style={{
+                                                        height: "100%",
+                                                        width: "100%",
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            <span className="removed-pile-label">
+                                ×{removedTwos.length}
+                            </span>
+                        </button>
+
+                        {/* Expanded fan */}
+                        {isPileOpen && (
+                            <div className="removed-pile-expanded">
+                                <span className="removed-pile-title">Removed 2s</span>
+                                <div className="removed-pile-cards">
+                                    {removedTwos.map((card, i) => {
+                                        const CardSvg = getCardComponent(card);
+                                        return (
+                                            <div
+                                                key={cardKey(card) + i}
+                                                className="removed-pile-item"
+                                                style={{ "--item-i": i }}
+                                            >
+                                                {CardSvg && (
+                                                    <CardSvg
+                                                        style={{
+                                                            height: "100%",
+                                                            width: "100%",
+                                                        }}
+                                                    />
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {showScoreboard && (

@@ -82,17 +82,26 @@ module.exports = (socket, io) => async (data, callback) => {
             return;
         }
 
-        //verify credentials
-        const isMatch = await bcrypt.compare(roompass, game.roompass);
-
-        if (!isMatch) {
-            // Rollback: remove the player we just added
-            await Game.findOneAndUpdate(
-                { _id: game.id },
-                { $pull: { players: { playerId: socket.user.id } } }
-            );
-            callback("Invalid Credentials");
-            return;
+        //verify credentials (skip for public rooms)
+        if (!game.isPublic) {
+            if (!roompass || !game.roompass) {
+                await Game.findOneAndUpdate(
+                    { _id: game.id },
+                    { $pull: { players: { playerId: socket.user.id } } }
+                );
+                callback("Password required");
+                return;
+            }
+            const isMatch = await bcrypt.compare(roompass, game.roompass);
+            if (!isMatch) {
+                // Rollback: remove the player we just added
+                await Game.findOneAndUpdate(
+                    { _id: game.id },
+                    { $pull: { players: { playerId: socket.user.id } } }
+                );
+                callback("Invalid Credentials");
+                return;
+            }
         }
 
         //Update user game-room

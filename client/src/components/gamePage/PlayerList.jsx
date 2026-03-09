@@ -51,7 +51,7 @@ const PlayerList = ({
                                 )}
                                 {isRevealed && (
                                     <span className="partner-badge">
-                                        Partner
+                                        Teammate
                                     </span>
                                 )}
                             </div>
