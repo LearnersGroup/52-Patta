@@ -73,7 +73,7 @@ function buildPublicView(gameState) {
         leader: gameState.leader,
         powerHouseSuit: gameState.powerHouseSuit,
         partnerCardCount: gameState.bidding ? getPartnerCardCount(gameState) : null,
-        partnerCards: gameState.partnerCards?.map((pc) => ({
+        partnerCards: (gameState.partnerCards || []).map((pc) => ({
             card: pc.card,
             whichCopy: pc.whichCopy,
             revealed: pc.revealed,

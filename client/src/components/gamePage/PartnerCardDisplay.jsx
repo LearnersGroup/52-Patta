@@ -42,9 +42,9 @@ const PartnerCardDisplay = ({
                                     revealed ? "revealed" : ""
                                 }`}
                             >
-                                {partnerCards.length > 1 && (
+                                {pc.whichCopy !== null && (
                                     <div className="partner-copy-num">
-                                        #{idx + 1}
+                                        #{pc.whichCopy === "1st" ? 1 : 2}
                                     </div>
                                 )}
                                 <div

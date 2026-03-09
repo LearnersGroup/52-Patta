@@ -89,6 +89,8 @@ function selectPartnerCards(gameState, playerId, cards, duplicateSpecs = []) {
         };
     });
 
+    console.log(`[SelectPartners] Leader ${playerId.substring(0, 6)} — cards:`, JSON.stringify(cards));
+    console.log(`[SelectPartners] duplicateSpecs:`, JSON.stringify(duplicateSpecs));
     console.log(`[SelectPartners] Partner card specs:`, JSON.stringify(partnerCardSpecs));
 
     return {
@@ -134,76 +136,108 @@ function determineTeams(gameState) {
  * Check if a played card is a partner card and handle reveal.
  * Called during trick play.
  * Returns updated gameState if partner revealed, or null if not a partner card.
+ *
+ * playCount tracks only NON-LEADER plays (leader can't be their own partner).
+ * For whichCopy matching, we use a GLOBAL play count across all partner-card
+ * entries that share the same {suit, rank}, so "1st"/"2nd" refer to the
+ * 1st/2nd time ANY non-leader plays that card, across all entries.
  */
 function checkPartnerReveal(gameState, playerId, card) {
     const partnerCards = gameState.partnerCards;
     if (!partnerCards || partnerCards.length === 0) return null;
 
+    // Check if any unrevealed partner card matches the played card
+    const hasMatch = partnerCards.some(
+        (pc) => !pc.revealed && cardsMatch(card, pc.card)
+    );
+    if (!hasMatch) return null;
+
+    console.log(`[PartnerReveal] Played: ${card.suit}${card.rank} by ${playerId.substring(0, 6)}, isLeader: ${playerId === gameState.leader}`);
+
+    // Leader can't be their own partner — don't track their plays
+    if (playerId === gameState.leader) {
+        console.log(`[PartnerReveal] Leader played partner card — no reveal, no playCount change`);
+        return gameState;
+    }
+
+    // Compute GLOBAL non-leader play count for this card BEFORE this play
+    // (across ALL partner entries with the same suit+rank)
+    const globalPreviousPlays = partnerCards
+        .filter((pc) => cardsMatch(pc.card, card))
+        .reduce((sum, pc) => sum + pc.playCount, 0);
+    const thisPlayNumber = globalPreviousPlays + 1;
+
+    console.log(`[PartnerReveal] globalPreviousPlays=${globalPreviousPlays}, thisPlayNumber=${thisPlayNumber}`);
+
+    // Find the first unrevealed matching entry to increment its playCount
+    let updateIndex = -1;
     for (let i = 0; i < partnerCards.length; i++) {
-        const pc = partnerCards[i];
-        if (pc.revealed) continue;
-
-        // Check if the played card matches this partner card by suit and rank
-        const matches = cardsMatch(card, pc.card);
-        console.log(`[PartnerReveal] Played: ${card.suit}${card.rank} by ${playerId.substring(0,6)}, partner card: ${pc.card.suit}${pc.card.rank}, match: ${matches}, whichCopy: ${pc.whichCopy}, playCount: ${pc.playCount}`);
-        if (!matches) continue;
-
-        // Track play count for this partner card type (ALL players, including leader)
-        const updatedPC = { ...pc, playCount: pc.playCount + 1 };
-
-        // Leader can't be their own partner — just update play count
-        if (playerId === gameState.leader) {
-            const newPartnerCards = [...partnerCards];
-            newPartnerCards[i] = updatedPC;
-            return { ...gameState, partnerCards: newPartnerCards };
-        }
-
-        // Determine if this play reveals the partner
-        let isReveal = false;
-
-        if (pc.whichCopy === null) {
-            // Either single-deck or leader holds one copy (unambiguous)
-            isReveal = true;
-        } else if (pc.whichCopy === "1st" && updatedPC.playCount === 1) {
-            isReveal = true;
-        } else if (pc.whichCopy === "2nd" && updatedPC.playCount === 2) {
-            isReveal = true;
-        }
-
-        console.log(`[PartnerReveal] After increment: playCount=${updatedPC.playCount}, whichCopy=${pc.whichCopy}, isLeader=${playerId === gameState.leader}, isReveal=${isReveal}`);
-
-        if (isReveal) {
-            console.log(`[PartnerReveal] *** PARTNER REVEALED: ${playerId.substring(0,6)} ***`);
-            const newPartnerCards = [...partnerCards];
-            newPartnerCards[i] = { ...updatedPC, revealed: true, partnerId: playerId };
-
-            const newBidTeam = [...(gameState.teams.bid || [])];
-            if (!newBidTeam.includes(playerId)) {
-                newBidTeam.push(playerId);
-            }
-
-            const newOpposeTeam = (gameState.teams.oppose || []).filter(
-                (id) => id !== playerId
-            );
-
-            return {
-                ...gameState,
-                partnerCards: newPartnerCards,
-                teams: {
-                    bid: newBidTeam,
-                    oppose: newOpposeTeam,
-                },
-                revealedPartners: [...(gameState.revealedPartners || []), playerId],
-            };
-        } else {
-            // Update play count but no reveal
-            const newPartnerCards = [...partnerCards];
-            newPartnerCards[i] = updatedPC;
-            return { ...gameState, partnerCards: newPartnerCards };
+        if (!partnerCards[i].revealed && cardsMatch(partnerCards[i].card, card)) {
+            updateIndex = i;
+            break;
         }
     }
 
-    return null; // not a partner card
+    // Increment playCount on that entry
+    const newPartnerCards = [...partnerCards];
+    newPartnerCards[updateIndex] = {
+        ...partnerCards[updateIndex],
+        playCount: partnerCards[updateIndex].playCount + 1,
+    };
+
+    // Determine which partner entry this play reveals (if any)
+    let revealIndex = -1;
+    for (let i = 0; i < partnerCards.length; i++) {
+        const pc = partnerCards[i];
+        if (pc.revealed) continue;
+        if (!cardsMatch(pc.card, card)) continue;
+
+        if (pc.whichCopy === null) {
+            // Single-deck or leader holds one copy — any non-leader play reveals
+            revealIndex = i;
+            break;
+        } else if (pc.whichCopy === "1st" && thisPlayNumber === 1) {
+            revealIndex = i;
+            break;
+        } else if (pc.whichCopy === "2nd" && thisPlayNumber === 2) {
+            revealIndex = i;
+            break;
+        }
+    }
+
+    console.log(`[PartnerReveal] revealIndex=${revealIndex}, entries: ${partnerCards.map((pc) => `${pc.card.suit}${pc.card.rank}:wc=${pc.whichCopy},pc=${pc.playCount},rev=${pc.revealed}`).join("; ")}`);
+
+    if (revealIndex >= 0) {
+        console.log(`[PartnerReveal] *** PARTNER REVEALED: ${playerId.substring(0, 6)} (play #${thisPlayNumber}, whichCopy=${partnerCards[revealIndex].whichCopy}) ***`);
+        newPartnerCards[revealIndex] = {
+            ...newPartnerCards[revealIndex],
+            revealed: true,
+            partnerId: playerId,
+        };
+
+        const newBidTeam = [...(gameState.teams.bid || [])];
+        if (!newBidTeam.includes(playerId)) {
+            newBidTeam.push(playerId);
+        }
+
+        const newOpposeTeam = (gameState.teams.oppose || []).filter(
+            (id) => id !== playerId
+        );
+
+        return {
+            ...gameState,
+            partnerCards: newPartnerCards,
+            teams: {
+                bid: newBidTeam,
+                oppose: newOpposeTeam,
+            },
+            revealedPartners: [...(gameState.revealedPartners || []), playerId],
+        };
+    }
+
+    // Play count updated but no reveal this time
+    console.log(`[PartnerReveal] No reveal — play #${thisPlayNumber} doesn't match any whichCopy`);
+    return { ...gameState, partnerCards: newPartnerCards };
 }
 
 module.exports = {
