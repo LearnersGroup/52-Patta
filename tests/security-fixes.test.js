@@ -161,13 +161,13 @@ describe('HIGH: JWT Expiration Fix', () => {
 
     test('auth route should use reasonable JWT expiration (not 360000)', () => {
         expect(authRoute).not.toMatch(/expiresIn:\s*360000/);
-        // Should be 3600 (1 hour) or similar
-        expect(authRoute).toMatch(/expiresIn:\s*3600/);
+        // Should be '24h' or similar reasonable expiration
+        expect(authRoute).toMatch(/expiresIn:\s*'24h'/);
     });
 
     test('users route should use reasonable JWT expiration (not 360000)', () => {
         expect(usersRoute).not.toMatch(/expiresIn:\s*360000/);
-        expect(usersRoute).toMatch(/expiresIn:\s*3600/);
+        expect(usersRoute).toMatch(/expiresIn:\s*'24h'/);
     });
 });
 

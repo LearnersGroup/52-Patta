@@ -1,0 +1,241 @@
+// ─── CIRCULAR TABLE ─────────────────────────
+.circular-table-wrapper {
+  // The wrapper is the positioning context for both the table and all seats.
+  // It is larger than the table itself to accommodate seats around the perimeter.
+  position: relative;
+  width: var(--wrapper-size, 644px);
+  height: var(--wrapper-size, 644px);
+  margin: 0 auto;
+  flex-shrink: 0;
+}
+
+.circular-table {
+  // The felt circle — absolutely centered inside the wrapper
+  position: absolute;
+  top: var(--seat-padding, 72px);
+  left: var(--seat-padding, 72px);
+  width: var(--table-size, 500px);
+  height: var(--table-size, 500px);
+  border-radius: 50%;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(30, 77, 42, 0.35), transparent 70%),
+    $bg-felt;
+  border: 2px solid $border-gold;
+  box-shadow:
+    0 0 40px rgba(0, 0, 0, 0.6),
+    inset 0 0 60px rgba(0, 0, 0, 0.3),
+    0 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.table-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 68%;
+  height: 68%;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ─── PLAYER SEAT (CIRCULAR) ────────────────
+.table-seat {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  z-index: 2;
+  pointer-events: auto;
+  max-width: 90px;
+
+  // Active turn: glowing border around entire seat + arrow pointing from table edge
+  &.active-turn {
+    // Glow border around the whole seat container
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border: 2px solid rgba(201, 162, 39, 0.6);
+      border-radius: 12px;
+      box-shadow: 0 0 14px rgba(201, 162, 39, 0.35), inset 0 0 8px rgba(201, 162, 39, 0.1);
+      animation: turn-glow-pulse 1.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    // Arrow from table edge pointing toward the seat
+    &::before {
+      content: '';
+      position: absolute;
+      left: calc(50% + var(--arrow-dx, 0px));
+      top: calc(50% + var(--arrow-dy, 0px));
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 12px solid $gold;
+      transform: translate(-50%, -50%) rotate(calc(var(--seat-angle-deg, 90) * 1deg - 90deg));
+      filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.7));
+      z-index: -1;
+      pointer-events: none;
+    }
+  }
+
+  &.active-turn .table-seat-avatar {
+    border-color: $gold;
+    box-shadow: 0 0 16px rgba(201, 162, 39, 0.5), 0 0 32px rgba(201, 162, 39, 0.25);
+  }
+
+  &.is-me .table-seat-name {
+    color: $gold-light;
+    font-weight: 700;
+  }
+
+  &.team-bid .table-seat-avatar {
+    border-color: rgba(46, 204, 113, 0.5);
+  }
+
+  &.team-oppose .table-seat-avatar {
+    border-color: rgba(204, 41, 54, 0.5);
+  }
+}
+
+.table-seat-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $bg-panel-light, $bg-felt);
+  border: 2px solid $border-gold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: $gold;
+  font-family: $font-heading;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: border-color 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+
+.table-seat-turn-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $gold;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.6);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.table-seat-name {
+  font-size: 0.62rem;
+  color: $cream;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
+}
+
+.table-seat-badges {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+}
+
+.table-seat-meta {
+  font-size: 0.55rem;
+  color: $cream-muted;
+  text-align: center;
+  white-space: nowrap;
+}
+
+// ─── TEAM RELATION BADGES (Teammate / Opponent) ─────────────
+.teammate-badge {
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-family: $font-heading;
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #93c5fd;
+}
+
+.opponent-badge {
+  font-size: 0.55rem;
+  padding: 1px 5px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-family: $font-heading;
+  background: rgba(204, 41, 54, 0.18);
+  border: 1px solid rgba(204, 41, 54, 0.4);
+  color: #fca5a5;
+}
+
+// ─── CARD BACK FAN ──────────────────────────
+.card-back-fan {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  height: 32px;
+  width: 50px;
+}
+
+.card-back-item {
+  position: absolute;
+  width: 22px;
+  height: 32px;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transform-origin: bottom center;
+}
+
+// Red tint overlay on opponent card backs (once teams are revealed)
+.card-back-fan--opponent .card-back-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(204, 41, 54, 0.42);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+// Gold tint on bidder's card backs when user *might* hold the partner card (2-deck, 1 copy)
+.card-back-fan--potential-teammate .card-back-item::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(201, 162, 39, 0.38);
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.card-count-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -6px;
+  background: $bg-panel;
+  border: 1px solid $border-gold;
+  border-radius: 8px;
+  font-size: 0.5rem;
+  color: $cream-muted;
+  padding: 0 4px;
+  line-height: 1.4;
+  z-index: 3;
+}
+

@@ -2,8 +2,9 @@ const Game = require("../../models/Game");
 const User = require("../../models/User");
 const bcrypt = require("bcryptjs");
 const { checkConfig } = require("../../game_engine/config");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
+module.exports = wrapHandler('user-create-room', async (socket, io, data, callback) => {
     const { roomname, roompass, isPublic, player_count, deck_count, bid_threshold, game_count, bid_window, inspect_time } = data;
 
     if (!roomname || typeof roomname !== 'string') {
@@ -36,7 +37,6 @@ module.exports = (socket, io) => async (data, callback) => {
     // Sanitize room name
     const sanitizedRoomname = roomname.replace(/<[^>]*>/g, '').trim().slice(0, 50);
 
-    try {
         //check if player already in room
         let player = await User.findOne({ _id: socket.user.id });
         if (
@@ -103,9 +103,4 @@ module.exports = (socket, io) => async (data, callback) => {
                 io.to(sanitizedRoomname).emit("fetch-users-in-room");
             }
         })
-
-    } catch (error) {
-        if (callback) callback("An error occurred");
-        console.error("Create room error");
-    }
-};
+});

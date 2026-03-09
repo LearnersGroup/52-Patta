@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { memo, useState, useEffect, useMemo, useRef } from "react";
 import { getCardComponent, getCardBackComponent } from "./utils/cardMapper";
 
 /**
@@ -13,7 +13,7 @@ import { getCardComponent, getCardBackComponent } from "./utils/cardMapper";
  * Each player's direction is taken from seatPositionMap[id].angle (radians, screen coords).
  * "Me" (userId) is always at angle = π/2 (straight down toward my hand).
  */
-const DealingOverlay = ({
+const DealingOverlay = memo(({
     myHand = [],
     cutCard,
     dealingConfig,
@@ -173,6 +173,8 @@ const DealingOverlay = ({
             )}
         </div>
     );
-};
+});
+
+DealingOverlay.displayName = "DealingOverlay";
 
 export default DealingOverlay;

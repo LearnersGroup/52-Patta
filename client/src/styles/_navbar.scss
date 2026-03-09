@@ -1,0 +1,44 @@
+// ─── NAVBAR ──────────────────────────────────
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 62px;
+  background: rgba(6, 12, 8, 0.96);
+  border-bottom: 1px solid $border-gold;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+
+  &-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    .suit-red   { color: $red-suit; font-size: 1.1rem; }
+    .suit-black { color: $cream; font-size: 1.1rem; opacity: 0.65; }
+  }
+
+  &-logo {
+    font-family: $font-heading;
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: $gold;
+    letter-spacing: 0.14em;
+    text-shadow: 0 0 18px rgba(201, 162, 39, 0.3);
+  }
+
+  &-user {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  &-username {
+    color: $cream-muted;
+    font-size: 0.88rem;
+  }
+}
+

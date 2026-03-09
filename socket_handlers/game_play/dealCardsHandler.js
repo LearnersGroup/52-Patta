@@ -7,9 +7,9 @@ const { getGameState, setGameState, persistCheckpoint } = require("../../game_en
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { startBiddingTimer } = require("./helpers/biddingTimer");
 const { expireBidding } = require("./helpers/expireBidding");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
+module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => {
         const user = await User.findOne({ _id: socket.user.id });
         if (!user || !user.gameroom) {
             if (callback) callback("Not in a game room");
@@ -119,9 +119,4 @@ module.exports = (socket, io) => async (data, callback) => {
             // Start the expiry timer: reveal window + bidding window
             startBiddingTimer(gameId, revealMs + windowMs, () => expireBidding(io, gameId));
         }, totalDelay);
-
-    } catch (error) {
-        if (callback) callback("An error occurred dealing cards");
-        console.error("Deal cards error:", error.message);
-    }
-};
+});

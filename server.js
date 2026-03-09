@@ -4,6 +4,7 @@ const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const Sentry = require("@sentry/node");
 const connectDB = require("./config/db");
+const logger = require("./config/logger");
 const { Server } = require("socket.io");
 const app = express();
 const http = require("http");
@@ -63,7 +64,7 @@ if (require.main === module) {
     const requiredEnvVars = ['JWT_SECRET', 'MONGO_HOST'];
     for (const envVar of requiredEnvVars) {
         if (!process.env[envVar]) {
-            console.error(`Missing required environment variable: ${envVar}`);
+            logger.error(`Missing required environment variable: ${envVar}`);
             process.exit(1);
         }
     }
@@ -115,6 +116,16 @@ const authLimiter = rateLimit({
 app.use("/api/auth", authLimiter);
 app.use("/api/users", authLimiter);
 app.use("/api/oauth", authLimiter);
+
+// Rate limiting for game API endpoints
+const apiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 60,
+    message: { errors: [{ msg: "Too many requests, please try again later" }] }
+});
+app.use("/api/games", apiLimiter);
+app.use("/api/game-rooms", apiLimiter);
+app.use("/api/mygame", apiLimiter);
 
 //define routes
 app.use("/api/users", require("./routes/api/users")); //create user
@@ -174,7 +185,35 @@ setupSocketHandlers(io);
 
 if (require.main === module) {
     const PORT = process.env.PORT || 4000;
-    server.listen(PORT, () => console.log(`server started on port ${PORT}`));
+    server.listen(PORT, () => logger.info('Server started', { port: PORT }));
+
+    // Graceful shutdown
+    const shutdown = async (signal) => {
+        logger.info(`${signal} received, shutting down gracefully`);
+
+        server.close(() => {
+            logger.info('HTTP server closed');
+        });
+
+        io.close(() => {
+            logger.info('Socket.IO server closed');
+        });
+
+        try {
+            await require('mongoose').connection.close();
+            logger.info('MongoDB connection closed');
+        } catch (err) {
+            logger.error('Error closing MongoDB', { error: err.message });
+        }
+
+        setTimeout(() => {
+            logger.error('Forced shutdown after timeout');
+            process.exit(1);
+        }, 10000);
+    };
+
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 module.exports = { app, server, io, setupSocketHandlers };

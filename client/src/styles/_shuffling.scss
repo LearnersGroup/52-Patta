@@ -1,0 +1,297 @@
+// ─── SHUFFLING PANEL ────────────────────────────
+.shuffling-panel {
+  @include panel;
+  padding: 24px;
+  text-align: center;
+  margin: 16px 0;
+
+  .shuffling-header {
+    margin-bottom: 20px;
+
+    h3 {
+      color: $gold;
+      font-family: $font-heading;
+      font-size: 1.2rem;
+      margin: 0 0 6px;
+    }
+
+    .game-counter {
+      font-size: 0.75rem;
+      color: $cream-muted;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  }
+}
+
+.shuffle-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.shuffle-btn {
+  @include btn-base;
+  background: $bg-panel-light;
+  color: $cream;
+  border: 1px solid $border-gold;
+  padding: 14px 24px;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 10px;
+  min-width: 90px;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(201, 162, 39, 0.12);
+    border-color: $border-gold-bright;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(201, 162, 39, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .shuffle-icon {
+    font-size: 1.5rem;
+  }
+
+  .shuffle-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  &.shuffle-riffle .shuffle-icon { color: $cream; }
+  &.shuffle-hindu .shuffle-icon { color: $red-suit; }
+  &.shuffle-overhand .shuffle-icon { color: $gold; }
+}
+
+.shuffle-queue-section {
+  margin-bottom: 20px;
+
+  .queue-header {
+    margin-bottom: 8px;
+
+    .queue-count {
+      font-size: 0.75rem;
+      color: $cream-muted;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+  }
+}
+
+.shuffle-queue {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+
+  &.spectator-queue {
+    background: none;
+    padding: 0;
+  }
+}
+
+.shuffle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid $border-gold;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  color: $cream;
+
+  &.small {
+    padding: 2px 8px;
+    font-size: 0.7rem;
+  }
+
+  .chip-icon {
+    font-size: 0.85rem;
+  }
+
+  .chip-undo {
+    background: none;
+    border: none;
+    color: $cream-muted;
+    cursor: pointer;
+    font-size: 0.7rem;
+    padding: 0 2px;
+    margin-left: 2px;
+    line-height: 1;
+
+    &:hover {
+      color: $red-suit;
+    }
+  }
+}
+
+.queue-empty {
+  color: $cream-muted;
+  font-size: 0.78rem;
+  font-style: italic;
+  padding: 6px 0;
+}
+
+.deal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.deal-btn {
+  @include btn-base;
+  padding: 12px 32px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+
+  &.deal-normal {
+    background: linear-gradient(135deg, $gold-dark, $gold);
+    color: $bg-deep;
+    font-weight: 700;
+
+    &:hover:not(:disabled) {
+      background: linear-gradient(135deg, $gold, $gold-light);
+      box-shadow: 0 4px 20px rgba(201, 162, 39, 0.3);
+    }
+  }
+
+  &.deal-cut {
+    background: $bg-panel-light;
+    color: $gold;
+    border: 1px solid $border-gold-bright;
+
+    &:hover:not(:disabled) {
+      background: rgba(201, 162, 39, 0.15);
+      box-shadow: 0 4px 20px rgba(201, 162, 39, 0.2);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+.shuffle-status {
+  .waiting-text {
+    color: $cream-muted;
+    font-size: 0.9rem;
+    padding: 20px 0;
+  }
+
+  .shuffle-progress-text {
+    color: $gold;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+}
+
+// ─── SHUFFLING CENTER CONTENT (inside CircularTable) ─────
+.shuffling-center-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px;
+
+  .shuffling-header {
+    margin-bottom: 4px;
+
+    h3 {
+      color: $gold;
+      font-family: $font-heading;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 0 0 2px;
+    }
+
+    .game-counter {
+      font-size: 0.65rem;
+      color: $cream-muted;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+  }
+
+  .shuffle-buttons {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .shuffle-btn {
+    padding: 8px 14px;
+    min-width: 68px;
+    border-radius: 8px;
+
+    .shuffle-icon { font-size: 1.1rem; }
+    .shuffle-label { font-size: 0.6rem; }
+  }
+
+  .shuffle-queue-section {
+    margin-bottom: 8px;
+
+    .queue-header {
+      margin-bottom: 4px;
+
+      .queue-count {
+        font-size: 0.65rem;
+      }
+    }
+  }
+
+  .shuffle-queue {
+    min-height: 28px;
+    padding: 4px 6px;
+    gap: 5px;
+  }
+
+  .shuffle-chip {
+    padding: 2px 7px;
+    font-size: 0.65rem;
+    .chip-icon { font-size: 0.75rem; }
+  }
+
+  .queue-empty {
+    font-size: 0.68rem;
+    padding: 4px 0;
+  }
+
+  .deal-buttons {
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .deal-btn {
+    padding: 8px 20px;
+    font-size: 0.75rem;
+    border-radius: 6px;
+  }
+
+  .shuffle-status {
+    .waiting-text {
+      font-size: 0.8rem;
+      padding: 12px 0;
+    }
+
+    .shuffle-progress-text {
+      font-size: 0.78rem;
+      margin-bottom: 6px;
+    }
+  }
+}
+

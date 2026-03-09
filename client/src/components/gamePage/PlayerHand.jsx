@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { WsPlayCard } from "../../api/wsEmitters";
 import { getCardComponent, cardKey, isCardInList } from "./utils/cardMapper";
@@ -20,7 +20,7 @@ const CARD_H = 84;
 // Scale factor when hand area is hovered
 const HAND_HOVER_SCALE = 1.08;
 
-const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
+const PlayerHand = memo(({ cards = [], validPlays = [], isMyTurn }) => {
     const [hoveredIndex, setHoveredIndex] = useState(-1);
     const dispatch = useDispatch();
     const handSorted = useSelector((state) => state.game.handSorted);
@@ -134,6 +134,8 @@ const PlayerHand = ({ cards = [], validPlays = [], isMyTurn }) => {
             </div>
         </div>
     );
-};
+});
+
+PlayerHand.displayName = "PlayerHand";
 
 export default PlayerHand;

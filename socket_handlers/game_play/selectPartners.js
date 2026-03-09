@@ -3,9 +3,9 @@ const { initTrick } = require("../../game_engine/tricks");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
+module.exports = wrapHandler('game-select-partners', async (socket, io, data, callback) => {
         const { gameState, error } = await findGameForSocket(socket);
         if (error) {
             if (callback) callback(error);
@@ -60,9 +60,4 @@ module.exports = (socket, io) => async (data, callback) => {
 
         io.to(gameState.roomname).emit("game-phase-change", "playing");
         await broadcastGameState(io, newState);
-
-    } catch (error) {
-        if (callback) callback("An error occurred");
-        console.error("Select partners error:", error.message);
-    }
-};
+});

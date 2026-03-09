@@ -17,6 +17,12 @@ module.exports = (socket, next) => {
         socket.user = decodedToken.user;
         next();
     } catch (err) {
+        if (err.name === 'TokenExpiredError') {
+            return next(new Error("Socket authentication error: token expired"));
+        }
+        if (err.name === 'JsonWebTokenError') {
+            return next(new Error("Socket authentication error: invalid token"));
+        }
         next(new Error("Socket authentication error"));
     }
 };

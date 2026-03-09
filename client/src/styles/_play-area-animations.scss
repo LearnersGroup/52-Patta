@@ -1,0 +1,153 @@
+// ─── PLAY AREA ──────────────────────────────
+.play-area {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(201, 162, 39, 0.03);
+  }
+
+  &.inspect-mode {
+    background: rgba(201, 162, 39, 0.04);
+  }
+}
+
+.play-area-round {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: $font-heading;
+  color: $cream-muted;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.play-area-card {
+  position: absolute;
+  width: 60px;
+  height: 84px;
+  left: 50%;
+  top: 50%;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transform: translate(
+    calc(-50% + var(--thrown-x, 0px)),
+    calc(-50% + var(--thrown-y, 0px))
+  ) rotate(var(--thrown-rotate, 0deg));
+  transition: transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.3s;
+  pointer-events: none;
+  z-index: 1;
+
+  &:last-child {
+    z-index: 2;
+  }
+}
+
+.play-area-card-label {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: $cream-muted;
+  font-family: monospace;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+
+  .inspect-mode & {
+    opacity: 1;
+  }
+}
+
+.play-area-empty {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: $cream-muted;
+  font-style: italic;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+// ─── CARD FLY-IN ANIMATION ─────────────────
+.play-area-card.entering {
+  animation: card-fly-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes card-fly-in {
+  0% {
+    transform: translate(
+      calc(-50% + var(--seat-x, 0px)),
+      calc(-50% + var(--seat-y, 0px))
+    ) scale(0.4) rotate(0deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--thrown-x, 0px)),
+      calc(-50% + var(--thrown-y, 0px))
+    ) rotate(var(--thrown-rotate, 0deg));
+    opacity: 1;
+  }
+}
+
+// ─── CARD SWEEP-TO-WINNER ANIMATION ────────
+.play-area-card.departing {
+  animation: card-sweep-out 0.8s ease-in forwards;
+}
+
+@keyframes card-sweep-out {
+  0% {
+    transform: translate(
+      calc(-50% + var(--thrown-x, 0px)),
+      calc(-50% + var(--thrown-y, 0px))
+    ) rotate(var(--thrown-rotate, 0deg));
+    opacity: 1;
+  }
+  60% {
+    transform: translate(
+      calc(-50% + var(--winner-x, 0px)),
+      calc(-50% + var(--winner-y, 0px))
+    ) rotate(0deg) scale(0.7);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--winner-x, 0px)),
+      calc(-50% + var(--winner-y, 0px))
+    ) rotate(0deg) scale(0.2);
+    opacity: 0;
+  }
+}
+
+.play-area-inspect-hint {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.5rem;
+  color: rgba(201, 162, 39, 0.4);
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+
+  .play-area:hover & {
+    opacity: 1;
+  }
+}
+

@@ -1,0 +1,423 @@
+// ─── POWERHOUSE PANEL ───────────────────────
+.powerhouse-panel {
+  @include panel;
+  padding: 24px 28px;
+
+  h3 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0 0 20px;
+  }
+}
+
+.suit-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.suit-btn {
+  @include btn-base;
+  flex-direction: column;
+  gap: 6px;
+  padding: 20px 14px;
+  background: $bg-input;
+  border: 1px solid $border-gold;
+
+  &.red {
+    color: $red-suit;
+    &:hover {
+      border-color: $red-suit;
+      box-shadow: 0 0 12px rgba(204, 41, 54, 0.2);
+    }
+  }
+
+  &.black {
+    color: $cream;
+    &:hover {
+      border-color: $cream;
+      box-shadow: 0 0 12px rgba(245, 240, 232, 0.1);
+    }
+  }
+
+  .suit-symbol {
+    font-size: 2.2rem;
+    line-height: 1;
+  }
+
+  .suit-name {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+.powerhouse-selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+
+  .ph-label {
+    color: $cream-muted;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .ph-suit {
+    font-size: 1.2rem;
+    font-weight: 700;
+
+    &.red { color: $red-suit; }
+    &.black { color: $cream; }
+  }
+}
+
+.partner-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// ─── PARTNER CARD PICKER (visual) ───────────
+.partner-card-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.suit-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.suit-group-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: $font-heading;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  &.red  { color: $red-suit; }
+  &.black { color: $cream; }
+
+  .suit-group-symbol { font-size: 1rem; line-height: 1; }
+  .suit-group-name   { opacity: 0.85; }
+}
+
+.suit-cards-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-bottom: 6px; // breathing room for hover lift
+}
+
+// Wrapper so the popup can escape overflow:hidden of the card itself
+.partner-card-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.partner-card-thumb {
+  position: relative;
+  width: 52px;
+  height: 73px;
+  border-radius: 5px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+
+  &:hover:not(.disabled) {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.65);
+  }
+
+  &.selected {
+    transform: translateY(-4px);
+    box-shadow:
+      0 0 0 2px $gold,
+      0 6px 18px rgba(201, 162, 39, 0.4);
+  }
+
+  &.selected.red {
+    box-shadow:
+      0 0 0 2px $red-suit,
+      0 6px 18px rgba(204, 41, 54, 0.4);
+  }
+
+  &.disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+}
+
+// Copy selection badges (shows "1" / "2" on selected cards in 2-deck)
+.copy-selected-badges {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  gap: 2px;
+}
+
+.copy-sel-badge {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: $gold;
+  color: $bg-deep;
+  font-size: 0.52rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+// Floating copy picker popup (2-deck games)
+.copy-popup {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 5px 8px;
+  background: rgba(20, 20, 30, 0.95);
+  border: 1px solid rgba(201, 162, 39, 0.5);
+  border-radius: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  z-index: 10;
+  white-space: nowrap;
+  animation: copy-popup-in 0.12s ease-out;
+
+  // Small arrow pointing down
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(201, 162, 39, 0.5);
+  }
+}
+
+@keyframes copy-popup-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.copy-popup-btn {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(201, 162, 39, 0.4);
+  background: transparent;
+  color: $cream-muted;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.12s ease;
+
+  &:hover:not(:disabled) {
+    border-color: $gold;
+    color: $gold;
+  }
+
+  &.active {
+    background: $gold;
+    border-color: $gold;
+    color: $bg-deep;
+    box-shadow: 0 0 6px rgba(201, 162, 39, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+}
+
+// "More / collapse" button — card-shaped placeholder
+.suit-more-btn {
+  @include btn-base;
+  width: 40px;
+  height: 73px;
+  padding: 4px;
+  background: $bg-input;
+  border: 1px dashed rgba(201, 162, 39, 0.28);
+  color: $cream-muted;
+  font-size: 0.68rem;
+  font-family: $font-body;
+  border-radius: 5px;
+  flex-direction: column;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  gap: 2px;
+
+  &:hover {
+    border-color: $gold;
+    color: $gold;
+    background: rgba(201, 162, 39, 0.06);
+  }
+
+  &.collapse {
+    font-size: 0.8rem;
+  }
+}
+
+.waiting-panel {
+  @include panel;
+  padding: 40px 28px;
+  text-align: center;
+
+  .waiting-text {
+    color: $cream-muted;
+    font-style: italic;
+    font-size: 0.95rem;
+  }
+}
+
+// ─── POWERHOUSE: COMPACT SUIT PICKER (CircularTable center) ─────
+.powerhouse-suit-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+
+  h3 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+  }
+
+  .suit-picker {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .suit-btn {
+    padding: 10px 8px;
+    gap: 3px;
+
+    .suit-symbol { font-size: 1.6rem; }
+    .suit-name { font-size: 0.58rem; }
+  }
+}
+
+// ─── POWERHOUSE: WAITING CENTER (non-leaders during powerhouse) ──
+.powerhouse-waiting-center {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  .waiting-suit-symbol {
+    font-size: 3.2rem;
+    line-height: 1;
+    opacity: 0.9;
+
+    &.red { color: $red-suit; }
+    &.black { color: $cream; }
+  }
+
+  .waiting-label {
+    font-family: $font-heading;
+    color: $cream-muted;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .waiting-name {
+    font-size: 0.75rem;
+    color: $gold;
+    letter-spacing: 0.04em;
+  }
+}
+
+// Container for CircularTable + overlays
+.circular-table-container {
+  position: relative;
+}
+
+// ─── PARTNER PICKER OVERLAY (backdrop over CircularTable) ────────
+.partner-picker-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(10, 12, 18, 0.88);
+  backdrop-filter: blur(6px);
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 20px 16px;
+  border-radius: 16px;
+  overflow-y: auto;
+
+  .partner-picker-content {
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+
+    .powerhouse-selected {
+      margin-bottom: 16px;
+    }
+
+    .partner-selection {
+      h3 {
+        font-family: $font-heading;
+        color: $gold;
+        font-size: 0.82rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 14px;
+      }
+    }
+
+    .btn-primary {
+      margin-top: 14px;
+    }
+  }
+}
+
+// ─── POWERSUIT WATERMARK (behind PlayArea during playing) ────────
+.powersuit-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14rem;
+  opacity: 0.14;
+  pointer-events: none;
+  z-index: 0;
+  line-height: 1;
+
+  &.red { color: #cc2936; }
+  &.black { color: #f5f0e8; }
+}
+

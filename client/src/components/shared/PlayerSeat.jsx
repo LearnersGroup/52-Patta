@@ -1,4 +1,5 @@
 // PlayerSeat - reusable player seat for circular table
+import { memo } from "react";
 import { getCardBackComponent } from "../gamePage/utils/cardMapper";
 
 /**
@@ -9,7 +10,7 @@ import { getCardBackComponent } from "../gamePage/utils/cardMapper";
  * @prop {string|null} relation - "teammate" | "opponent" | null
  *   Shown once all partners are revealed (provided by GameBoard).
  */
-const PlayerSeat = ({
+const PlayerSeat = memo(({
     name = "",
     avatarInitial = "?",
     isMe = false,
@@ -122,6 +123,8 @@ const PlayerSeat = ({
             </div>
         </>
     );
-};
+});
+
+PlayerSeat.displayName = "PlayerSeat";
 
 export default PlayerSeat;

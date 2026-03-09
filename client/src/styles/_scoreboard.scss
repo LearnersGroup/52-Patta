@@ -1,0 +1,232 @@
+// ─── SCOREBOARD MODAL ────────────────────────────────────────
+// Full-screen overlay triggered by the HUD button.
+
+.ssb-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 8000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  animation: ssb-fade-in 0.2s ease-out;
+}
+
+@keyframes ssb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ssb-panel {
+  @include panel;
+  width: min(92vw, 560px);
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: ssb-slide-up 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes ssb-slide-up {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+// Header row: title + series badge + close button
+.ssb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid $border-gold;
+  flex-shrink: 0;
+}
+
+.ssb-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.ssb-title {
+  font-family: $font-heading;
+  font-size: 0.88rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: $gold;
+  margin: 0;
+}
+
+.ssb-series-badge {
+  font-family: $font-body;
+  font-size: 0.68rem;
+  color: $cream-muted;
+  letter-spacing: 0.06em;
+}
+
+.ssb-close-btn {
+  background: none;
+  border: none;
+  color: $cream-muted;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+
+  &:hover {
+    color: $cream;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+// Empty state — first game in progress
+.ssb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.ssb-empty-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.ssb-empty-text {
+  font-family: $font-heading;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: $cream;
+}
+
+.ssb-empty-sub {
+  font-size: 0.72rem;
+  color: $cream-muted;
+}
+
+// Scrollable table wrapper
+.ssb-table-wrap {
+  overflow-y: auto;
+  overflow-x: auto;
+  flex: 1;
+  padding: 16px 20px 0;
+}
+
+.ssb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+// Table headers
+.ssb-th {
+  font-family: $font-heading;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $cream-muted;
+  padding: 6px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+
+  &.ssb-th-player {
+    text-align: left;
+    min-width: 100px;
+  }
+  &.ssb-th-game { min-width: 44px; }
+  &.ssb-th-total {
+    color: $gold;
+    min-width: 52px;
+  }
+}
+
+// Live game column header badge
+.ssb-live-badge {
+  display: inline-block;
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.6rem;
+  color: $gold;
+  letter-spacing: 0.08em;
+}
+
+// Table rows
+.ssb-row, .ssb-row-leader {
+  transition: background 0.15s;
+
+  &:hover { background: rgba(201, 162, 39, 0.04); }
+}
+
+.ssb-row-leader {
+  background: rgba(201, 162, 39, 0.05);
+}
+
+// Table cells
+.ssb-td {
+  padding: 9px 10px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: $cream;
+
+  &.ssb-td-player {
+    text-align: left;
+    font-family: $font-body;
+    font-weight: 600;
+    color: $cream;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &.ssb-td-game {
+    font-family: $font-heading;
+    font-size: 0.8rem;
+  }
+
+  &.ssb-td-total {
+    font-family: $font-heading;
+    font-size: 0.92rem;
+    font-weight: 700;
+    border-left: 1px solid rgba(201, 162, 39, 0.2);
+  }
+}
+
+// Value colour helpers
+.ssb-pos   { color: #2ecc71; }
+.ssb-neg   { color: $red-suit; }
+.ssb-dash  { color: $cream-muted; opacity: 0.45; }
+.ssb-live  { color: $gold; font-style: italic; }
+
+.ssb-total-val {
+  color: $cream;
+}
+
+// Crown for the current leader
+.ssb-rank-crown {
+  color: $gold;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+// Footer note
+.ssb-footer {
+  padding: 10px 20px 14px;
+  border-top: 1px solid rgba(201, 162, 39, 0.12);
+  flex-shrink: 0;
+}
+
+.ssb-footer-note {
+  font-size: 0.64rem;
+  color: $cream-muted;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+}
+

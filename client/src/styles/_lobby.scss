@@ -1,0 +1,200 @@
+// ─── LOBBY / HOME PAGE ───────────────────────
+.lobby-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 80% 0%, $green-glow 0%, transparent 50%),
+    $bg-deep;
+}
+
+.lobby-main {
+  padding: 32px 28px;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.lobby-welcome {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  padding: 20px 24px;
+  background: rgba(201, 162, 39, 0.04);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+
+  .welcome-card-icon {
+    font-size: 2.6rem;
+    opacity: 0.85;
+    line-height: 1;
+  }
+
+  .welcome-text {
+    h2 {
+      font-family: $font-heading;
+      font-size: 1rem;
+      color: $gold;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    p {
+      font-size: 0.85rem;
+      color: $cream-muted;
+    }
+  }
+}
+
+// ─── ROOMS SECTION ───────────────────────────
+.rooms-section {
+  @include panel;
+  padding: 26px 28px;
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid $border-gold;
+
+    h2 {
+      font-family: $font-heading;
+      color: $gold;
+      font-size: 0.95rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+  }
+}
+
+.rooms-status {
+  text-align: center;
+  color: $cream-muted;
+  padding: 40px;
+  font-style: italic;
+  font-size: 0.95rem;
+}
+
+// ─── ROOMS TABLE ─────────────────────────────
+.rooms-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    font-family: $font-heading;
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    padding: 10px 14px;
+    border-bottom: 1px solid $border-gold;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  td {
+    padding: 14px 14px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.08);
+    color: $cream;
+    font-size: 0.93rem;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background 0.15s ease;
+
+    &:hover { background: rgba(201, 162, 39, 0.04); }
+    &:last-child td { border-bottom: none; }
+  }
+}
+
+.room-name-cell {
+  font-weight: 600;
+  color: $cream;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.room-visibility-icon {
+  font-size: 0.85rem;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &--public  { opacity: 0.75; }
+  &--private { opacity: 0.65; }
+}
+
+.room-admin-cell {
+  color: $cream-muted;
+  font-size: 0.88rem;
+}
+
+.player-count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid $border-gold;
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 0.82rem;
+  color: $gold;
+  font-weight: 700;
+}
+
+.join-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.join-input {
+  padding: 8px 12px;
+  background: $bg-input;
+  border: 1px solid $border-gold;
+  border-radius: 6px;
+  color: $cream;
+  font-size: 0.84rem;
+  outline: none;
+  width: 100px;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: rgba(168, 159, 142, 0.38);
+    font-size: 0.78rem;
+  }
+
+  &:focus { border-color: $gold; }
+
+  &.shake {
+    animation: shake 0.5s ease;
+    border-color: rgba(204, 41, 54, 0.7);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-6px); }
+  30%       { transform: translateX(6px); }
+  45%       { transform: translateX(-5px); }
+  60%       { transform: translateX(5px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+.room-full-badge {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(204, 41, 54, 0.1);
+  border: 1px solid rgba(204, 41, 54, 0.35);
+  border-radius: 20px;
+  padding: 3px 14px;
+  font-size: 0.78rem;
+  color: #ffb0b0;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+

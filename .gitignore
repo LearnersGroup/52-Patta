@@ -24,6 +24,9 @@ client/build/
 env/staging.env
 env/prod.env
 
+# Claude Code worktrees
+.claude/worktrees/
+
 # Terraform
 terraform/.terraform/
 terraform/*.tfstate

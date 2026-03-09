@@ -26,5 +26,13 @@ try {
     // no-op
 }
 
+// Handle authentication errors (e.g. expired token) by redirecting to login
+socket.on("connect_error", (err) => {
+    if (err.message.includes("token expired")) {
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+    }
+});
+
 // Convenience getter used by components that need null-safe access
 export const getSocket = () => socket;

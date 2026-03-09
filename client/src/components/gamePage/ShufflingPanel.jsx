@@ -1,9 +1,9 @@
-import React from "react";
+import React, { memo } from "react";
 import { WsShuffleAction, WsUndoShuffle, WsDeal } from "../../api/wsEmitters";
 
 const MAX_SHUFFLE_OPS = 5;
 
-const ShufflingPanel = ({
+const ShufflingPanel = memo(({
     dealer,
     userId,
     shuffleQueue = [],
@@ -171,6 +171,8 @@ const ShufflingPanel = ({
             </div>
         </div>
     );
-};
+});
+
+ShufflingPanel.displayName = "ShufflingPanel";
 
 export default ShufflingPanel;

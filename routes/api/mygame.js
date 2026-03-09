@@ -20,7 +20,7 @@ router.get("/", [auth], async (req, res) => {
         }
         res.json(user.gameroom);
     } catch (error) {
-        res.status(500).send("Server Error");
+        res.status(500).json({ errors: [{ msg: "Server error" }] });
     }
 });
 
@@ -46,11 +46,11 @@ router.delete("/", [auth], async (req, res) => {
 
         //if user is admin close the game room
         if (game.admin.id === req.user.id) {
-            for (const player of game.players) {
-                await User.findOneAndUpdate({ _id: player.playerId.id }, [
-                    { $unset: ["gameroom"] },
-                ]);
-            }
+            const playerIds = game.players.map(p => p.playerId.id || p.playerId._id);
+            await User.updateMany(
+                { _id: { $in: playerIds } },
+                { $unset: { gameroom: 1 } }
+            );
             await Game.findOneAndDelete({ _id: game.id });
             return res
                 .status(200)
@@ -69,7 +69,7 @@ router.delete("/", [auth], async (req, res) => {
 
         return res.status(200).json({ msg: "Removed player from the room" });
     } catch (error) {
-        res.status(500).send("Server Error");
+        res.status(500).json({ errors: [{ msg: "Server error" }] });
     }
 });
 

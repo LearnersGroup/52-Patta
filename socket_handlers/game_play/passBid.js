@@ -5,107 +5,102 @@ const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
 const { clearBiddingTimer } = require("./helpers/biddingTimer");
 const Game = require("../../models/Game");
+const wrapHandler = require("../wrapHandler");
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
-        const { gameState, error } = await findGameForSocket(socket);
-        if (error) {
-            if (callback) callback(error);
-            return;
-        }
+module.exports = wrapHandler('game-pass-bid', async (socket, io, data, callback) => {
+    const { gameState, error } = await findGameForSocket(socket);
+    if (error) {
+        if (callback) callback(error);
+        return;
+    }
 
-        if (gameState.phase !== "bidding") {
-            if (callback) callback("Game is not in bidding phase");
-            return;
-        }
+    if (gameState.phase !== "bidding") {
+        if (callback) callback("Game is not in bidding phase");
+        return;
+    }
 
-        const result = passBidEngine(
-            gameState.bidding,
-            gameState.seatOrder,
-            gameState.config,
-            socket.user.id
+    const result = passBidEngine(
+        gameState.bidding,
+        gameState.seatOrder,
+        gameState.config,
+        socket.user.id
+    );
+
+    if (result.error) {
+        if (callback) callback(result.error);
+        return;
+    }
+
+    // ── All players passed with no bids → reshuffle (same dealer) ─────
+    if (result.redeal) {
+        clearBiddingTimer(gameState.gameId);
+
+        io.to(gameState.roomname).emit(
+            "room-message",
+            "All players passed! Reshuffling with same dealer..."
         );
 
-        if (result.error) {
-            if (callback) callback(result.error);
-            return;
-        }
+        const { config, seatOrder } = gameState;
+        const fullDeck = createDeck(config.decks);
+        const { remainingDeck, removedTwos: removed } = removeTwos(
+            fullDeck,
+            config.removeTwos
+        );
 
-        // ── All players passed with no bids → reshuffle (same dealer) ─────
-        if (result.redeal) {
-            clearBiddingTimer(gameState.gameId);
+        const newState = {
+            ...gameState,
+            phase: "shuffling",
+            unshuffledDeck: remainingDeck,
+            removedTwos: removed,
+            hands: {},
+            handSizes: {},
+            shuffleQueue: [],
+            bidding: null,
+            cutCard: null,
+            leader: null,
+            powerHouseSuit: null,
+            partnerCards: [],
+            teams: { bid: [], oppose: [...seatOrder] },
+            revealedPartners: [],
+            currentRound: 0,
+            currentTrick: null,
+            tricks: [],
+            roundLeader: null,
+        };
 
-            io.to(gameState.roomname).emit(
-                "room-message",
-                "All players passed! Reshuffling with same dealer..."
-            );
-
-            const { config, seatOrder } = gameState;
-            const fullDeck = createDeck(config.decks);
-            const { remainingDeck, removedTwos: removed } = removeTwos(
-                fullDeck,
-                config.removeTwos
-            );
-
-            const newState = {
-                ...gameState,
-                phase: "shuffling",
-                unshuffledDeck: remainingDeck,
-                removedTwos: removed,
-                hands: {},
-                handSizes: {},
-                shuffleQueue: [],
-                bidding: null,
-                cutCard: null,
-                leader: null,
-                powerHouseSuit: null,
-                partnerCards: [],
-                teams: { bid: [], oppose: [...seatOrder] },
-                revealedPartners: [],
-                currentRound: 0,
-                currentTrick: null,
-                tricks: [],
-                roundLeader: null,
-            };
-
-            setGameState(gameState.gameId, newState);
-            await Game.findByIdAndUpdate(gameState.gameId, { state: "shuffling" });
-            await broadcastGameState(io, newState);
-            io.to(gameState.roomname).emit("game-phase-change", "shuffling");
-
-            if (removed.length > 0) {
-                io.to(gameState.roomname).emit("game-cards-removed", removed);
-            }
-
-            return;
-        }
-
-        const newState = { ...gameState, bidding: result.state };
-
-        // ── Only one active player left and someone has bid → complete ─────
-        if (result.state.biddingComplete) {
-            clearBiddingTimer(gameState.gameId);
-
-            newState.leader = result.state.currentBidder;
-            newState.phase = "powerhouse";
-            newState.teams.bid = [result.state.currentBidder];
-            newState.teams.oppose = gameState.seatOrder.filter(
-                (id) => id !== result.state.currentBidder
-            );
-
-            setGameState(gameState.gameId, newState);
-            await persistCheckpoint(gameState.gameId);
-            io.to(gameState.roomname).emit("game-phase-change", "powerhouse");
-
-        } else {
-            // ── Normal pass: update state, timer keeps running ──────────────
-            setGameState(gameState.gameId, newState);
-        }
-
+        setGameState(gameState.gameId, newState);
+        await Game.findByIdAndUpdate(gameState.gameId, { state: "shuffling" });
         await broadcastGameState(io, newState);
+        io.to(gameState.roomname).emit("game-phase-change", "shuffling");
 
-    } catch (err) {
-        if (callback) callback("An error occurred");
-        console.error("Pass bid error:", err.message);
+        if (removed.length > 0) {
+            io.to(gameState.roomname).emit("game-cards-removed", removed);
+        }
+
+        return;
     }
-};
+
+    const newState = { ...gameState, bidding: result.state };
+
+    // ── Only one active player left and someone has bid → complete ─────
+    if (result.state.biddingComplete) {
+        clearBiddingTimer(gameState.gameId);
+
+        newState.leader = result.state.currentBidder;
+        newState.phase = "powerhouse";
+        newState.teams.bid = [result.state.currentBidder];
+        newState.teams.oppose = gameState.seatOrder.filter(
+            (id) => id !== result.state.currentBidder
+        );
+
+        setGameState(gameState.gameId, newState);
+        await persistCheckpoint(gameState.gameId);
+        io.to(gameState.roomname).emit("game-phase-change", "powerhouse");
+
+    } else {
+        // ── Normal pass: update state, timer keeps running ──────────────
+        setGameState(gameState.gameId, newState);
+    }
+
+    await broadcastGameState(io, newState);
+});

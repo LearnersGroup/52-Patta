@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
+const logger = require('./logger');
 require('dotenv').config()
 
-const connetDB = async () => {
+const connectDB = async () => {
     try {
         const dbName = process.env.MONGO_DB_NAME;
         const username = process.env.MONGO_USERNAME;
@@ -16,11 +17,11 @@ const connetDB = async () => {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
-        console.log('MongoDB Connected!')
+        logger.info('MongoDB connected');
     } catch (error) {
-        console.error('MongoDB connection failed');
-        process.exit(1);                // exit process with failure;
+        logger.error('MongoDB connection failed', { error: error.message });
+        process.exit(1);
     }
 }
 
-module.exports = connetDB;
+module.exports = connectDB;

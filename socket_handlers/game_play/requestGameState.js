@@ -1,9 +1,9 @@
 const { getValidPlays } = require("../../game_engine/tricks");
 const { buildPublicView } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
+module.exports = wrapHandler('game-request-state', async (socket, io, data, callback) => {
         const { gameState, error } = await findGameForSocket(socket);
         if (error) {
             if (callback) callback(error);
@@ -23,9 +23,4 @@ module.exports = (socket, io) => async (data, callback) => {
         };
 
         socket.emit("game-state-update", personalView);
-
-    } catch (error) {
-        if (callback) callback("An error occurred");
-        console.error("Request game state error:", error.message);
-    }
-};
+});
