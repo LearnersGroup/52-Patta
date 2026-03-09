@@ -5,7 +5,7 @@ const CARD_W = 70;
 const CARD_H = 98;
 const REVEAL_OVERLAP = 28;
 
-const suitOrder = { S: 0, H: 1, D: 2, C: 3 };
+const suitOrder = { S: 0, D: 1, C: 2, H: 3 };
 const rankOrder = {
     "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7,
     "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13, A: 14,

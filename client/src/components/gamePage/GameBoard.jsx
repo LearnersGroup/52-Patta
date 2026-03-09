@@ -161,13 +161,16 @@ const GameBoard = ({ userId, isAdmin }) => {
         // (after our partner card was revealed). "oppose" is the default for
         // ALL non-leaders, so we still need to infer when myTeam === "oppose".
         if (myTeam === "bid") return null;
+        // When all partners are revealed, server data is fully authoritative — skip inference
+        if (allPartnersRevealed) return null;
 
         const is2Deck = game.configKey?.includes("2D");
 
         if (!is2Deck) {
-            // 1-deck: if I hold any partner card → certain teammate
+            // 1-deck: if I hold any UNREVEALED partner card slot → certain teammate.
+            // Skip revealed slots — those are already filled by the revealed player.
             for (const pc of partnerCards) {
-                if (!pc.card) continue;
+                if (!pc.card || pc.revealed) continue;
                 const inHand = game.myHand.some(
                     (c) => c.suit === pc.card.suit && c.rank === pc.card.rank
                 );
@@ -176,16 +179,18 @@ const GameBoard = ({ userId, isAdmin }) => {
             return "certain-not-teammate";
         }
 
-        // 2-deck: group partner card slots by {suit, rank}
+        // 2-deck: group UNREVEALED partner card slots by {suit, rank}.
+        // Revealed slots are already filled — the remaining copy in my hand
+        // is just a regular card, not a partner card.
         const groups = {};
         for (const pc of partnerCards) {
-            if (!pc.card) continue;
+            if (!pc.card || pc.revealed) continue;
             const key = `${pc.card.suit}_${pc.card.rank}`;
             if (!groups[key]) {
                 groups[key] = {
                     suit: pc.card.suit,
                     rank: pc.card.rank,
-                    slots: 0,              // how many partner slots for this card
+                    slots: 0,              // how many OPEN partner slots for this card
                     leaderHoldsOne: false,  // true if leader holds a copy (whichCopy === null)
                 };
             }
@@ -207,9 +212,6 @@ const GameBoard = ({ userId, isAdmin }) => {
             // Non-partner copies among available
             const nonPartnerCopies = copiesAvailable - g.slots;
 
-            // DEBUG
-            console.log(`[RelationDebug] Card ${g.suit}${g.rank}: myCount=${myCount}, slots=${g.slots}, leaderHoldsOne=${g.leaderHoldsOne}, copiesAvail=${copiesAvailable}, nonPartner=${nonPartnerCopies}, result=${myCount > nonPartnerCopies ? "CERTAIN" : "POTENTIAL"}`);
-
             if (myCount > nonPartnerCopies) {
                 // I must hold at least one partner copy
                 hasCertain = true;
@@ -220,25 +222,19 @@ const GameBoard = ({ userId, isAdmin }) => {
             }
         }
 
-        const result = hasCertain ? "certain-teammate" : hasPotential ? "potential-teammate" : "certain-not-teammate";
-        console.log(`[RelationDebug] myKnownRelation = ${result}, partnerCards =`, JSON.stringify(partnerCards));
-        return result;
-    }, [game.partnerCards, game.myHand, game.configKey, game.phase, myTeam]); // eslint-disable-line
+        return hasCertain ? "certain-teammate" : hasPotential ? "potential-teammate" : "certain-not-teammate";
+    }, [game.partnerCards, game.myHand, game.configKey, game.phase, myTeam, allPartnersRevealed]); // eslint-disable-line
 
     // Effective team: private inference overrides the server's default "oppose"
     // assignment (all non-leaders start on oppose until partner card reveal).
     // Only server-confirmed "bid" (after reveal) takes absolute priority.
     const myEffectiveTeam =
+        allPartnersRevealed                               ? myTeam   :  // all revealed → server is fully authoritative
         myTeam === "bid"                                  ? "bid"    :  // server confirmed (partner revealed)
         myKnownRelation === "certain-teammate"            ? "bid"    :  // I definitely hold a partner card
         myKnownRelation === "certain-not-teammate"        ? "oppose" :  // I definitely don't
-        myKnownRelation === "potential-teammate"           ? null     :  // maybe — can't commit either way
+        myKnownRelation === "potential-teammate"          ? null     :  // maybe — can't commit either way
         myTeam;                                                         // fall back to server (null or "oppose")
-
-    // DEBUG: log effective values
-    if (game.phase === "playing" && game.partnerCards?.length > 0) {
-        console.log(`[RelationDebug] myTeam=${myTeam}, myKnownRelation=${myKnownRelation}, myEffectiveTeam=${myEffectiveTeam}`);
-    }
 
     // ── Early return (after all hooks) ────────────────────────────────────
 
@@ -341,7 +337,6 @@ const GameBoard = ({ userId, isAdmin }) => {
             else if (myEffectiveTeam === "bid") leaderResult = "teammate";
             else if (myKnownRelation === "potential-teammate") leaderResult = "potential-teammate";
             else if (myEffectiveTeam === "oppose") leaderResult = "opponent";
-            console.log(`[RelationDebug] getRelation(leader ${pid.substring(0,6)}): partnerCardsChosen=${partnerCardsChosen}, myEffectiveTeam=${myEffectiveTeam}, myKnownRelation=${myKnownRelation} → ${leaderResult}`);
             return leaderResult;
         }
 
@@ -353,6 +348,15 @@ const GameBoard = ({ userId, isAdmin }) => {
 
         if (myEffectiveTeam) {
             return pidTeam === myEffectiveTeam ? "teammate" : "opponent";
+        }
+
+        // myEffectiveTeam is null → I'm a potential-teammate and don't yet know
+        // which side I'll end up on. A revealed bid-team member (e.g. P2) is
+        // therefore only a *potential* teammate from my perspective — they could
+        // be my teammate or my opponent depending on whether I turn out to be
+        // on the bid team or not.
+        if (myKnownRelation === "potential-teammate" && pidTeam === "bid") {
+            return "potential-teammate";
         }
 
         return null;
