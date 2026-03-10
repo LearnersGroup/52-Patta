@@ -1,8 +1,8 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (callback) => {
-    try {
+module.exports = wrapHandler('user-leave-room', async (socket, io, data, callback) => {
         //find the game room
         let user = await User.findOne({ _id: socket.user.id });
         let game = await Game.findById(user.gameroom)
@@ -54,8 +54,4 @@ module.exports = (socket, io) => async (callback) => {
                 io.to(game.roomname).emit("fetch-users-in-room");
             }
         });
-    } catch (error) {
-        if (callback) callback("An error occurred");
-        console.error("Leave room error");
-    }
-};
+});

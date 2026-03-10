@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from "react";
-import { getCardComponent, getCardBackComponent } from "./utils/cardMapper";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { getCardBackComponent } from "./utils/cardMapper";
 
 /**
  * Shown during the "dealing" phase.
@@ -13,11 +13,9 @@ import { getCardComponent, getCardBackComponent } from "./utils/cardMapper";
  * Each player's direction is taken from seatPositionMap[id].angle (radians, screen coords).
  * "Me" (userId) is always at angle = π/2 (straight down toward my hand).
  */
-const DealingOverlay = ({
+const DealingOverlay = memo(({
     myHand = [],
-    cutCard,
     dealingConfig,
-    isDealer,
     visibleCount = 0,
     isTableCenter = false,
     // Seat / animation props (only used when isTableCenter)
@@ -27,19 +25,9 @@ const DealingOverlay = ({
     seatPositionMap = {},
     tableSize = 360,
 }) => {
-    const [showCutCard, setShowCutCard] = useState(!!cutCard && isDealer);
     const [flyingCards, setFlyingCards] = useState([]);
 
-    const cutRevealMs = dealingConfig?.cutCardRevealMs || 1500;
     const CardBack = getCardBackComponent();
-
-    // Cut card reveal phase (dealer only)
-    useEffect(() => {
-        if (!cutCard || !isDealer) return;
-        setShowCutCard(true);
-        const timer = setTimeout(() => setShowCutCard(false), cutRevealMs);
-        return () => clearTimeout(timer);
-    }, [cutCard, isDealer, cutRevealMs]);
 
     // Computed deal order: player IDs in dealing sequence (clockwise from dealer's left)
     const dealOrder = useMemo(() => {
@@ -120,59 +108,38 @@ const DealingOverlay = ({
                 </div>
             ))}
 
-            {/* Cut card reveal (dealer only) */}
-            {showCutCard && cutCard && (
-                <div className="cut-card-reveal">
-                    <div className="cut-card-container">
-                        {(() => {
-                            const CutCardSvg = getCardComponent(cutCard);
-                            return CutCardSvg ? (
-                                <CutCardSvg style={{ height: "100%", width: "100%" }} />
-                            ) : (
-                                <div className="cut-card-fallback">
-                                    {cutCard.rank} of {cutCard.suit}
-                                </div>
-                            );
-                        })()}
-                    </div>
-                    <div className="cut-card-text">
-                        Cut card &mdash; this will be your last card
-                    </div>
-                </div>
-            )}
-
             {/* Dealing progress */}
-            {!showCutCard && (
-                <div className="dealing-status">
-                    {/* Mini deck visual (3 stacked card backs) */}
-                    {isTableCenter && myHand.length > 0 && (
-                        <div className="dealing-deck">
-                            <div className="dealing-deck-card" style={{ transform: "translate(-2px, -2px)" }} />
-                            <div className="dealing-deck-card" style={{ transform: "translate(-1px, -1px)" }} />
-                            <div className="dealing-deck-card dealing-deck-top">
-                                {CardBack && (
-                                    <CardBack style={{ width: "100%", height: "100%", borderRadius: 4 }} />
-                                )}
-                            </div>
+            <div className="dealing-status">
+                {/* Mini deck visual (3 stacked card backs) */}
+                {isTableCenter && myHand.length > 0 && (
+                    <div className="dealing-deck">
+                        <div className="dealing-deck-card" style={{ transform: "translate(-2px, -2px)" }} />
+                        <div className="dealing-deck-card" style={{ transform: "translate(-1px, -1px)" }} />
+                        <div className="dealing-deck-card dealing-deck-top">
+                            {CardBack && (
+                                <CardBack style={{ width: "100%", height: "100%", borderRadius: 4 }} />
+                            )}
                         </div>
-                    )}
-                    <div className="dealing-text">
-                        {isTableCenter ? "Dealing…" : `Dealing cards... ${visibleCount} / ${myHand.length}`}
                     </div>
-                    <div className="dealing-progress-bar">
-                        <div
-                            className="dealing-progress-fill"
-                            style={{
-                                width: myHand.length > 0
-                                    ? `${(visibleCount / myHand.length) * 100}%`
-                                    : "0%",
-                            }}
-                        />
-                    </div>
+                )}
+                <div className="dealing-text">
+                    {isTableCenter ? "Dealing…" : `Dealing cards... ${visibleCount} / ${myHand.length}`}
                 </div>
-            )}
+                <div className="dealing-progress-bar">
+                    <div
+                        className="dealing-progress-fill"
+                        style={{
+                            width: myHand.length > 0
+                                ? `${(visibleCount / myHand.length) * 100}%`
+                                : "0%",
+                        }}
+                    />
+                </div>
+            </div>
         </div>
     );
-};
+});
+
+DealingOverlay.displayName = "DealingOverlay";
 
 export default DealingOverlay;

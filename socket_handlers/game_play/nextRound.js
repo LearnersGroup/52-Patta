@@ -5,9 +5,9 @@ const { createDeck, removeTwos, dealCards } = require("../../game_engine/deck");
 const { initBidding } = require("../../game_engine/bidding");
 const { getGameState, setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
+module.exports = wrapHandler('game-next-round', async (socket, io, data, callback) => {
         const user = await User.findOne({ _id: socket.user.id });
         if (!user || !user.gameroom) {
             if (callback) callback("Not in a game room");
@@ -109,9 +109,4 @@ module.exports = (socket, io) => async (data, callback) => {
         }
 
         io.to(existingState.roomname).emit("game-phase-change", "bidding");
-
-    } catch (error) {
-        if (callback) callback("An error occurred starting next round");
-        console.error("Next round error:", error.message);
-    }
-};
+});

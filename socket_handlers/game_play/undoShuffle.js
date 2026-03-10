@@ -1,8 +1,8 @@
 const User = require("../../models/User");
 const { getGameState, setGameState } = require("../../game_engine/stateManager");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
+module.exports = wrapHandler('game-undo-shuffle', async (socket, io, data, callback) => {
         const user = await User.findOne({ _id: socket.user.id });
         if (!user || !user.gameroom) {
             if (callback) callback("Not in a game room");
@@ -38,9 +38,4 @@ module.exports = (socket, io) => async (data, callback) => {
             shuffleQueue: gameState.shuffleQueue,
             queueLength: gameState.shuffleQueue.length,
         });
-
-    } catch (error) {
-        if (callback) callback("An error occurred");
-        console.error("Undo shuffle error:", error.message);
-    }
-};
+});

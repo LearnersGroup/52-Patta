@@ -1,0 +1,70 @@
+// ─── PLAYER HAND ────────────────────────────
+.player-hand-area {
+  position: relative;
+  z-index: 10;
+  margin-top: -70px;
+  background:
+    linear-gradient(0deg, $bg-deep 40%, transparent 100%);
+  padding: 8px 0 16px;
+  text-align: center;
+}
+
+.hand-label {
+  font-family: $font-heading;
+  color: $cream-muted;
+  font-size: 0.68rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+// Arc hand wrapper — horizontally scrollable if many cards
+.hand-cards-arc-wrap {
+  overflow-x: auto;
+  overflow-y: visible;
+  display: flex;
+  justify-content: center;
+  padding: 0 8px 4px;
+  // Extra top padding so risen (hovered) cards aren't clipped
+  padding-top: 8px;
+}
+
+// The absolutely-positioned canvas that holds all arc cards
+.hand-cards-arc {
+  position: relative;
+  flex-shrink: 0;
+  // width & height set inline by component
+}
+
+.hand-card-arc {
+  position: absolute;
+  // width & height set inline (for hover-enlarge)
+  border-radius: 5px;
+  overflow: hidden;
+  cursor: default;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.25s ease-out, box-shadow 0.25s ease-out, border-color 0.25s,
+              width 0.25s ease-out, height 0.25s ease-out, left 0.25s ease-out;
+
+  &.playable {
+    cursor: pointer;
+    border: 2px solid rgba(46, 204, 113, 0.4);
+  }
+
+  // Pop-out shadow only for playable cards, not disabled ones
+  &.hovered:not(.disabled) {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  }
+
+  &.hovered.playable {
+    border-color: #2ecc71;
+    box-shadow: 0 8px 24px rgba(46, 204, 113, 0.4);
+  }
+
+  &.disabled {
+    opacity: 1;
+    filter: grayscale(0.25) brightness(0.75);
+    cursor: default;
+  }
+}
+

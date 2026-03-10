@@ -23,7 +23,7 @@ router.get("/", auth, async (req, res) => {
 
         res.json(games);
     } catch (error) {
-        res.status(500).send("Server Error");
+        res.status(500).json({ errors: [{ msg: "Server error" }] });
     }
 });
 
@@ -49,7 +49,7 @@ router.get("/players", auth, async (req, res) => {
 
         res.status(200).json(game);
     } catch (error) {
-        res.status(500).send("Server Error");
+        res.status(500).json({ errors: [{ msg: "Server error" }] });
     }
 });
 
@@ -136,7 +136,7 @@ router.post(
 
             return res.status(200).json("Player added in the room");
         } catch (error) {
-            res.status(500).send("server error");
+            res.status(500).json({ errors: [{ msg: "Server error" }] });
         }
     }
 );

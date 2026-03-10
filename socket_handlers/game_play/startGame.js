@@ -4,9 +4,9 @@ const { getConfig, SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config"
 const { createDeck, removeTwos } = require("../../game_engine/deck");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
+module.exports = wrapHandler('game-start', async (socket, io, data, callback) => {
         const user = await User.findOne({ _id: socket.user.id });
         if (!user || !user.gameroom) {
             if (callback) callback("Not in a game room");
@@ -119,7 +119,6 @@ module.exports = (socket, io) => async (data, callback) => {
             cutCard: null,
             dealingConfig: {
                 animationDurationMs: SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS,
-                cutCardRevealMs: SHUFFLE_DEALING_CONFIG.CUT_CARD_REVEAL_MS,
             },
 
             // Game series tracking
@@ -159,9 +158,4 @@ module.exports = (socket, io) => async (data, callback) => {
         }
 
         io.to(game.roomname).emit("game-phase-change", "shuffling");
-
-    } catch (error) {
-        if (callback) callback("An error occurred starting the game");
-        console.error("Start game error:", error.message);
-    }
-};
+});

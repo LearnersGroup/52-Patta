@@ -1,0 +1,172 @@
+// ─── SCOREBOARD ─────────────────────────────
+.scoreboard {
+  @include panel;
+  padding: 20px 24px;
+}
+
+.score-header {
+  margin-bottom: 16px;
+
+  h3 {
+    font-family: $font-heading;
+    color: $gold;
+    font-size: 0.85rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin: 0;
+  }
+}
+
+.score-teams {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
+.score-team {
+  flex: 1;
+  text-align: center;
+  padding: 14px;
+  border-radius: 10px;
+
+  &.bid-team {
+    background: rgba(46, 204, 113, 0.06);
+    border: 1px solid rgba(46, 204, 113, 0.2);
+  }
+
+  &.oppose-team {
+    background: rgba(204, 41, 54, 0.06);
+    border: 1px solid rgba(204, 41, 54, 0.2);
+  }
+}
+
+.team-label {
+  font-family: $font-heading;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: $cream-muted;
+  margin-bottom: 6px;
+}
+
+.team-points {
+  font-family: $font-heading;
+  font-size: 2rem;
+  font-weight: 700;
+  color: $cream;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.team-members {
+  font-size: 0.72rem;
+  color: $cream-muted;
+}
+
+.score-divider {
+  color: $cream-muted;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.final-scores {
+  margin-top: 20px;
+  border-top: 1px solid $border-gold;
+  padding-top: 16px;
+
+  h4 {
+    font-family: $font-heading;
+    color: $cream;
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+  }
+}
+
+.score-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 6px;
+
+  &:hover { background: rgba(201, 162, 39, 0.04); }
+}
+
+.score-player {
+  color: $cream;
+  font-size: 0.88rem;
+  font-family: monospace;
+}
+
+.score-value {
+  font-family: $font-heading;
+  font-weight: 700;
+  color: $gold;
+  font-size: 0.95rem;
+
+  &.negative { color: $red-suit; }
+}
+
+// ─── NEXT ROUND SECTION ────────────────────
+.next-round-section {
+  margin-top: 20px;
+  border-top: 1px solid $border-gold;
+  padding-top: 16px;
+  text-align: center;
+}
+
+.next-round-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.next-round-status {
+  color: $cream-muted;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+}
+
+// ─── REMOVED TWOS ───────────────────────────
+.removed-twos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(201, 162, 39, 0.04);
+  border: 1px solid $border-gold;
+  border-radius: 8px;
+}
+
+.removed-label {
+  color: $cream-muted;
+  font-size: 0.78rem;
+  font-family: $font-heading;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.removed-cards {
+  display: flex;
+  gap: 6px;
+}
+
+.removed-card {
+  width: 36px;
+  height: 50px;
+  border-radius: 3px;
+  overflow: hidden;
+  opacity: 0.6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+

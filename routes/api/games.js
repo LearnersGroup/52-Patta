@@ -68,7 +68,7 @@ router.post(
 
             return res.status(200).json({ room_id: game.id });
         } catch (error) {
-            res.status(500).send("server error");
+            res.status(500).json({ errors: [{ msg: "Server error" }] });
         }
     }
 );

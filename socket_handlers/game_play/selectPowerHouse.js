@@ -2,9 +2,9 @@ const { selectPowerHouse: selectPH } = require("../../game_engine/powerhouse");
 const { setGameState } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
+module.exports = wrapHandler('game-select-powerhouse', async (socket, io, data, callback) => {
         const { gameState, error } = await findGameForSocket(socket);
         if (error) {
             if (callback) callback(error);
@@ -35,12 +35,7 @@ module.exports = (socket, io) => async (data, callback) => {
         io.to(gameState.roomname).emit("room-message",
             `PowerHouse suit selected: ${suitName(suit)}`
         );
-
-    } catch (error) {
-        if (callback) callback("An error occurred");
-        console.error("Select PowerHouse error:", error.message);
-    }
-};
+});
 
 function suitName(suit) {
     const names = { S: "Spades", H: "Hearts", D: "Diamonds", C: "Clubs" };

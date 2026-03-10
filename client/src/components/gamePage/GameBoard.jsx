@@ -403,7 +403,6 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <DealingOverlay
                     isTableCenter
                     myHand={game.myHand}
-                    cutCard={game.cutCard}
                     dealingConfig={game.dealingConfig}
                     isDealer={game.dealer === userId}
                     visibleCount={dealingVisibleCount}

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { memo, useState, useEffect } from "react";
 
 const SCOREBOARD_DISPLAY_SECONDS = 5;
 
-const ScoreBoard = ({
+const ScoreBoard = memo(({
     scores = {},
     teams = {},
     tricks = [],
@@ -165,6 +165,8 @@ const ScoreBoard = ({
             )}
         </div>
     );
-};
+});
+
+ScoreBoard.displayName = "ScoreBoard";
 
 export default ScoreBoard;

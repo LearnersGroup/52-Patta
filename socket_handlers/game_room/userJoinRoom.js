@@ -4,8 +4,9 @@ const bcrypt = require("bcryptjs");
 const { findGameForSocket } = require("../game_play/helpers/findGameForSocket");
 const { buildPublicView } = require("../game_play/helpers/broadcastState");
 const { getValidPlays } = require("../../game_engine/tricks");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
+module.exports = wrapHandler('user-join-room', async (socket, io, data, callback) => {
     const { roomname, roompass } = data;
 
     if (!roomname || typeof roomname !== 'string') {
@@ -13,7 +14,6 @@ module.exports = (socket, io) => async (data, callback) => {
         return;
     }
 
-    try {
         let game = await Game.findOne({ roomname: roomname });
         if (!game) {
             callback("Room does not exists");
@@ -119,8 +119,4 @@ module.exports = (socket, io) => async (data, callback) => {
                 io.to(roomname).emit("fetch-users-in-room");
             }
         });
-    } catch (error) {
-        if (callback) callback("An error occurred");
-        console.error("Join room error");
-    }
-};
+});

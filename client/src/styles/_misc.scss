@@ -1,0 +1,132 @@
+// ─── BIDDER (B) + DEALER (D) COMPACT CHIP COLORS ─
+// Shape/size comes from .badge-on-avatar; these provide colors only.
+.leader-badge {
+  background: $gold;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #1a1200;
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.5);
+  opacity: 1;
+}
+
+.dealer-badge {
+  background: #cd7f32;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #1a0e00;
+  box-shadow: 0 0 7px rgba(205, 127, 50, 0.45);
+  opacity: 1;
+}
+
+// ─── AUTO COUNTDOWN (ScoreBoard) ────────────────
+.auto-countdown {
+  margin-bottom: 12px;
+
+  .countdown-text {
+    color: $gold;
+    font-family: $font-heading;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+}
+
+.countdown-bar {
+  width: 100%;
+  max-width: 280px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 2px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.countdown-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $gold-dark, $gold);
+  border-radius: 2px;
+}
+
+.game-counter-inline {
+  font-size: 0.75rem;
+  color: $cream-muted;
+  font-weight: 400;
+}
+
+// ─── HAND SORT TOGGLE ───────────────────────────
+.hand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.hand-sort-toggle {
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid $border-gold;
+  border-radius: 6px;
+  color: $cream-muted;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: $gold;
+    border-color: $border-gold-bright;
+    background: rgba(201, 162, 39, 0.12);
+  }
+}
+
+// ─── GAME COUNT WIDGET (CreateGamePage) ─────────
+.game-count-widget {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.game-count-info {
+  font-size: 0.75rem;
+  color: $cream-muted;
+  text-align: center;
+  margin-top: 4px;
+}
+
+// ─── REJOIN BANNER ──────────────────────────────
+.rejoin-banner {
+  @include panel;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  border-color: $gold;
+  background: rgba(201, 162, 39, 0.08);
+  animation: fadeInScale 0.3s ease-out;
+
+  .rejoin-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rejoin-icon {
+    font-size: 1.3rem;
+  }
+
+  .rejoin-text {
+    color: $cream;
+    font-size: 0.9rem;
+
+    strong {
+      color: $gold;
+    }
+  }
+}
+
+// ─── APP ROOT ────────────────────────────────
+.App {
+  text-align: center;
+}

@@ -1,0 +1,143 @@
+// ─── DEALING OVERLAY ────────────────────────────
+.dealing-overlay {
+  @include panel;
+  padding: 24px;
+  text-align: center;
+  margin: 16px 0;
+
+  &.table-center-variant {
+    background: none;
+    border: none;
+    box-shadow: none;
+    margin: 0;
+    padding: 12px 8px;
+    // Needs relative positioning so flying cards can be placed from center
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    // Allow cards to fly outside this element toward seats
+    overflow: visible;
+
+    .dealing-status {
+      padding: 8px 0;
+
+      .dealing-text {
+        font-size: 0.82rem;
+        margin-bottom: 8px;
+      }
+    }
+
+    .dealing-progress-bar {
+      max-width: 200px;
+    }
+  }
+}
+
+// ─── FLYING CARD (Dealing Animation) ─────────────────────────────────────────
+// Absolutely positioned from the center of .dealing-overlay.table-center-variant.
+// Flies toward each player's seat using CSS custom properties --fly-dx / --fly-dy.
+.dealing-fly-card {
+  position: absolute;
+  // Centered on the element (which is centered on the table)
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 50px;
+  border-radius: 4px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 30;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6);
+  // Start centered; animation translates + scales + fades
+  animation: deal-fly var(--deal-fly-dur, 0.38s) cubic-bezier(0.2, 0.6, 0.5, 1) forwards;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  // Card flying toward "me" (downward) gets a subtle glow
+  &.dealing-fly-card--me {
+    box-shadow:
+      0 3px 10px rgba(0, 0, 0, 0.6),
+      0 0 10px rgba(201, 162, 39, 0.35);
+  }
+}
+
+@keyframes deal-fly {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  60% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(
+      calc(-50% + var(--fly-dx, 0px)),
+      calc(-50% + var(--fly-dy, 0px))
+    ) scale(0.55);
+    opacity: 0;
+  }
+}
+
+// ─── DEALING DECK VISUAL ─────────────────────────────────────────────────────
+// Three stacked card-back layers to represent the central deck
+.dealing-deck {
+  position: relative;
+  width: 44px;
+  height: 62px;
+  margin: 0 auto 12px;
+}
+
+.dealing-deck-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #1a2a3a 0%, #0f1a24 100%);
+  border: 1px solid rgba(201, 162, 39, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.dealing-deck-top {
+  // Top card — full card back SVG
+  overflow: hidden;
+  // Subtle pulse to show the deck is "active"
+  animation: deck-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes deck-pulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(0,0,0,.5), 0 0 0 1px rgba(201,162,39,.25); }
+  50%       { box-shadow: 0 4px 14px rgba(0,0,0,.5), 0 0 0 1px rgba(201,162,39,.55); }
+}
+
+.dealing-status {
+  padding: 16px 0;
+
+  .dealing-text {
+    color: $cream;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+  }
+}
+
+.dealing-progress-bar {
+  width: 100%;
+  max-width: 320px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.dealing-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $gold-dark, $gold);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+

@@ -1,143 +1,39 @@
 import { socket } from "../socket";
 
-export const WsUserJoinRoom = (data) => {
-    const callback = (err) => {
-        if (err) {
-            console.error("WS - join room err - ", err);
-        }
-    };
-    socket.emit("user-join-room", data, callback);
-};
-
-export const WsUserCreateRoom = (data) => {
-    const callback = (err) => {
-        if (err) {
-            console.error("WS - create room err - ", err);
-        }
-    };
-    socket.emit("user-create-room", data, callback);
-};
-
-export const WsUserLeaveRoom = () => {
-    const callback = (err) => {
-        if (err) {
-            console.error("WS - leave room err - ", err);
-        }
-    };
-    socket.emit("user-leave-room", callback);
-};
-
-export const WsUserSendMsgRoom = (message) => {
-    const callback = (err) => {
-        if (err) {
-            console.error("WS - send msg err - ", err);
-        }
-    };
-    socket.emit("user-message-room", message, callback);
+function emitWithCallback(event, data) {
+    socket.emit(event, data, (err) => {
+        if (err) console.error(`WS [${event}] error:`, err);
+    });
 }
 
-export const WsUserToggleReady = (data) => {
-    const callback = (err) => {
-        if (err) {
-            console.error("WS - toggle ready err - ", err);
-        }
-    };
-    socket.emit("user-toggle-ready", callback);
-}
+// --- Room Emitters ---
+
+export const WsUserJoinRoom = (data) => emitWithCallback("user-join-room", data);
+export const WsUserCreateRoom = (data) => emitWithCallback("user-create-room", data);
+export const WsUserLeaveRoom = () => emitWithCallback("user-leave-room");
+export const WsUserSendMsgRoom = (message) => emitWithCallback("user-message-room", message);
+export const WsUserToggleReady = () => emitWithCallback("user-toggle-ready");
 
 // --- Game Play Emitters ---
 
-export const WsGameStart = () => {
-    const callback = (err) => {
-        if (err) console.error("WS - game start err - ", err);
-    };
-    socket.emit("game-start", {}, callback);
-};
-
-export const WsPlaceBid = (amount) => {
-    const callback = (err) => {
-        if (err) console.error("WS - place bid err - ", err);
-    };
-    socket.emit("game-place-bid", { amount }, callback);
-};
-
-export const WsPassBid = () => {
-    const callback = (err) => {
-        if (err) console.error("WS - pass bid err - ", err);
-    };
-    socket.emit("game-pass-bid", {}, callback);
-};
-
-export const WsSelectPowerHouse = (suit) => {
-    const callback = (err) => {
-        if (err) console.error("WS - select powerhouse err - ", err);
-    };
-    socket.emit("game-select-powerhouse", { suit }, callback);
-};
-
-export const WsSelectPartners = (cards, duplicateSpecs) => {
-    const callback = (err) => {
-        if (err) console.error("WS - select partners err - ", err);
-    };
-    socket.emit("game-select-partners", { cards, duplicateSpecs }, callback);
-};
-
-export const WsPlayCard = (card) => {
-    const callback = (err) => {
-        if (err) console.error("WS - play card err - ", err);
-    };
-    socket.emit("game-play-card", { card }, callback);
-};
-
-export const WsNextRound = () => {
-    const callback = (err) => {
-        if (err) console.error("WS - next round err - ", err);
-    };
-    socket.emit("game-next-round", {}, callback);
-};
-
-export const WsRequestGameState = () => {
-    const callback = (err) => {
-        if (err) console.error("WS - request state err - ", err);
-    };
-    socket.emit("game-request-state", {}, callback);
-};
+export const WsGameStart = () => emitWithCallback("game-start", {});
+export const WsPlaceBid = (amount) => emitWithCallback("game-place-bid", { amount });
+export const WsPassBid = () => emitWithCallback("game-pass-bid", {});
+export const WsSelectPowerHouse = (suit) => emitWithCallback("game-select-powerhouse", { suit });
+export const WsSelectPartners = (cards, duplicateSpecs) => emitWithCallback("game-select-partners", { cards, duplicateSpecs });
+export const WsPlayCard = (card) => emitWithCallback("game-play-card", { card });
+export const WsNextRound = () => emitWithCallback("game-next-round", {});
+export const WsRequestGameState = () => emitWithCallback("game-request-state", {});
 
 // --- Shuffling & Dealing Emitters ---
 
-export const WsShuffleAction = (type) => {
-    const callback = (err) => {
-        if (err) console.error("WS - shuffle action err - ", err);
-    };
-    socket.emit("game-shuffle-action", { type }, callback);
-};
+export const WsShuffleAction = (type) => emitWithCallback("game-shuffle-action", { type });
+export const WsUndoShuffle = () => emitWithCallback("game-undo-shuffle", {});
+export const WsDeal = () => emitWithCallback("game-deal", { dealType: "deal" });
+export const WsQuitGame = () => emitWithCallback("game-quit", {});
 
-export const WsUndoShuffle = () => {
-    const callback = (err) => {
-        if (err) console.error("WS - undo shuffle err - ", err);
-    };
-    socket.emit("game-undo-shuffle", {}, callback);
-};
+// --- Username ---
 
-export const WsDeal = (dealType) => {
-    const callback = (err) => {
-        if (err) console.error("WS - deal err - ", err);
-    };
-    socket.emit("game-deal", { dealType }, callback);
-};
-
-export const WsQuitGame = () => {
-    const callback = (err) => {
-        if (err) console.error("WS - quit game err - ", err);
-    };
-    socket.emit("game-quit", {}, callback);
-};
-
-//CAUTION: do not touch fragile!
-//even though there is a middleware setup we need it, SOMEHOW!
 export const WsSendUserName = (username) => {
-    const current_user = JSON.parse(localStorage.getItem("user"));
-    socket.handshake = { auth : {}};
-    socket.auth = { token: current_user["token"] };
     socket.emit("username", username);
 };

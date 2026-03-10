@@ -2,9 +2,9 @@ const Game = require("../../models/Game");
 const User = require("../../models/User");
 const { deleteGameState } = require("../../game_engine/stateManager");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
+const wrapHandler = require('../wrapHandler');
 
-module.exports = (socket, io) => async (data, callback) => {
-    try {
+module.exports = wrapHandler('game-quit', async (socket, io, data, callback) => {
         const user = await User.findOne({ _id: socket.user.id });
         if (!user || !user.gameroom) {
             if (callback) callback("Not in a game room");
@@ -53,9 +53,4 @@ module.exports = (socket, io) => async (data, callback) => {
             "room-message",
             "The admin has ended the game. Returning to lobby..."
         );
-
-    } catch (error) {
-        if (callback) callback("An error occurred");
-        console.error("Quit game error:", error.message);
-    }
-};
+});

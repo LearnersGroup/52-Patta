@@ -1,0 +1,89 @@
+// ─── PARTNER CARD DISPLAY ───────────────────
+.partner-display {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  background: rgba($bg-panel, 0.92);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.partner-cards-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.partner-card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+
+  &.revealed .partner-card-mini {
+    box-shadow: 0 0 0 2px #2ecc71, 0 4px 14px rgba(46, 204, 113, 0.35);
+  }
+
+  &.revealed .partner-label {
+    animation: partner-reveal 0.6s ease-out;
+  }
+}
+
+.partner-card-mini {
+  width: 45px;
+  height: 63px;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: box-shadow 0.3s ease;
+
+  &.red {
+    box-shadow: 0 2px 8px rgba(204, 41, 54, 0.3);
+  }
+}
+
+.partner-label {
+  font-size: 0.65rem;
+  font-family: monospace;
+  color: $cream-muted;
+  letter-spacing: 0.08em;
+  max-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &.revealed {
+    color: #2ecc71;
+    font-weight: 700;
+  }
+}
+
+.partner-copy-num {
+  font-size: 0.55rem;
+  font-family: monospace;
+  font-weight: 700;
+  color: #f0c040;
+  letter-spacing: 0.05em;
+  background: rgba(240, 192, 64, 0.15);
+  border: 1px solid rgba(240, 192, 64, 0.4);
+  border-radius: 3px;
+  padding: 0 4px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@keyframes partner-reveal {
+  0%   { opacity: 0; transform: scale(0.8); }
+  50%  { opacity: 1; transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+

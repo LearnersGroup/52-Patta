@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect, useRef } from "react";
+import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { useCardAnimation } from "./useCardAnimation";
 
 /**
@@ -12,7 +12,7 @@ import { useCardAnimation } from "./useCardAnimation";
  * Uses a single "effectivePlays" array so React reuses DOM elements for
  * cards A,B,C (no flicker) when transitioning from current to departing.
  */
-const PlayArea = ({
+const PlayArea = memo(({
     plays = [],
     inspectMode = false,
     onToggleInspect,
@@ -206,6 +206,8 @@ const PlayArea = ({
             )}
         </div>
     );
-};
+});
+
+PlayArea.displayName = "PlayArea";
 
 export default PlayArea;

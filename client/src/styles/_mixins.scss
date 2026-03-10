@@ -1,0 +1,28 @@
+// ─── Mixins ──────────────────────────────────
+@mixin panel {
+  background: $bg-panel;
+  border: 1px solid $border-gold;
+  border-radius: 14px;
+  box-shadow:
+    0 4px 32px $shadow,
+    0 0 0 1px rgba(201, 162, 39, 0.04),
+    inset 0 1px 0 rgba(201, 162, 39, 0.08);
+}
+
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 7px;
+  font-family: $font-heading;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 600;
+  white-space: nowrap;
+}
+

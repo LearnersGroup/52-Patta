@@ -1,0 +1,361 @@
+// ─── GAME PAGE ───────────────────────────────
+.game-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(30, 77, 42, 0.22) 0%, transparent 65%),
+    $bg-deep;
+  padding: 28px;
+}
+
+.game-header {
+  max-width: 720px;
+  margin: 0 auto 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .game-title-block {
+    .game-room-label {
+      font-family: $font-heading;
+      color: $gold;
+      font-size: 0.95rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .game-room-id {
+      font-size: 0.72rem;
+      color: $cream-muted;
+      font-family: monospace;
+      letter-spacing: 0.06em;
+    }
+  }
+
+  .game-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+}
+
+.lobby-threshold-info {
+  max-width: 720px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: rgba(201, 162, 39, 0.04);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+
+  .threshold-label {
+    font-family: $font-heading;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    white-space: nowrap;
+  }
+
+  .threshold-badge {
+    font-family: $font-heading;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: $gold;
+    text-shadow: 0 0 10px rgba(201, 162, 39, 0.25);
+  }
+
+  .threshold-desc {
+    font-size: 0.78rem;
+    color: $cream-muted;
+    font-style: italic;
+  }
+}
+
+.players-card {
+  @include panel;
+  max-width: 720px;
+  margin: 0 auto;
+  overflow: hidden;
+
+  .players-header {
+    padding: 18px 26px;
+    border-bottom: 1px solid $border-gold;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    h3 {
+      font-family: $font-heading;
+      color: $gold;
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+
+    .players-count-badge {
+      background: rgba(201, 162, 39, 0.08);
+      border: 1px solid $border-gold;
+      border-radius: 20px;
+      padding: 3px 14px;
+      font-size: 0.78rem;
+      color: $gold;
+      font-weight: 700;
+    }
+  }
+
+  .players-empty {
+    padding: 52px;
+    text-align: center;
+    color: $cream-muted;
+    font-style: italic;
+  }
+}
+
+.players-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    font-family: $font-heading;
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    padding: 12px 26px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.1);
+    text-align: left;
+    font-weight: 600;
+  }
+
+  td {
+    padding: 16px 26px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.06);
+    color: $cream;
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background 0.15s ease;
+    &:hover { background: rgba(201, 162, 39, 0.03); }
+    &:last-child td { border-bottom: none; }
+  }
+}
+
+.player-name-cell {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+
+  .player-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, $bg-panel-light, $bg-felt);
+    border: 1px solid $border-gold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: $gold;
+    flex-shrink: 0;
+    font-family: $font-heading;
+    font-weight: 700;
+  }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+
+  &.ready {
+    background: rgba(46, 204, 113, 0.12);
+    border: 1px solid rgba(46, 204, 113, 0.38);
+    color: #4fde8c;
+
+    &::before {
+      content: '✓';
+      font-weight: 900;
+    }
+  }
+
+  &.not-ready {
+    background: rgba(168, 159, 142, 0.08);
+    border: 1px solid rgba(168, 159, 142, 0.18);
+    color: $cream-muted;
+
+    &::before { content: '○'; }
+  }
+}
+
+// ─── ALERT TOASTS ────────────────────────────
+.alert {
+  position: fixed;
+  bottom: 22px;
+  left: 22px;
+  padding: 13px 18px;
+  background: $bg-panel;
+  color: $cream;
+  border-radius: 9px;
+  border: 1px solid $border-gold;
+  box-shadow: 0 6px 28px $shadow;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.88rem;
+  min-width: 180px;
+  max-width: 340px;
+  animation: slideInAlert 0.2s ease;
+
+  button {
+    background: none;
+    border: none;
+    color: $cream-muted;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 2px;
+    margin-left: auto;
+    line-height: 1;
+
+    &:hover { color: $cream; }
+  }
+
+  &.success {
+    border-color: rgba(46, 204, 113, 0.45);
+    background: rgba(46, 204, 113, 0.1);
+    color: #a4f0c0;
+  }
+
+  &.error {
+    border-color: rgba(204, 41, 54, 0.45);
+    background: rgba(204, 41, 54, 0.1);
+    color: #ffb0b0;
+  }
+
+  &.warning {
+    border-color: rgba(243, 156, 18, 0.45);
+    background: rgba(243, 156, 18, 0.1);
+    color: #ffd598;
+  }
+
+  &.info {
+    border-color: rgba(52, 152, 219, 0.45);
+    background: rgba(52, 152, 219, 0.1);
+    color: #a8d8f5;
+  }
+}
+
+@keyframes slideInAlert {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+// ─── DEBUG / WEBSOCKET PANEL ──────────────────
+.debug-section {
+  border-top: 1px solid rgba(201, 162, 39, 0.08);
+  margin-top: 52px;
+  padding: 14px 28px 20px;
+  background: rgba(0, 0, 0, 0.18);
+
+  details {
+    summary {
+      font-family: $font-heading;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(168, 159, 142, 0.45);
+      cursor: pointer;
+      padding: 8px 0;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &::before {
+        content: '▶';
+        font-size: 0.55rem;
+        transition: transform 0.2s;
+      }
+
+      &:hover { color: $cream-muted; }
+    }
+
+    &[open] summary::before { transform: rotate(90deg); }
+
+    > div {
+      padding: 14px 0 4px;
+      color: $cream-muted;
+      font-size: 0.82rem;
+    }
+  }
+}
+
+// ─── BACKWARD-COMPAT .table CLASS ────────────
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: $bg-panel;
+  border: 1px solid $border-gold;
+  border-radius: 8px;
+  overflow: hidden;
+
+  th, td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.12);
+    text-align: left;
+    color: $cream;
+  }
+
+  th {
+    background: rgba(201, 162, 39, 0.07);
+    color: $gold;
+    font-family: $font-heading;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  tr:hover { background: rgba(201, 162, 39, 0.04); }
+  td:last-child { border-right: none; }
+  tbody tr:last-child td { border-bottom: none; }
+}
+
+// ─── DECK SELECTOR (Create Page) ────────────
+.deck-selector {
+  display: flex;
+  gap: 10px;
+
+  .deck-btn {
+    @include btn-base;
+    flex: 1;
+    background: $bg-input;
+    border: 1px solid $border-gold;
+    color: $cream-muted;
+
+    &.active {
+      background: rgba(201, 162, 39, 0.12);
+      border-color: $gold;
+      color: $gold;
+    }
+
+    &:hover:not(.active) {
+      border-color: rgba(201, 162, 39, 0.5);
+      color: $cream;
+    }
+  }
+}
+

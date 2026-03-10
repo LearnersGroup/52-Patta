@@ -1,0 +1,129 @@
+// ─── SERIES FINISHED PANEL ──────────────────────
+.series-finished-panel {
+  @include panel;
+  padding: 30px 24px;
+  text-align: center;
+  margin: 16px 0;
+  animation: fadeInScale 0.5s ease-out;
+
+  .series-header {
+    margin-bottom: 24px;
+
+    h2 {
+      color: $gold;
+      font-family: $font-heading;
+      font-size: 1.4rem;
+      margin: 0;
+    }
+  }
+}
+
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.podium-slot {
+  @include panel;
+  padding: 16px 20px;
+  text-align: center;
+  min-width: 100px;
+  transition: transform 0.2s ease;
+
+  &.gold {
+    border-color: $gold;
+    box-shadow: 0 0 24px rgba(201, 162, 39, 0.2);
+    order: 1;
+
+    .podium-badge { font-size: 2rem; }
+  }
+
+  &.silver {
+    border-color: #c0c0c0;
+    box-shadow: 0 0 16px rgba(192, 192, 192, 0.15);
+    order: 0;
+
+    .podium-badge { font-size: 1.6rem; }
+  }
+
+  &.bronze {
+    border-color: #cd7f32;
+    box-shadow: 0 0 16px rgba(205, 127, 50, 0.15);
+    order: 2;
+
+    .podium-badge { font-size: 1.4rem; }
+  }
+
+  &.is-me {
+    background: rgba(201, 162, 39, 0.08);
+  }
+
+  .podium-badge {
+    margin-bottom: 6px;
+  }
+
+  .podium-name {
+    color: $cream;
+    font-family: $font-heading;
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+  }
+
+  .podium-score {
+    color: $gold;
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+}
+
+.series-rest {
+  margin-bottom: 20px;
+}
+
+.series-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(201, 162, 39, 0.08);
+
+  &.is-me {
+    background: rgba(201, 162, 39, 0.06);
+    border-radius: 6px;
+  }
+
+  .series-rank {
+    color: $cream-muted;
+    font-size: 0.8rem;
+    min-width: 30px;
+    text-align: left;
+  }
+
+  .series-name {
+    flex: 1;
+    color: $cream;
+    font-size: 0.85rem;
+    text-align: left;
+    padding-left: 8px;
+  }
+
+  .series-score {
+    color: $gold;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+}
+
+.series-footer {
+  margin-top: 16px;
+
+  .series-redirect {
+    color: $cream-muted;
+    font-size: 0.78rem;
+    font-style: italic;
+  }
+}
+

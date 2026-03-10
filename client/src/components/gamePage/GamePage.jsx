@@ -30,18 +30,14 @@ const GamePage = () => {
 
     const getRoomDetails = async () => {
         try {
-            const res = await get_all_user_in_room(params.id);
-            console.log("[GamePage] API response:", JSON.stringify({ admin: res?.admin, playerCount: res?.players?.length }));
-            return res;
-        } catch (err) {
-            console.log("[GamePage] API error:", err);
+            return await get_all_user_in_room(params.id);
+        } catch {
+            // handled by caller
         }
     };
 
     useEffect(() => {
-        const onRoomMessage = (data) => {
-            console.log(data);
-        };
+        const onRoomMessage = () => {};
         const onFetchUsersInRoom = async () => {
             const res = await getRoomDetails();
             setRoomData(res);
@@ -70,8 +66,16 @@ const GamePage = () => {
         // request the game state explicitly. This covers the race condition where
         // onConnect.js pushes game-state-update before our listener is registered,
         // and also handles reconnect events during gameplay.
+        let stateRequested = false;
+        const requestStateOnce = () => {
+            if (!stateRequested) {
+                stateRequested = true;
+                WsRequestGameState();
+            }
+        };
         const onSocketConnect = () => {
-            WsRequestGameState();
+            stateRequested = false; // reset on reconnect
+            requestStateOnce();
         };
         socket.on("connect", onSocketConnect);
 
@@ -81,7 +85,7 @@ const GamePage = () => {
         // If the socket is already connected, request game state now
         // (onConnect.js already fired before this effect ran)
         if (socket.connected) {
-            WsRequestGameState();
+            requestStateOnce();
         }
 
         return () => {
@@ -97,8 +101,6 @@ const GamePage = () => {
     const isAdmin =
         roomData?.admin?._id === userId ||
         roomData?.admin === userId;
-
-    console.log("[GamePage] isAdmin:", isAdmin, "adminId:", roomData?.admin?._id, "userId:", userId, "roomData:", roomData);
 
     // If a game phase is active, show the game board
     const isGameActive = gamePhase !== null;

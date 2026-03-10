@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { memo, useState, useRef, useEffect } from "react";
 import ScoreboardModal from "./ScoreboardModal";
 import { getCardComponent, cardKey } from "./utils/cardMapper";
 
@@ -7,7 +7,7 @@ import { getCardComponent, cardKey } from "./utils/cardMapper";
  * Row 1 (pill): bid-vs-oppose score + scoreboard button.
  * Row 2 (pile): removed 2s shown as a stacked pile; click to fan out for 3s.
  */
-const TeamScoreHUD = ({
+const TeamScoreHUD = memo(({
     tricks = [],
     teams = {},
     leader,
@@ -172,6 +172,8 @@ const TeamScoreHUD = ({
             )}
         </>
     );
-};
+});
+
+TeamScoreHUD.displayName = "TeamScoreHUD";
 
 export default TeamScoreHUD;

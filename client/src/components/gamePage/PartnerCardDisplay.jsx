@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
     getCardComponent,
     suitSymbol,
@@ -9,7 +10,7 @@ import {
  * partner card faces. Before reveal: "????" under the card.
  * After reveal: the partner player's name.
  */
-const PartnerCardDisplay = ({
+const PartnerCardDisplay = memo(({
     partnerCards = [],
     powerHouseSuit,
     getName = (pid) => pid?.substring(0, 8),
@@ -75,6 +76,8 @@ const PartnerCardDisplay = ({
             )}
         </div>
     );
-};
+});
+
+PartnerCardDisplay.displayName = "PartnerCardDisplay";
 
 export default PartnerCardDisplay;

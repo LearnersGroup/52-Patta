@@ -1,0 +1,83 @@
+// ─── TRICK AREA ─────────────────────────────
+.trick-area {
+  @include panel;
+  padding: 20px 24px;
+}
+
+.trick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+
+  .round-label {
+    font-family: $font-heading;
+    color: $cream;
+    font-size: 0.85rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+}
+
+.powerhouse-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+
+  &.red {
+    background: rgba(204, 41, 54, 0.12);
+    border: 1px solid rgba(204, 41, 54, 0.38);
+    color: $red-suit;
+  }
+
+  &.black {
+    background: rgba(245, 240, 232, 0.06);
+    border: 1px solid rgba(245, 240, 232, 0.18);
+    color: $cream;
+  }
+}
+
+.trick-cards {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 100px;
+}
+
+.trick-card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.trick-card {
+  width: 65px;
+  height: 91px; // 5:7 ratio
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.trick-player-label {
+  font-size: 0.65rem;
+  color: $cream-muted;
+  font-family: monospace;
+}
+
+.trick-empty {
+  color: $cream-muted;
+  font-style: italic;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+

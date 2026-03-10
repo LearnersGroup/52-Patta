@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react";
 
-const BidCenterDisplay = ({ bidding, getName = (pid) => pid?.substring(0, 8) }) => {
+const BidCenterDisplay = memo(({ bidding, getName = (pid) => pid?.substring(0, 8) }) => {
     // ── Tick to keep countdown live ────────────────────────────────────────
     const [, setTick] = useState(0);
     useEffect(() => {
@@ -54,6 +54,8 @@ const BidCenterDisplay = ({ bidding, getName = (pid) => pid?.substring(0, 8) }) 
 
         </div>
     );
-};
+});
+
+BidCenterDisplay.displayName = "BidCenterDisplay";
 
 export default BidCenterDisplay;
