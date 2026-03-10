@@ -29,7 +29,7 @@ export const WsRequestGameState = () => emitWithCallback("game-request-state", {
 
 export const WsShuffleAction = (type) => emitWithCallback("game-shuffle-action", { type });
 export const WsUndoShuffle = () => emitWithCallback("game-undo-shuffle", {});
-export const WsDeal = (dealType) => emitWithCallback("game-deal", { dealType });
+export const WsDeal = () => emitWithCallback("game-deal", { dealType: "deal" });
 export const WsQuitGame = () => emitWithCallback("game-quit", {});
 
 // --- Username ---

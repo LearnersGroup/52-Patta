@@ -28,9 +28,9 @@ const ShufflingPanel = memo(({
         WsUndoShuffle();
     };
 
-    const handleDeal = (dealType) => {
+    const handleDeal = () => {
         if (!canDeal) return;
-        WsDeal(dealType);
+        WsDeal();
     };
 
     const shuffleTypeLabels = {
@@ -53,7 +53,7 @@ const ShufflingPanel = memo(({
         return (
             <div className={wrapperClass}>
                 <div className="shuffling-header">
-                    <h3>{isTableCenter ? "Shuffle & Deal" : "🃏 You are the Dealer"}</h3>
+                    <h3>{isTableCenter ? "Choose your Shuffles" : "🃏 You are the Dealer"}</h3>
                     {totalGames > 1 && (
                         <div className="game-counter">
                             Game {currentGameNumber} of {totalGames}
@@ -116,17 +116,10 @@ const ShufflingPanel = memo(({
                 <div className="deal-buttons">
                     <button
                         className="deal-btn deal-normal"
-                        onClick={() => handleDeal("deal")}
+                        onClick={handleDeal}
                         disabled={!canDeal}
                     >
                         Deal
-                    </button>
-                    <button
-                        className="deal-btn deal-cut"
-                        onClick={() => handleDeal("cut-and-deal")}
-                        disabled={!canDeal}
-                    >
-                        Cut & Deal
                     </button>
                 </div>
             </div>

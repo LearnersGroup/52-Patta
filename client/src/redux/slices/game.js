@@ -29,7 +29,6 @@ const initialState = {
     dealer: null,
     dealerIndex: 0,
     shuffleQueue: [],
-    cutCard: null,
     dealingConfig: null,
     handSorted: true, // toggle for sort-by-suit vs natural order
 
@@ -114,9 +113,6 @@ const gameSlice = createSlice({
         updateShuffleQueue: (state, action) => {
             state.shuffleQueue = action.payload;
         },
-        setCutCard: (state, action) => {
-            state.cutCard = action.payload;
-        },
         toggleHandSort: (state) => {
             state.handSorted = !state.handSorted;
         },
@@ -136,7 +132,6 @@ const gameSlice = createSlice({
 export const {
     updateGameState,
     updateShuffleQueue,
-    setCutCard,
     toggleHandSort,
     updateNextRoundReady,
     setGameError,

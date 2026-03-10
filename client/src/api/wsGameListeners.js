@@ -3,7 +3,6 @@ import store from "../redux/store";
 import {
     updateGameState,
     updateShuffleQueue,
-    setCutCard,
     setGameError,
     resetGame,
     updateNextRoundReady,
@@ -42,11 +41,6 @@ export function registerGameListeners() {
         }
     };
 
-    const onCutCard = (cutCard) => {
-        // Only sent to the dealer — set cut card for reveal overlay
-        store.dispatch(setCutCard(cutCard));
-    };
-
     const onSeriesComplete = () => {
         // Series over — reset game state and return to lobby
         store.dispatch(resetGame());
@@ -58,7 +52,6 @@ export function registerGameListeners() {
     socket.on("next-round-ready-update", onNextRoundReadyUpdate);
     socket.on("game-quit", onGameQuit);
     socket.on("game-shuffle-status", onShuffleStatus);
-    socket.on("game-cut-card", onCutCard);
     socket.on("game-series-complete", onSeriesComplete);
 
     return () => {
@@ -68,7 +61,6 @@ export function registerGameListeners() {
         socket.off("next-round-ready-update", onNextRoundReadyUpdate);
         socket.off("game-quit", onGameQuit);
         socket.off("game-shuffle-status", onShuffleStatus);
-        socket.off("game-cut-card", onCutCard);
         socket.off("game-series-complete", onSeriesComplete);
     };
 }

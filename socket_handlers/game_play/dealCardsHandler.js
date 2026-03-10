@@ -29,22 +29,16 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
             return;
         }
 
-        const { dealType } = data || {};
-        if (dealType !== "deal" && dealType !== "cut-and-deal") {
-            if (callback) callback("Invalid deal type");
-            return;
-        }
-
         if (gameState.shuffleQueue.length === 0) {
             if (callback) callback("Must shuffle at least once before dealing");
             return;
         }
 
-        // Process the entire shuffle batch + optional cut
-        const { deck: processedDeck, cutCard } = processShuffleBatch(
+        // Process the entire shuffle batch (no cut)
+        const { deck: processedDeck } = processShuffleBatch(
             gameState.unshuffledDeck,
             gameState.shuffleQueue,
-            dealType
+            "deal"
         );
 
         // Deal cards starting from player next to dealer
@@ -60,7 +54,7 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
         // Update game state to dealing phase
         gameState.phase = "dealing";
         gameState.hands = hands;
-        gameState.cutCard = cutCard;
+        gameState.cutCard = null;
         gameState.bidding = bidding;
         // Clear shuffle working data
         gameState.unshuffledDeck = [];
@@ -75,20 +69,10 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
         // Broadcast personalized state (each player gets their hand in deal order)
         await broadcastGameState(io, gameState);
 
-        // If cut-and-deal, send cut card to dealer only
-        if (cutCard) {
-            const sockets = await io.in(gameState.roomname).fetchSockets();
-            const dealerSocket = sockets.find(s => s.user?.id === gameState.dealer);
-            if (dealerSocket) {
-                dealerSocket.emit("game-cut-card", cutCard);
-            }
-        }
-
         io.to(gameState.roomname).emit("game-phase-change", "dealing");
 
         // After dealing animation completes, transition to bidding
-        const totalDelay = SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS +
-            (cutCard ? SHUFFLE_DEALING_CONFIG.CUT_CARD_REVEAL_MS : 0);
+        const totalDelay = SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS;
 
         setTimeout(async () => {
             // Verify we're still in dealing phase (in case of quit/disconnect)

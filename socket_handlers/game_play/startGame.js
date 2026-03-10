@@ -119,7 +119,6 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             cutCard: null,
             dealingConfig: {
                 animationDurationMs: SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS,
-                cutCardRevealMs: SHUFFLE_DEALING_CONFIG.CUT_CARD_REVEAL_MS,
             },
 
             // Game series tracking
