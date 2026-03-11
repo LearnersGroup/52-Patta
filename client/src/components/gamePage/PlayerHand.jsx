@@ -4,19 +4,24 @@ import { WsPlayCard } from "../../api/wsEmitters";
 import { getCardComponent, cardKey, isCardInList } from "./utils/cardMapper";
 import { toggleHandSort } from "../../redux/slices/game";
 
+// ── Mobile-aware layout constants ────────────────────────────────────────────
+// Detected once at module load. Cards are ~77% of desktop on narrow screens
+// so 13 cards fit comfortably inside the 10%-padded hand zone.
+const _mobile = typeof window !== "undefined" && window.innerWidth <= 430;
+
 // How many px of each non-last card to expose (shows rank+suit top-left corner)
-const OVERLAP = 28;
+const OVERLAP = _mobile ? 20 : 28;
 // Extra px of the hovered card exposed by shifting it left
-const HOVER_EXPOSE = 20;
+const HOVER_EXPOSE = _mobile ? 14 : 20;
 // How many px the hovered card rises above its resting position
-const LIFT = 18;
+const LIFT = _mobile ? 14 : 18;
 // How many px cards to the RIGHT of hovered card spread outward
-const SPREAD = 12;
+const SPREAD = _mobile ? 8 : 12;
 // Arc degrees of rotation per card position from center (fan effect)
 const ARC_DEG = 3;
-// Card dimensions (base)
-const CARD_W = 60;
-const CARD_H = 84;
+// Card dimensions (base) — ~77% of desktop on mobile
+const CARD_W = _mobile ? 46 : 60;
+const CARD_H = _mobile ? 64 : 84;
 // Scale factor when hand area is hovered
 const HAND_HOVER_SCALE = 1.08;
 
