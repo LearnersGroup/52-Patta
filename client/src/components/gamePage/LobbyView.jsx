@@ -9,14 +9,6 @@ const LobbyView = ({ roomId, roomData, isAdmin }) => {
         }
     };
 
-    const handleMessageSend = (message) => {
-        try {
-            WsUserSendMsgRoom(message);
-        } catch (err) {
-            console.log(err);
-        }
-    };
-
     const toggleReady = () => {
         try {
             WsUserToggleReady();
