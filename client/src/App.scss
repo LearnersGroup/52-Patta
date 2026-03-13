@@ -52,3 +52,6 @@
 // End-game & misc
 @import './styles/series-finished';
 @import './styles/misc';
+
+// Mobile layout overrides (must come last to override desktop styles)
+@import './styles/mobile';

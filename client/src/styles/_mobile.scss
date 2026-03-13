@@ -1,0 +1,332 @@
+// ─── MOBILE LAYOUT (≤ 430px — iPhone 14 Pro and similar) ────────────────────
+//
+// Three-zone layout for the game page in portrait mode:
+//
+//   ┌─────────────────────────────────────────┐  ← top 0
+//   │  15dvh  UNIFIED STATS STRIP             │
+//   │  Score · Removed 2s · PH badge · Cards  │
+//   ├─────────────────────────────────────────┤  ← 15dvh
+//   │  65dvh  GAME TABLE (CircularTable)      │
+//   │   [ Circular table centered here ]      │
+//   ├─────────────────────────────────────────┤  ← 80dvh
+//   │  20dvh  PLAYER HAND                     │
+//   │    [  arc card fan  ]                   │
+//   └─────────────────────────────────────────┘  ← 100dvh
+
+$m-stats-h : 15dvh;
+$m-hand-h  : 20dvh;   // was 15dvh — extra room for cards + iOS safe-area
+$m-bar-bg  : rgba(10, 18, 12, 0.97);
+$m-border  : rgba(201, 162, 39, 0.45);
+
+@media (max-width: 430px) {
+
+  body { background-color: #080f0a; }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 1. LOBBY / GAME PAGE MARGINS
+  // ══════════════════════════════════════════════════════════════════════════
+
+  .lobby-main {
+    padding: 16px 14px;
+  }
+
+  .lobby-welcome {
+    padding: 14px 16px;
+    gap: 12px;
+    margin-bottom: 18px;
+
+    .welcome-card-icon { font-size: 2rem; }
+    .welcome-text h2   { font-size: 0.9rem; }
+    .welcome-text p    { font-size: 0.78rem; }
+  }
+
+  .rooms-section {
+    padding: 16px 14px;
+
+    .section-header {
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+    }
+  }
+
+  .game-page {
+    // Remove all padding — children are fixed, no layout height needed.
+    // Using fixed + inset:0 prevents the div from adding scrollable height.
+    position: fixed;
+    inset: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .game-header {
+    display: none;  // hidden on mobile — stats strip replaces it
+  }
+
+  .game-board {
+    max-width: 100%;
+    padding: 0;
+    gap: 0;
+    height: 100dvh;  // exact viewport height — no overflow
+    overflow: hidden;
+  }
+
+  .quit-game-bar {
+    position: fixed;
+    top: calc($m-stats-h + 6px);
+    right: 8px;
+    z-index: 100;
+    justify-content: flex-end;
+    padding: 0;
+  }
+
+  .game-error-banner {
+    position: fixed;
+    top: $m-stats-h;
+    left: 0;
+    right: 0;
+    border-radius: 0;
+    z-index: 65;
+    margin: 0;
+    font-size: 0.78rem;
+    padding: 7px 12px;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 2. UNIFIED STATS STRIP — one seamless top bar, no visible sections
+  //
+  //    Left portion  (right: 48%): HUD — score pill · removed-2s trigger
+  //    Right portion (left: 52%) : Partner display — PH badge · partner cards
+  //
+  //    Both share the same background + single bottom border so they read
+  //    as one continuous strip, not two boxes.
+  // ══════════════════════════════════════════════════════════════════════════
+
+  .hud-wrapper {
+    top: 0;
+    left: 0;
+    right: 48%;           // leaves right 48% for partner display
+    height: $m-stats-h;
+    flex-direction: row;  // score pill + pile side by side
+    justify-content: flex-start;
+    align-items: center;
+    padding: max(env(safe-area-inset-top, 0px), 6px) 8px 6px 10px;
+    gap: 6px;
+    background: $m-bar-bg;
+    border-bottom: 1px solid $m-border;
+    border-right: none;
+    overflow: visible;    // let expanded pile drop below
+    box-shadow: none;
+  }
+
+  .team-score-hud {
+    padding: 3px 8px;
+    gap: 4px;
+    border-radius: 10px;
+    border-color: rgba(201, 162, 39, 0.28);
+    box-shadow: none;
+    backdrop-filter: none;
+    flex-shrink: 0;
+  }
+
+  .hud-score         { font-size: 0.78rem; min-width: 14px; }
+  .hud-vs            { font-size: 0.54rem; }
+  .hud-divider       { height: 12px; }
+  .hud-scoreboard-btn { font-size: 0.85rem; padding: 0; }
+
+  .removed-pile-trigger {
+    padding: 2px 5px 2px 3px;
+    border-radius: 10px;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .removed-pile-stack { width: 18px; height: 26px; }
+  .removed-pile-card  { width: 15px; height: 22px; }
+  .removed-pile-label { font-size: 0.58rem; }
+
+  .removed-pile-expanded {
+    position: fixed;
+    top: $m-stats-h;
+    left: 0;
+    right: 0;
+    border-radius: 0 0 10px 10px;
+    z-index: 200;
+    max-height: 40dvh;
+    overflow-y: auto;
+  }
+
+  .removed-pile-cards {
+    max-width: 100%;
+    justify-content: center;
+  }
+
+  .partner-display {
+    top: 0;
+    right: 0;
+    left: 52%;            // picks up where HUD ends
+    height: $m-stats-h;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid $m-border;
+    padding: max(env(safe-area-inset-top, 0px), 6px) 10px 6px 6px;
+    gap: 5px;
+    overflow: hidden;
+    background: $m-bar-bg;   // same as HUD — seamless look
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .powerhouse-badge {
+    font-size: 0.55rem;
+    padding: 2px 5px;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  .partner-cards-row  { gap: 3px; align-items: center; flex-wrap: nowrap; }
+  .partner-card-slot  { gap: 1px; }
+  .partner-card-mini  { width: 24px; height: 34px; border-radius: 3px; }
+  .partner-label      { font-size: 0.47rem; max-width: 30px; }
+  .partner-copy-num   { font-size: 0.42rem; padding: 0 2px; }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 3. CIRCULAR TABLE — middle zone + seats 25% smaller
+  // ══════════════════════════════════════════════════════════════════════════
+
+  .circular-table-container {
+    position: fixed;
+    top: $m-stats-h;
+    left: 0;
+    right: 0;
+    bottom: $m-hand-h;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    z-index: 5;
+  }
+
+  // Seats — 75% scale
+  .table-seat           { max-width: 68px; gap: 2px; }
+  .table-seat-avatar    { width: 27px; height: 27px; font-size: 0.58rem; }
+  .table-seat-name      { font-size: 0.47rem; max-width: 60px; }
+  .table-seat-meta      { font-size: 0.42rem; }
+  .table-seat-turn-dot  { width: 6px; height: 6px; }
+
+  .badge-on-avatar      { width: 11px; height: 11px; font-size: 0.42rem; }
+
+  .teammate-badge,
+  .opponent-badge       { font-size: 0.42rem; padding: 1px 4px; }
+
+  // Card back fan — 75% of desktop, then +15% per request
+  .card-back-fan  { height: 28px; width: 44px; }   // 24×1.15≈28, 38×1.15≈44
+  .card-back-item { width: 18px; height: 28px; }   // 16×1.15≈18, 24×1.15≈28
+
+  .card-count-badge { font-size: 0.4rem; padding: 0 3px; right: -4px; }
+
+  // Played cards (center table) — 20% smaller than desktop (60×84 → 48×67)
+  .play-area-card { width: 48px !important; height: 67px !important; }
+
+  // My turn indicator — inside middle zone
+  .my-turn-indicator {
+    top: calc($m-stats-h + 8px);
+    font-size: 0.66rem;
+    padding: 4px 12px;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 4. BIDDING CONTROLS — docked above player hand
+  // ══════════════════════════════════════════════════════════════════════════
+
+  .bidding-controls-bar {
+    position: fixed;
+    bottom: $m-hand-h;
+    left: 0;
+    right: 0;
+    z-index: 25;
+    background: $m-bar-bg;
+    border-top: 1px solid $m-border;
+    padding: 5px 14px 6px;
+
+    .bidding-timer-row  { margin-bottom: 4px; gap: 12px; }
+    .bidding-timer      { font-size: 0.74rem; }
+    .bidding-countdown  { font-size: 0.96rem; }
+    .bidding-current    { font-size: 0.74rem; }
+    .bidding-controls   { gap: 10px; }
+    .bid-adjust         { width: 30px; height: 30px; font-size: 1rem; }
+    .bid-value          { font-size: 1.05rem; min-width: 36px; }
+    .bidding-passed,
+    .bidding-waiting    { font-size: 0.78rem; }
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 5. PLAYER HAND — bottom 15dvh with side margins to keep cards on-screen
+  // ══════════════════════════════════════════════════════════════════════════
+
+  .player-hand-area {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: $m-hand-h;
+    margin-top: 0;
+    z-index: 20;
+    padding: 4px 0 env(safe-area-inset-bottom, 6px) 0;
+    background: linear-gradient(0deg, #080f0a 60%, transparent 100%);
+    border-top: 1px solid rgba(201, 162, 39, 0.4);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: visible;
+  }
+
+  .hand-label     { display: none; }
+
+  .hand-header {
+    padding: 0 10px 2px;
+    margin-bottom: 0;
+  }
+
+  .hand-sort-toggle { font-size: 0.56rem; padding: 2px 6px; }
+
+  // Side margins prevent cards from touching the very edge of the screen.
+  // padding-top is minimal — cards that lift on hover use overflow:visible
+  // to float upward without needing reserved space inside the zone.
+  .hand-cards-arc-wrap {
+    padding-top: 4px;
+    padding-left: 10%;
+    padding-right: 10%;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // OVERLAYS & MISC
+  // ══════════════════════════════════════════════════════════════════════════
+
+  .partner-picker-overlay {
+    top: 0;
+    bottom: 0;
+    border-radius: 0;
+    padding: 12px 10px;
+    overflow-y: auto;
+  }
+
+  .player-list-bar {
+    padding-top: calc($m-stats-h + 8px);
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  // Alert toasts — float above the hand
+  .alert {
+    bottom: calc($m-hand-h + 8px);
+    left: 12px;
+    right: 12px;
+    max-width: 100%;
+    font-size: 0.82rem;
+  }
+}

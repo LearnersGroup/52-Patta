@@ -1,4 +1,3 @@
-import React from "react";
 
 const RANK_BADGES = {
     1: { emoji: "🥇", label: "1st", className: "gold" },

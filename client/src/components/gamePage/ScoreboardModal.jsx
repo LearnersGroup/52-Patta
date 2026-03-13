@@ -18,8 +18,6 @@ const ScoreboardModal = ({ onClose }) => {
         gameHistory,
         scores,
         tricks,
-        teams,
-        partnerCards,
         currentGameNumber,
         totalGames,
     } = useSelector((s) => s.game);

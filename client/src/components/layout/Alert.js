@@ -1,5 +1,4 @@
 import { removeAlert } from "../../redux/slices/alert";
-import React, { useContext, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 const Alert = () => {

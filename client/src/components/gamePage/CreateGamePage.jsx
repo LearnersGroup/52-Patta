@@ -62,6 +62,7 @@ const CreateGamePage = () => {
         if (!isDeckCountValid(playerCount, deckCount)) {
             setDeckCount(2);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [playerCount]);
 
     // Reset bid threshold whenever the computed config changes (player count or deck count change)
@@ -106,6 +107,7 @@ const CreateGamePage = () => {
         };
         socket.on("redirect-to-game-room", goToGamePage);
         return () => socket.off("redirect-to-game-room", goToGamePage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // ── Submit ───────────────────────────────────────────────────────────────

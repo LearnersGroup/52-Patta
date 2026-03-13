@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react";
 
 const SCOREBOARD_DISPLAY_SECONDS = 5;
 

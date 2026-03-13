@@ -14,7 +14,8 @@ import PlayerSeat from "./PlayerSeat";
  * @param {Function} renderSeat - Optional custom seat renderer: (player, pos, i) => ReactNode
  */
 
-const SEAT_PADDING = 72; // extra space outside the table circle for seat elements
+const SEAT_PADDING_DEFAULT = 72; // extra space outside table circle for seat elements (desktop)
+const SEAT_PADDING_MOBILE  = 44; // reduced for narrow portrait screens
 
 const CircularTable = ({
     players = [],
@@ -22,19 +23,39 @@ const CircularTable = ({
     renderSeat,
 }) => {
     const containerRef = useRef(null);
-    const [tableSize, setTableSize] = useState(500);
+    const [tableSize, setTableSize]     = useState(500);
+    const [seatPadding, setSeatPadding] = useState(SEAT_PADDING_DEFAULT);
 
-    // Responsive table sizing via ResizeObserver
+    // Responsive table sizing via ResizeObserver.
+    // On narrow portrait screens, reduce seat padding so the table uses
+    // more of the available width.  Also consider container height so the
+    // table isn't taller than its fixed zone on mobile.
     useEffect(() => {
         const el = containerRef.current;
         if (!el) return;
 
         const computeSize = () => {
-            const w = el.parentElement?.clientWidth || 600;
-            if (w <= 400) setTableSize(Math.min(w - 2 * SEAT_PADDING - 20, 280));
-            else if (w <= 640) setTableSize(Math.min(w - 2 * SEAT_PADDING - 20, 360));
-            else if (w <= 960) setTableSize(Math.min(w - 2 * SEAT_PADDING - 20, 460));
-            else setTableSize(500);
+            const parent = el.parentElement;
+            const w = parent?.clientWidth  || 600;
+            const h = parent?.clientHeight || 900;
+
+            // Use compact padding on narrow (portrait-mobile) screens
+            const isNarrow = w <= 430;
+            const pad = isNarrow ? SEAT_PADDING_MOBILE : SEAT_PADDING_DEFAULT;
+            setSeatPadding(pad);
+
+            // Max table size allowed by width and (on mobile) by height
+            const maxByW = w - 2 * pad - 20;
+            const maxByH = h - 2 * pad - 20;
+            const maxAvail = isNarrow ? Math.min(maxByW, maxByH) : maxByW;
+
+            let size;
+            if (w <= 430)      size = Math.min(maxAvail, 300);
+            else if (w <= 640) size = Math.min(maxAvail, 360);
+            else if (w <= 960) size = Math.min(maxAvail, 460);
+            else               size = 500;
+
+            setTableSize(Math.max(180, size));
         };
 
         computeSize();
@@ -53,7 +74,7 @@ const CircularTable = ({
     );
 
     // Wrapper size = table + padding on all sides for seats
-    const wrapperSize = tableSize + 2 * SEAT_PADDING;
+    const wrapperSize = tableSize + 2 * seatPadding;
     const wrapperCenter = wrapperSize / 2;
 
     // Orbit radius: just outside the table edge so seats straddle the border
@@ -92,7 +113,7 @@ const CircularTable = ({
             style={{
                 "--wrapper-size": `${wrapperSize}px`,
                 "--table-size": `${tableSize}px`,
-                "--seat-padding": `${SEAT_PADDING}px`,
+                "--seat-padding": `${seatPadding}px`,
             }}
         >
             {/* Player seats positioned around the outside of the table */}
