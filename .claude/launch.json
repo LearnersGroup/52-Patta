@@ -2,13 +2,22 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "server",
+      "runtimeExecutable": "/opt/homebrew/Cellar/node/23.9.0/bin/node",
+      "runtimeArgs": ["server.js"],
+      "port": 4000
+    },
+    {
       "name": "client",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["start", "--prefix", "client"],
+      "runtimeExecutable": "/opt/homebrew/Cellar/node/23.9.0/bin/node",
+      "runtimeArgs": ["node_modules/.bin/react-scripts", "start"],
+      "cwd": "client",
       "env": {
-        "PORT": "3005"
+        "PORT": "3000",
+        "BROWSER": "none",
+        "PATH": "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin"
       },
-      "port": 3005
+      "port": 3000
     }
   ]
 }
