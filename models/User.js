@@ -17,11 +17,28 @@ const UserSchema = new mongoose.Schema({
     avatar: {
         type: String,
     },
+    linkedProviders: [{
+        provider: {
+            type: String,
+            enum: ['google', 'facebook'],
+            required: true,
+        },
+        providerId: {
+            type: String,
+            required: true,
+        },
+        linkedAt: {
+            type: Date,
+            default: Date.now,
+        },
+    }],
+    // @deprecated — remove after migration
     provider: {
         type: String,
         enum: ['local', 'google', 'facebook'],
         default: 'local'
     },
+    // @deprecated — remove after migration
     providerId: {
         type: String,
         default: null
@@ -36,5 +53,7 @@ const UserSchema = new mongoose.Schema({
         default: null
     }
 });
+
+UserSchema.index({ 'linkedProviders.provider': 1, 'linkedProviders.providerId': 1 });
 
 module.exports = User = mongoose.model('user', UserSchema);

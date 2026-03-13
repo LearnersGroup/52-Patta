@@ -12,6 +12,11 @@ export const AuthPage = () => {
     const [password, setPassword] = useState("");
     const [errors, setErrors] = useState(() => {
         const error = searchParams.get("error");
+        if (error === 'email_exists_different_provider') {
+            const p = searchParams.get("existing_provider");
+            const label = p ? p.charAt(0).toUpperCase() + p.slice(1) : 'another provider';
+            return [{ msg: `This email is already registered via ${label}. Sign in with ${label}, or connect accounts from your profile.`, path: 'oauth' }];
+        }
         return error ? [{ msg: "Sign-in failed. Please try again.", path: "oauth" }] : [];
     });
     const { login } = useAuth();
