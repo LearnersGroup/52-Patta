@@ -1,4 +1,4 @@
-import { Navigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { setAuthToken } from "../../api/apiHandler";
 

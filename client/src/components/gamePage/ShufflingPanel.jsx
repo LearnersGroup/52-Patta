@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import { memo } from "react";
 import { WsShuffleAction, WsUndoShuffle, WsDeal } from "../../api/wsEmitters";
 
 const MAX_SHUFFLE_OPS = 5;

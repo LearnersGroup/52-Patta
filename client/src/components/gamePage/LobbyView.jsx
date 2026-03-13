@@ -1,6 +1,4 @@
-import React from "react";
-import { WsUserLeaveRoom, WsUserSendMsgRoom, WsUserToggleReady, WsGameStart } from "../../api/wsEmitters";
-import { useAuth } from "../hooks/useAuth";
+import { WsUserLeaveRoom, WsUserToggleReady, WsGameStart } from "../../api/wsEmitters";
 
 const LobbyView = ({ roomId, roomData, isAdmin }) => {
     const handleLeave = () => {

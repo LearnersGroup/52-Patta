@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { ConnectionState } from "../websocket/ConnectionState";
 import { Events } from "../websocket/Events";
 import { ConnectionManager } from "../websocket/ConnectionManager";
@@ -14,7 +13,6 @@ import { notify } from "../../redux/slices/alert";
 
 const HomePage = () => {
     const dispatch = useDispatch();
-    const navigate = useNavigate();
     const { logout, user } = useAuth();
     const socket = getSocket();
     const [isConnected, setIsConnected] = useState(socket ? socket.connected : false);
@@ -83,6 +81,7 @@ const HomePage = () => {
                 socket.off("rejoin-available", onRejoinAvailable);
             }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (

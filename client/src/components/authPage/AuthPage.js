@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { setAuthToken, user_login } from "../../api/apiHandler";
 import { useNavigate, useSearchParams } from "react-router-dom";

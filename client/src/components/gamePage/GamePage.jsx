@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { get_all_user_in_room } from "../../api/apiHandler";
@@ -96,6 +96,7 @@ const GamePage = () => {
             socket.off("connect", onSocketConnect);
             cleanupGameListeners();
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const isAdmin =

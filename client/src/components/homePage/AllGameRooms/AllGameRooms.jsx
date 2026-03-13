@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "react-query";
 import { get_all_rooms } from "../../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
@@ -32,6 +32,7 @@ const AllGameRooms = () => {
         return () => {
             socket.off("redirect-to-game-room", goToGamePage);
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const triggerShake = (roomId) => {
