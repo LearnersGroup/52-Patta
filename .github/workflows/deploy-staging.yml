@@ -14,6 +14,9 @@ env:
   GOOGLE_CALLBACK_URL: ${{ vars.GOOGLE_CALLBACK_URL }}
   CLIENT_URL: ${{ vars.CLIENT_URL }}
   REACT_APP_BASE_URL: ${{ vars.CLIENT_URL }}/api
+  FACEBOOK_APP_ID: ${{ vars.FACEBOOK_APP_ID }}
+  FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
+  FACEBOOK_CALLBACK_URL: ${{ vars.FACEBOOK_CALLBACK_URL }}
 
 jobs:
   test-build-deploy:
@@ -101,7 +104,7 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_CALLBACK_URL,CLIENT_URL
+          envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_CALLBACK_URL,CLIENT_URL,FACEBOOK_APP_ID,FACEBOOK_APP_SECRET,FACEBOOK_CALLBACK_URL
           script: |
             cd /app
 
@@ -114,10 +117,13 @@ jobs:
                 echo "${key}=${value}" >> .env
               fi
             }
-            update_env "GOOGLE_CLIENT_ID"      "$GOOGLE_CLIENT_ID"
-            update_env "GOOGLE_CLIENT_SECRET"  "$GOOGLE_CLIENT_SECRET"
-            update_env "GOOGLE_CALLBACK_URL"   "$GOOGLE_CALLBACK_URL"
-            update_env "CLIENT_URL"            "$CLIENT_URL"
+            update_env "GOOGLE_CLIENT_ID"        "$GOOGLE_CLIENT_ID"
+            update_env "GOOGLE_CLIENT_SECRET"    "$GOOGLE_CLIENT_SECRET"
+            update_env "GOOGLE_CALLBACK_URL"     "$GOOGLE_CALLBACK_URL"
+            update_env "CLIENT_URL"              "$CLIENT_URL"
+            update_env "FACEBOOK_APP_ID"         "$FACEBOOK_APP_ID"
+            update_env "FACEBOOK_APP_SECRET"     "$FACEBOOK_APP_SECRET"
+            update_env "FACEBOOK_CALLBACK_URL"   "$FACEBOOK_CALLBACK_URL"
 
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \
