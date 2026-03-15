@@ -18,11 +18,15 @@ export const useLocalStorage = (keyName, defaultValue) => {
   });
   const setValue = (newValue) => {
     try {
-      window.localStorage.setItem(keyName, JSON.stringify(newValue));
+      setStoredValue((previousValue) => {
+        const valueToStore =
+          newValue instanceof Function ? newValue(previousValue) : newValue;
+        window.localStorage.setItem(keyName, JSON.stringify(valueToStore));
+        return valueToStore;
+      });
     } catch (err) {
       console.log(err);
     }
-    setStoredValue(newValue);
   };
   return [storedValue, setValue];
 };

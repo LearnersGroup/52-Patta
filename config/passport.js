@@ -3,6 +3,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
 const gravatar = require('gravatar');
 const User = require('../models/User');
+const { buildDiceBearAvatarUrl } = require('../lib/avatarUtils');
 
 async function findOrCreateUser(provider, profile, done, req) {
     const email = profile.emails && profile.emails[0] && profile.emails[0].value;
@@ -13,6 +14,7 @@ async function findOrCreateUser(provider, profile, done, req) {
 
     const providerId = profile.id;
     const now = new Date();
+    const onboardingName = `Player-${Math.random().toString(36).slice(2, 7)}`;
 
     try {
         // Link flow: logged-in user is explicitly linking a new provider
@@ -64,17 +66,17 @@ async function findOrCreateUser(provider, profile, done, req) {
         }
 
         // New user from OAuth profile
-        const avatar = (profile.photos && profile.photos[0] && profile.photos[0].value)
-            || gravatar.url(email, { s: '200', r: 'pg', d: 'mm' });
-
         const newUser = new User({
-            name: profile.displayName || email.split('@')[0],
+            name: onboardingName,
             email,
             linkedProviders: [{ provider, providerId, linkedAt: now }],
             // @deprecated write-through for rollback compatibility during migration window
             provider,
             providerId,
-            avatar,
+            needsOnboarding: true,
+            avatar: (profile.photos && profile.photos[0] && profile.photos[0].value)
+                || buildDiceBearAvatarUrl(`${provider}:${providerId || email}`, 'avataaars')
+                || gravatar.url(email, { s: '200', r: 'pg', d: 'mm' }),
         });
 
         const saved = await newUser.save();

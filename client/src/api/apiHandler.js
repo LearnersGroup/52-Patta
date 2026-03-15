@@ -20,13 +20,22 @@ export const user_login = async (username, password) => {
     }
 };
 
-export const user_register = async (username, useremail, password) => {
+export const user_register = async (username, useremail, password, avatar) => {
     try {
-        const response = await apiClient.post("/users", {
+        const payload = {
             email: useremail,
-            name: username,
             password: password,
-        });
+        };
+
+        if (typeof username !== "undefined" && String(username).trim()) {
+            payload.name = String(username).trim();
+        }
+
+        if (typeof avatar !== "undefined" && String(avatar).trim()) {
+            payload.avatar = avatar;
+        }
+
+        const response = await apiClient.post("/users", payload);
         return response.data;
     } catch (error) {
         throw error.response.data;
@@ -45,6 +54,25 @@ export const get_profile = async () => {
 export const unlink_provider = async (provider) => {
     try {
         const response = await apiClient.delete(`/auth/providers/${provider}`);
+        return response.data;
+    } catch (error) {
+        throw error.response.data;
+    }
+};
+
+export const update_profile = async ({ name, avatar }) => {
+    try {
+        const payload = {};
+
+        if (typeof name !== "undefined") {
+            payload.name = name;
+        }
+
+        if (typeof avatar !== "undefined") {
+            payload.avatar = avatar;
+        }
+
+        const response = await apiClient.put('/auth/profile', payload);
         return response.data;
     } catch (error) {
         throw error.response.data;

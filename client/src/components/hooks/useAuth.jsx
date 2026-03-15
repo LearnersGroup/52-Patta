@@ -26,8 +26,36 @@ export const AuthProvider = ({ children }) => {
     setUser(data);
     setProfile(null);
     socket.connect();
+
+    if (data?.needs_onboarding) {
+      navigate("/create-user", { replace: true });
+      return;
+    }
+
     navigate("/");
   };
+
+  const updateUserName = useCallback((name) => {
+    if (!name) return;
+    setUser((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        user_name: name,
+      };
+    });
+  }, [setUser]);
+
+  const completeOnboarding = useCallback((name) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        user_name: name || prev.user_name,
+        needs_onboarding: false,
+      };
+    });
+  }, [setUser]);
 
   // call this function to sign out logged in user
   const logout = () => {
@@ -44,9 +72,11 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       refreshProfile,
+      updateUserName,
+      completeOnboarding,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, profile, refreshProfile]
+    [user, profile, refreshProfile, updateUserName, completeOnboarding]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 const HomePage = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const { logout, user } = useAuth();
+    const { logout, user, profile, refreshProfile } = useAuth();
     const socket = getSocket();
     const [isConnected, setIsConnected] = useState(socket ? socket.connected : false);
     const [fooEvents, setFooEvents] = useState([]);
@@ -40,6 +40,10 @@ const HomePage = () => {
             }
         });
     };
+
+    useEffect(() => {
+        refreshProfile();
+    }, [refreshProfile]);
 
     useEffect(() => {
         function onConnect() {
@@ -86,6 +90,9 @@ const HomePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const displayName = profile?.name || user?.user_name || "Player";
+    const displayAvatar = profile?.avatar;
+
     return (
         <div className="lobby-page">
             <nav className="navbar">
@@ -95,13 +102,20 @@ const HomePage = () => {
                     <span className="suit-black">♠</span>
                 </div>
                 <div className="navbar-user">
+                    {displayAvatar && (
+                        <img
+                            src={displayAvatar}
+                            alt="profile avatar"
+                            className="navbar-avatar"
+                        />
+                    )}
                     <button
                         type="button"
                         className="navbar-username navbar-username-link"
                         onClick={() => navigate('/profile')}
                         title="Open Profile"
                     >
-                        ♦ {user.user_name}
+                        ♦ {displayName}
                     </button>
                     <button className="btn-outline" onClick={handleLogout}>
                         Logout
@@ -113,7 +127,7 @@ const HomePage = () => {
                 <div className="lobby-welcome">
                     <div className="welcome-card-icon">🃏</div>
                     <div className="welcome-text">
-                        <h2>Welcome back, {user.user_name}!</h2>
+                        <h2>Welcome back, {displayName}!</h2>
                         <p>Join an existing room or create a new game below.</p>
                     </div>
                 </div>

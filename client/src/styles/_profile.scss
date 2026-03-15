@@ -72,9 +72,24 @@
   gap: 14px;
 }
 
+.identity-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.identity-label {
+  display: block;
+  margin-bottom: 6px;
+  color: $gold;
+  font-family: $font-heading;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .profile-avatar {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid $border-gold;
@@ -90,6 +105,17 @@
 .identity-email {
   margin: 4px 0 0;
   color: $cream-muted;
+}
+
+.identity-editor-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.identity-avatar-editor {
+  margin-top: 12px;
 }
 
 .provider-list {
@@ -143,4 +169,15 @@
   justify-content: flex-end;
   gap: 10px;
   margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .identity-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .identity-details {
+    width: 100%;
+  }
 }

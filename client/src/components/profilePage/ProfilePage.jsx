@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { removeAuthToken, unlink_provider } from "../../api/apiHandler";
+import AvatarCreator from "../shared/AvatarCreator";
+import { removeAuthToken, unlink_provider, update_profile } from "../../api/apiHandler";
 
 const PROVIDERS = ["google", "facebook"];
 const BACKEND_BASE = (process.env.REACT_APP_BASE_URL || "http://localhost:4000/api").replace('/api', '');
@@ -17,9 +18,13 @@ const providerIcon = (provider) => {
 const ProfilePage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { user, profile, refreshProfile, logout } = useAuth();
+    const { user, profile, refreshProfile, logout, updateUserName } = useAuth();
     const [banner, setBanner] = useState(null);
     const [busyProvider, setBusyProvider] = useState(null);
+    const [nameDraft, setNameDraft] = useState("");
+    const [avatarDraft, setAvatarDraft] = useState("");
+    const [showAvatarEditor, setShowAvatarEditor] = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
 
     useEffect(() => {
         refreshProfile();
@@ -45,6 +50,23 @@ const ProfilePage = () => {
     const linkedSet = useMemo(() => {
         return new Set((profile?.linkedProviders || []).map((lp) => lp.provider));
     }, [profile]);
+
+    useEffect(() => {
+        if (!profile) return;
+        setNameDraft(profile.name || "");
+        setAvatarDraft(profile.avatar || "");
+    }, [profile]);
+
+    const hasNameChange = useMemo(() => {
+        return (nameDraft || "").trim() !== (profile?.name || "");
+    }, [nameDraft, profile?.name]);
+
+    const hasAvatarChange = useMemo(() => {
+        if (!avatarDraft || avatarDraft === profile?.avatar) return false;
+        return avatarDraft.startsWith('data:image/svg+xml');
+    }, [avatarDraft, profile?.avatar]);
+
+    const hasProfileChanges = hasNameChange || hasAvatarChange;
 
     const disconnectDisabled = (provider) => {
         if (!linkedSet.has(provider)) return true;
@@ -75,6 +97,38 @@ const ProfilePage = () => {
         logout();
     };
 
+    const handleSaveProfile = async () => {
+        if (!hasProfileChanges) return;
+
+        try {
+            setSavingProfile(true);
+            const payload = {};
+
+            if (hasNameChange) {
+                payload.name = (nameDraft || "").trim();
+            }
+
+            if (hasAvatarChange) {
+                payload.avatar = avatarDraft;
+            }
+
+            const updated = await update_profile(payload);
+
+            if (updated?.name) {
+                updateUserName(updated.name);
+            }
+
+            await refreshProfile();
+            setShowAvatarEditor(false);
+            setBanner({ type: 'success', msg: 'Profile updated successfully.' });
+        } catch (error) {
+            const message = error?.errors?.[0]?.msg || 'Failed to update profile.';
+            setBanner({ type: 'error', msg: message });
+        } finally {
+            setSavingProfile(false);
+        }
+    };
+
     return (
         <div className="profile-page">
             <div className="profile-card">
@@ -93,11 +147,48 @@ const ProfilePage = () => {
                     <h2>Identity</h2>
                     <div className="identity-row">
                         <img src={profile?.avatar} alt="avatar" className="profile-avatar" />
-                        <div>
-                            <p className="identity-name">{profile?.name || 'Loading...'}</p>
+                        <div className="identity-details">
+                            <label htmlFor="profile-name" className="identity-label">Display Name</label>
+                            <input
+                                id="profile-name"
+                                type="text"
+                                className="form-input"
+                                value={nameDraft}
+                                maxLength={50}
+                                onChange={(event) => setNameDraft(event.target.value)}
+                                placeholder="Your name"
+                            />
                             <p className="identity-email">{profile?.email || ''}</p>
                         </div>
                     </div>
+
+                    <div className="identity-editor-actions">
+                        <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => setShowAvatarEditor((prev) => !prev)}
+                        >
+                            {showAvatarEditor ? 'Hide Avatar Editor' : 'Edit Avatar'}
+                        </button>
+
+                        <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={handleSaveProfile}
+                            disabled={!hasProfileChanges || savingProfile}
+                        >
+                            {savingProfile ? 'Saving...' : 'Save Profile'}
+                        </button>
+                    </div>
+
+                    {showAvatarEditor && (
+                        <div className="identity-avatar-editor">
+                            <AvatarCreator
+                                initialAvatar={profile?.avatar}
+                                onAvatarChange={setAvatarDraft}
+                            />
+                        </div>
+                    )}
                 </section>
 
                 <section className="profile-section">

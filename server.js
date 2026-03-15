@@ -85,7 +85,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            imgSrc: ["'self'", "data:", "https://www.gravatar.com"],
+            imgSrc: ["'self'", "data:", "https://www.gravatar.com", "https://api.dicebear.com"],
             connectSrc: ["'self'", "wss:", "ws:", "https://accounts.google.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             formAction: ["'self'", "https://accounts.google.com", "https://www.facebook.com"],
@@ -104,7 +104,7 @@ app.use(cors({
     origin: allowedOrigins,
     credentials: true
 }));
-app.use(express.json({ extended: false, limit: '10kb' }));
+app.use(express.json({ extended: false, limit: '100kb' }));
 app.use(passport.initialize());
 
 // Rate limiting for auth endpoints
