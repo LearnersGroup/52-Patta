@@ -8,6 +8,7 @@ const PlayerList = ({
     leader,
     dealer,
     userId,
+    playerAvatars = {},
     scores = {},
     getName = (pid) => pid?.substring(0, 8),
 }) => {
@@ -24,6 +25,7 @@ const PlayerList = ({
                 const cards = handSizes[pid] ?? 0;
                 const displayName = isMe ? "You" : getName(pid);
                 const initial = getName(pid).charAt(0).toUpperCase();
+                const avatar = playerAvatars[pid] || "";
 
                 let teamClass = "";
                 if (isBidTeam) teamClass = "team-bid";
@@ -37,7 +39,15 @@ const PlayerList = ({
                         } ${teamClass}`}
                     >
                         <div className="seat-avatar">
-                            {initial}
+                            {avatar ? (
+                                <img
+                                    src={avatar}
+                                    alt={`${displayName} avatar`}
+                                    className="seat-avatar-image"
+                                />
+                            ) : (
+                                initial
+                            )}
                         </div>
                         <div className="seat-info">
                             <div className="seat-name">

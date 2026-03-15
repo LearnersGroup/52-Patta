@@ -5,6 +5,7 @@ const initialState = {
     configKey: null,
     seatOrder: [],
     playerNames: {},
+    playerAvatars: {},
     removedTwos: [],
     myHand: [],
     validPlays: [],
@@ -52,6 +53,7 @@ const gameSlice = createSlice({
             state.configKey = data.configKey;
             state.seatOrder = data.seatOrder;
             state.playerNames = data.playerNames || {};
+            state.playerAvatars = data.playerAvatars || {};
             state.removedTwos = data.removedTwos;
             state.myHand = data.myHand;
             state.validPlays = data.validPlays;

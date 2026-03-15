@@ -39,7 +39,7 @@ router.get("/players", auth, async (req, res) => {
 
         let game = await Game.findOne({ _id: id })
             .populate("admin", ["name", "_id"])
-            .populate("players.playerId", ["name", "_id"])
+            .populate("players.playerId", ["name", "_id", "avatar"])
             .select("-roompass");
         if (!game) {
             return res

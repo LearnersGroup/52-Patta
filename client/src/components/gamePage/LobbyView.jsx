@@ -84,12 +84,21 @@ const LobbyView = ({ roomId, roomData, isAdmin }) => {
                                 const name =
                                     player.playerId?.name || "Unknown";
                                 const initial = name.charAt(0).toUpperCase();
+                                const avatar = player.playerId?.avatar || "";
                                 return (
                                     <tr key={player["_id"]}>
                                         <td>
                                             <div className="player-name-cell">
                                                 <div className="player-avatar">
-                                                    {initial}
+                                                    {avatar ? (
+                                                        <img
+                                                            src={avatar}
+                                                            alt={`${name} avatar`}
+                                                            className="player-avatar-image"
+                                                        />
+                                                    ) : (
+                                                        initial
+                                                    )}
                                                 </div>
                                                 {name}
                                             </div>

@@ -43,6 +43,7 @@ function buildPublicView(gameState) {
         configKey: gameState.config?.key,
         seatOrder: gameState.seatOrder,
         playerNames: gameState.playerNames || {},
+        playerAvatars: gameState.playerAvatars || {},
         removedTwos: gameState.removedTwos,
 
         // Dealer & shuffling info

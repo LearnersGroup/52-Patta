@@ -243,6 +243,7 @@ const GameBoard = ({ userId, isAdmin }) => {
     }
 
     const playerNames = game.playerNames || {};
+    const playerAvatars = game.playerAvatars || {};
     const getName = (pid) => playerNames[pid] || pid?.substring(0, 8);
     const isBidLeader = game.leader === userId;
     const isMyTurn =
@@ -375,6 +376,7 @@ const GameBoard = ({ userId, isAdmin }) => {
             cardCount: getCardCount(pid),
             score: playerTrickPoints[pid] ?? 0,
             avatarInitial: getName(pid).charAt(0).toUpperCase(),
+            avatar: playerAvatars[pid] || "",
             relation: getRelation(pid), // "teammate" | "opponent" | null
         }));
     };
@@ -536,6 +538,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                     dealer={game.dealer}
                     userId={userId}
                     scores={game.scores}
+                    playerAvatars={playerAvatars}
                     getName={getName}
                 />
             )}

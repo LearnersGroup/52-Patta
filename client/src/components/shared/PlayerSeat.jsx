@@ -13,6 +13,7 @@ import { getCardBackComponent } from "../gamePage/utils/cardMapper";
 const PlayerSeat = memo(({
     name = "",
     avatarInitial = "?",
+    avatar = "",
     isMe = false,
     isTurn = false,
     isLeader = false,
@@ -74,7 +75,15 @@ const PlayerSeat = memo(({
             {/* Avatar — with B (Bidder) and D (Dealer) chips overlaid on corners */}
             <div className="table-seat-avatar-wrap">
                 <div className="table-seat-avatar">
-                    {avatarInitial}
+                    {avatar ? (
+                        <img
+                            src={avatar}
+                            alt={`${name} avatar`}
+                            className="table-seat-avatar-image"
+                        />
+                    ) : (
+                        avatarInitial
+                    )}
                     {isTurn && <div className="table-seat-turn-dot" />}
                 </div>
                 {isDealer && (

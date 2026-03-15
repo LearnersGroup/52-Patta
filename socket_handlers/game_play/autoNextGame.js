@@ -34,7 +34,7 @@ function scheduleAutoNextGame(io, gameId) {
  * transition to shuffling phase.
  */
 async function startNextGame(io, gameId, existingState) {
-    const { config, seatOrder, playerNames, scores } = existingState;
+    const { config, seatOrder, playerNames, playerAvatars, scores } = existingState;
 
     // Create and prepare fresh deck
     const fullDeck = createDeck(config.decks);
@@ -51,6 +51,7 @@ async function startNextGame(io, gameId, existingState) {
         phase: "shuffling",
         seatOrder,
         playerNames,
+        playerAvatars: playerAvatars || {},
         removedTwos: removed,
 
         // Rotated dealer
