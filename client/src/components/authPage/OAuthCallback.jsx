@@ -12,9 +12,10 @@ const OAuthCallback = () => {
         const token = searchParams.get("token");
         const user_name = searchParams.get("user_name");
         const error = searchParams.get("error");
+        const existingProvider = searchParams.get("existing_provider");
 
         if (error) {
-            navigate("/login?error=" + error, { replace: true });
+            navigate(`/login?error=${error}${existingProvider ? `&existing_provider=${existingProvider}` : ''}`, { replace: true });
             return;
         }
 

@@ -1,17 +1,30 @@
 // src/hooks/useAuth.jsx
 
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "./useLocalStorage";
 import { socket } from "../../socket";
+import apiClient from "../../api/apiClient";
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useLocalStorage("user", null);
+  const [profile, setProfile] = useState(null);
   const navigate = useNavigate();
+
+  const refreshProfile = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/auth');
+      setProfile(res.data);
+    } catch {
+      setProfile(null);
+    }
+  }, []);
+
   // call this function when you want to authenticate the user
   const login = async (data) => {
     setUser(data);
+    setProfile(null);
     socket.connect();
     navigate("/");
   };
@@ -19,6 +32,7 @@ export const AuthProvider = ({ children }) => {
   // call this function to sign out logged in user
   const logout = () => {
     setUser(null);
+    setProfile(null);
     socket.disconnect();
     navigate("/login", { replace: true });
   };
@@ -26,11 +40,13 @@ export const AuthProvider = ({ children }) => {
   const value = useMemo(
     () => ({
       user,
+      profile,
       login,
       logout,
+      refreshProfile,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user]
+    [user, profile, refreshProfile]
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -39,6 +39,25 @@
   &-username {
     color: $cream-muted;
     font-size: 0.88rem;
+
+    &-link {
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      font: inherit;
+      color: $cream-muted;
+
+      &:hover {
+        color: $gold-light;
+      }
+
+      &:focus-visible {
+        outline: 1px solid $gold;
+        outline-offset: 4px;
+        border-radius: 4px;
+      }
+    }
   }
 }
 

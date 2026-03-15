@@ -10,9 +10,11 @@ import AllGameRooms from "./AllGameRooms/AllGameRooms";
 import { WsSendUserName } from "../../api/wsEmitters";
 import { useDispatch } from "react-redux";
 import { notify } from "../../redux/slices/alert";
+import { useNavigate } from "react-router-dom";
 
 const HomePage = () => {
     const dispatch = useDispatch();
+    const navigate = useNavigate();
     const { logout, user } = useAuth();
     const socket = getSocket();
     const [isConnected, setIsConnected] = useState(socket ? socket.connected : false);
@@ -93,9 +95,14 @@ const HomePage = () => {
                     <span className="suit-black">♠</span>
                 </div>
                 <div className="navbar-user">
-                    <span className="navbar-username">
+                    <button
+                        type="button"
+                        className="navbar-username navbar-username-link"
+                        onClick={() => navigate('/profile')}
+                        title="Open Profile"
+                    >
                         ♦ {user.user_name}
-                    </span>
+                    </button>
                     <button className="btn-outline" onClick={handleLogout}>
                         Logout
                     </button>

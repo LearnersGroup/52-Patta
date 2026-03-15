@@ -33,6 +33,24 @@ export const user_register = async (username, useremail, password) => {
     }
 };
 
+export const get_profile = async () => {
+    try {
+        const response = await apiClient.get('/auth');
+        return response.data;
+    } catch (error) {
+        throw error.response.data;
+    }
+};
+
+export const unlink_provider = async (provider) => {
+    try {
+        const response = await apiClient.delete(`/auth/providers/${provider}`);
+        return response.data;
+    } catch (error) {
+        throw error.response.data;
+    }
+};
+
 export const room_register = async (roomname, roompass, player_count) => {
     try {
         const response = await apiClient.post("/games", {

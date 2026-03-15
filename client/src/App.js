@@ -16,6 +16,7 @@ const HomePage = lazy(() => import("./components/homePage/HomePage"));
 const AuthPage = lazy(() => import("./components/authPage/AuthPage"));
 const RegisterPage = lazy(() => import("./components/authPage/RegisterPage"));
 const OAuthCallback = lazy(() => import("./components/authPage/OAuthCallback"));
+const ProfilePage = lazy(() => import("./components/profilePage/ProfilePage"));
 const CreateGamePage = lazy(() => import("./components/gamePage/CreateGamePage"));
 const GamePage = lazy(() => import("./components/gamePage/GamePage"));
 
@@ -66,6 +67,14 @@ export default function App() {
                             <Route
                                 path="/oauth-callback"
                                 element={<OAuthCallback />}
+                            />
+                            <Route
+                                path="/profile"
+                                element={
+                                    <ProtectedRoute>
+                                        <ProfilePage />
+                                    </ProtectedRoute>
+                                }
                             />
                         </Routes>
                         </Suspense>

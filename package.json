@@ -10,6 +10,9 @@
     "client1": "PORT=3001 npm start --prefix client",
     "socket-dev": "concurrently \"npm run server\" \"npm run client\" \"npm run client1\"",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "migrate:up": "migrate-mongo up",
+    "migrate:down": "migrate-mongo down",
+    "migrate:status": "migrate-mongo status",
     "test": "jest --forceExit --detectOpenHandles",
     "test:unit": "jest --forceExit --detectOpenHandles --testPathPatterns=tests/security-fixes",
     "test:integration": "vitest run --config vitest.config.js"
@@ -38,6 +41,7 @@
   "devDependencies": {
     "concurrently": "^8.2.2",
     "jest": "^30.2.0",
+    "migrate-mongo": "^14.0.7",
     "mongodb-memory-server": "^11.0.1",
     "nodemon": "^3.1.14",
     "sass": "^1.76.0",
