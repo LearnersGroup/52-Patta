@@ -22,7 +22,6 @@ router.post(
         check("name")
             .optional({ checkFalsy: true })
             .trim()
-            .escape()
             .isLength({ max: 50 })
             .withMessage("Name can be at most 50 characters"),
         check("avatar")

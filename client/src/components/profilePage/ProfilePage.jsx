@@ -146,7 +146,9 @@ const ProfilePage = () => {
                 <section className="profile-section">
                     <h2>Identity</h2>
                     <div className="identity-row">
-                        <img src={profile?.avatar} alt="avatar" className="profile-avatar" />
+                        {profile?.avatar && (
+                            <img src={profile.avatar} alt="avatar" className="profile-avatar" />
+                        )}
                         <div className="identity-details">
                             <label htmlFor="profile-name" className="identity-label">Display Name</label>
                             <input

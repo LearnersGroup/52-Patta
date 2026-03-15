@@ -132,7 +132,6 @@ router.put(
         check('name')
             .optional()
             .trim()
-            .escape()
             .isLength({ min: 1, max: 50 })
             .withMessage('Name must be between 1 and 50 characters'),
         check('avatar')
@@ -172,7 +171,7 @@ router.put(
                 user.avatar = avatar;
             }
 
-            if (user.needsOnboarding && typeof name !== 'undefined') {
+            if (user.needsOnboarding && (typeof name !== 'undefined' || typeof avatar !== 'undefined')) {
                 user.needsOnboarding = false;
             }
 
