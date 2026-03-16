@@ -56,7 +56,7 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
             return;
         }
 
-        const { config, seatOrder, playerNames, scores } = existingState;
+        const { config, seatOrder, playerNames, playerAvatars, scores } = existingState;
 
         // Create and prepare fresh deck
         const fullDeck = createDeck(config.decks);
@@ -76,6 +76,7 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
             phase: "bidding",
             seatOrder,
             playerNames,
+            playerAvatars: playerAvatars || {},
             removedTwos: removed,
             hands,
             bidding,
@@ -103,6 +104,7 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
 
         // Broadcast to all players
         await broadcastGameState(io, newGameState);
+        io.to(existingState.roomname).emit("game-avatars", playerAvatars || {});
 
         if (removed.length > 0) {
             io.to(existingState.roomname).emit("game-cards-removed", removed);

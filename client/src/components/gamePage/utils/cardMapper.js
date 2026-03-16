@@ -48,8 +48,10 @@ export function cardKey(card) {
  * Check if a card is in a list (by suit + rank + deckIndex).
  */
 export function isCardInList(card, list) {
+    if (!card) return false;
     return list.some(
         (c) =>
+            c &&
             c.suit === card.suit &&
             c.rank === card.rank &&
             (c.deckIndex ?? 0) === (card.deckIndex ?? 0)

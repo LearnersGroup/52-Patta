@@ -17,6 +17,10 @@ const UserSchema = new mongoose.Schema({
     avatar: {
         type: String,
     },
+    needsOnboarding: {
+        type: Boolean,
+        default: false,
+    },
     linkedProviders: [{
         provider: {
             type: String,

@@ -95,7 +95,7 @@ const PlayerHand = memo(({ cards = [], validPlays = [], isMyTurn }) => {
                         const hoveredIsDisabled =
                             hoveredIndex >= 0 &&
                             isMyTurn &&
-                            !isCardInList(displayCards[hoveredIndex], validPlays);
+                            !isCardInList(displayCards[hoveredIndex] ?? null, validPlays);
                         const isRight = hoveredIndex >= 0 && i > hoveredIndex && !hoveredIsDisabled;
 
                         // Arc rotation: edges tilt outward from center

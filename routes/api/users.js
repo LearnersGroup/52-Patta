@@ -5,6 +5,7 @@ const gravatar = require("gravatar");
 const bcrypt = require("bcryptjs");
 const User = require("../../models/User");
 const jwt = require("jsonwebtoken");
+const { isValidSvgAvatarDataUri } = require("../../lib/avatarUtils");
 require('dotenv').config()
 
 // @route   POST api/users
@@ -13,12 +14,20 @@ require('dotenv').config()
 router.post(
     "/",
     [
-        check("name", "Name is required").not().isEmpty().trim().escape().isLength({ max: 50 }),
         check("email", "Please include a valid email").isEmail().normalizeEmail(),
         check(
             "password",
             "Please enter a password with 6 or more characters"
         ).isLength({ min: 6, max: 128 }),
+        check("name").optional({ checkFalsy: true }).trim().isLength({ max: 50 }).withMessage("Name can be at most 50 characters"),
+        check("avatar")
+            .optional({ checkFalsy: true })
+            .custom((value) => {
+                if (typeof value !== "string" || !isValidSvgAvatarDataUri(value)) {
+                    throw new Error("Avatar must be a valid SVG data URI under 50KB");
+                }
+                return true;
+            }),
     ],
     async (req, res) => {
         const errors = validationResult(req);
@@ -27,7 +36,7 @@ router.post(
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { name, email, password } = req.body;
+        const { name, email, password, avatar } = req.body;
 
         try {
             //check if user exists
@@ -39,18 +48,21 @@ router.post(
                     .json({ errors: [{ msg: "User Already exists" }] });
             }
 
-            //get gravitar avatar
-            const avatar = gravatar.url(email, {
+            // Use custom avatar if provided, otherwise fallback to gravatar
+            const resolvedAvatar = avatar || gravatar.url(email, {
                 s: "200",
                 r: "pg",
                 d: "mm",
             });
 
+            const fallbackName = `Player-${Math.random().toString(36).slice(2, 7)}`;
+
             user = new User({
-                name,
+                name: name || fallbackName,
                 email,
-                avatar,
+                avatar: resolvedAvatar,
                 password,
+                needsOnboarding: true,
             });
 
             //encrypt creds & store
@@ -73,7 +85,11 @@ router.post(
                 { expiresIn: '24h' },
                 (err, token) => {
                     if (err) throw err;
-                    return res.json({ token, user_name: user.name });
+                    return res.json({
+                        token,
+                        user_name: user.name,
+                        needs_onboarding: !!user.needsOnboarding,
+                    });
                 }
             );
 

@@ -85,7 +85,7 @@ app.use(helmet({
             defaultSrc: ["'self'"],
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            imgSrc: ["'self'", "data:", "https://www.gravatar.com"],
+            imgSrc: ["'self'", "data:", "https://www.gravatar.com", "https://api.dicebear.com"],
             connectSrc: ["'self'", "wss:", "ws:", "https://accounts.google.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
             formAction: ["'self'", "https://accounts.google.com", "https://www.facebook.com"],
@@ -108,21 +108,27 @@ app.use(express.json({ extended: false, limit: '10kb' }));
 app.use(passport.initialize());
 
 // Rate limiting for auth endpoints
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // limit each IP to 20 requests per window
-    message: { errors: [{ msg: "Too many requests, please try again later" }] }
-});
+const disableRateLimiting = String(process.env.DISABLE_RATE_LIMITING || "").toLowerCase() === "true";
+
+const authLimiter = disableRateLimiting
+    ? (req, res, next) => next()
+    : rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 20, // limit each IP to 20 requests per window
+        message: { errors: [{ msg: "Too many requests, please try again later" }] }
+    });
 app.use("/api/auth", authLimiter);
 app.use("/api/users", authLimiter);
 app.use("/api/oauth", authLimiter);
 
 // Rate limiting for game API endpoints
-const apiLimiter = rateLimit({
-    windowMs: 1 * 60 * 1000, // 1 minute
-    max: 60,
-    message: { errors: [{ msg: "Too many requests, please try again later" }] }
-});
+const apiLimiter = disableRateLimiting
+    ? (req, res, next) => next()
+    : rateLimit({
+        windowMs: 1 * 60 * 1000, // 1 minute
+        max: 60,
+        message: { errors: [{ msg: "Too many requests, please try again later" }] }
+    });
 app.use("/api/games", apiLimiter);
 app.use("/api/game-rooms", apiLimiter);
 app.use("/api/mygame", apiLimiter);

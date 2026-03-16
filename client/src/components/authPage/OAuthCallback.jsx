@@ -11,6 +11,7 @@ const OAuthCallback = () => {
     useEffect(() => {
         const token = searchParams.get("token");
         const user_name = searchParams.get("user_name");
+        const needsOnboarding = searchParams.get("needs_onboarding") === '1';
         const error = searchParams.get("error");
         const existingProvider = searchParams.get("existing_provider");
 
@@ -21,7 +22,7 @@ const OAuthCallback = () => {
 
         if (token && user_name) {
             setAuthToken(token);
-            login({ token, user_name });
+            login({ token, user_name, needs_onboarding: needsOnboarding });
         } else {
             navigate("/login", { replace: true });
         }

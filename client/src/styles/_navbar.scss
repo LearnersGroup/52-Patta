@@ -36,6 +36,15 @@
     gap: 14px;
   }
 
+  &-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 1px solid $border-gold;
+    object-fit: cover;
+    background: $bg-panel;
+  }
+
   &-username {
     color: $cream-muted;
     font-size: 0.88rem;

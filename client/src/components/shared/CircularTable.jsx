@@ -145,6 +145,7 @@ const CircularTable = ({
                         <PlayerSeat
                             name={player.name}
                             avatarInitial={player.avatarInitial}
+                            avatar={player.avatar}
                             isMe={false}
                             isTurn={player.isTurn}
                             isLeader={player.isLeader}

@@ -5,6 +5,7 @@ const { check, validationResult } = require("express-validator");
 const User = require("../../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
+const { isValidSvgAvatarDataUri } = require("../../lib/avatarUtils");
 require('dotenv').config()
 
 // @route   GET api/auth
@@ -21,6 +22,7 @@ router.get("/", auth, async (req, res) => {
         const { password, provider, providerId, linkedProviders = [], ...rest } = doc;
         res.json({
             ...rest,
+            needsOnboarding: !!rest.needsOnboarding,
             linkedProviders,
             hasPassword: !!password,
         });
@@ -106,12 +108,86 @@ router.post(
                 { expiresIn: '24h' },
                 (err, token) => {
                     if (err) throw err;
-                    res.json({ token: token, user_name: user.name });
+                    res.json({
+                        token: token,
+                        user_name: user.name,
+                        needs_onboarding: !!user.needsOnboarding,
+                    });
                 }
             );
 
         } catch (error) {
             res.status(500).json({ errors: [{ msg: "Server error" }] });
+        }
+    }
+);
+
+// @route   PUT api/auth/profile
+// @desc    Update current user's profile (name/avatar)
+// @access  Private
+router.put(
+    '/profile',
+    [
+        auth,
+        check('name')
+            .optional()
+            .trim()
+            .isLength({ min: 1, max: 50 })
+            .withMessage('Name must be between 1 and 50 characters'),
+        check('avatar')
+            .optional()
+            .custom((value) => {
+                if (typeof value !== 'string' || !isValidSvgAvatarDataUri(value)) {
+                    throw new Error('Avatar must be a valid SVG data URI under 50KB');
+                }
+                return true;
+            }),
+    ],
+    async (req, res) => {
+        const errors = validationResult(req);
+
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { name, avatar } = req.body;
+
+        if (typeof name === 'undefined' && typeof avatar === 'undefined') {
+            return res.status(400).json({ errors: [{ msg: 'No profile changes provided' }] });
+        }
+
+        try {
+            const user = await User.findById(req.user.id);
+
+            if (!user) {
+                return res.status(404).json({ errors: [{ msg: 'User not found' }] });
+            }
+
+            if (typeof name !== 'undefined') {
+                user.name = name;
+            }
+
+            if (typeof avatar !== 'undefined') {
+                user.avatar = avatar;
+            }
+
+            if (user.needsOnboarding && (typeof name !== 'undefined' || typeof avatar !== 'undefined')) {
+                user.needsOnboarding = false;
+            }
+
+            await user.save();
+
+            const doc = user.toObject();
+            const { password, provider, providerId, linkedProviders = [], ...rest } = doc;
+
+            return res.json({
+                ...rest,
+                needsOnboarding: !!rest.needsOnboarding,
+                linkedProviders,
+                hasPassword: !!password,
+            });
+        } catch (error) {
+            return res.status(500).json({ errors: [{ msg: 'Server error' }] });
         }
     }
 );

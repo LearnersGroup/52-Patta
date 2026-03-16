@@ -14,7 +14,7 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
         }
 
         const game = await Game.findById(user.gameroom)
-            .populate("players.playerId", ["name"]);
+            .populate("players.playerId", ["name", "avatar"]);
         if (!game) {
             if (callback) callback("Game room not found");
             return;
@@ -78,8 +78,10 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
         // Build seat order and player name map from player list (clockwise)
         const seatOrder = game.players.map((p) => p.playerId._id.toString());
         const playerNames = {};
+        const playerAvatars = {};
         for (const p of game.players) {
             playerNames[p.playerId._id.toString()] = p.playerId.name;
+            playerAvatars[p.playerId._id.toString()] = p.playerId.avatar || "";
         }
 
         // Create and prepare deck (but do NOT shuffle or deal — that's the dealer's job now)
@@ -104,6 +106,7 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             phase: "shuffling",
             seatOrder,
             playerNames,
+            playerAvatars,
             removedTwos: removed,
 
             // Dealer system — admin is first dealer
@@ -151,6 +154,7 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
 
         // Broadcast personalized state to all players
         await broadcastGameState(io, gameState);
+        io.to(game.roomname).emit("game-avatars", playerAvatars || {});
 
         // Notify room about removed cards
         if (removed.length > 0) {

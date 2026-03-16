@@ -7,7 +7,6 @@ const API_BASE = process.env.REACT_APP_BASE_URL || 'http://localhost:4000/api';
 
 export const RegisterPage = () => {
     const navigate = useNavigate();
-    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [useremail, setUseremail] = useState("");
     const [errors, setErrors] = useState([]);
@@ -17,9 +16,9 @@ export const RegisterPage = () => {
         e.preventDefault();
         setErrors([]);
         try {
-            const { token, user_name } = await user_register(username, useremail, password);
+            const { token, user_name, needs_onboarding } = await user_register(undefined, useremail, password);
             if (token) {
-                await login({ token, user_name });
+                await login({ token, user_name, needs_onboarding });
             }
         } catch (error) {
             console.log(error);
@@ -40,6 +39,7 @@ export const RegisterPage = () => {
                 <p className="auth-tagline">The Classic Indian Card Game</p>
 
                 <h2 className="auth-title">Create Account</h2>
+                <p className="auth-subtitle">Step 1: Secure your account with email and password.</p>
 
                 <div className="social-buttons">
                     <a href={`${API_BASE.replace('/api', '')}/api/oauth/google`} className="btn-google btn-full">
@@ -57,18 +57,6 @@ export const RegisterPage = () => {
                 </div>
 
                 <form className="auth-form" onSubmit={handleLogin}>
-                    <div className="form-group">
-                        <label htmlFor="username">Username</label>
-                        <input
-                            id="username"
-                            type="text"
-                            className="form-input"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="Choose a username"
-                            autoComplete="username"
-                        />
-                    </div>
                     <div className="form-group">
                         <label htmlFor="useremail">Email</label>
                         <input
@@ -96,8 +84,8 @@ export const RegisterPage = () => {
 
                     {errors.length !== 0 && (
                         <div className="form-errors">
-                            {errors.map((err) => (
-                                <p key={err.path} className="form-error">{err.msg}</p>
+                            {errors.map((err, index) => (
+                                <p key={`${err.path || 'error'}-${index}`} className="form-error">{err.msg}</p>
                             ))}
                         </div>
                     )}

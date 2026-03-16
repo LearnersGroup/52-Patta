@@ -15,12 +15,20 @@ import Alert from "./components/layout/Alert";
 const HomePage = lazy(() => import("./components/homePage/HomePage"));
 const AuthPage = lazy(() => import("./components/authPage/AuthPage"));
 const RegisterPage = lazy(() => import("./components/authPage/RegisterPage"));
+const CreateUserPage = lazy(() => import("./components/authPage/CreateUserPage"));
 const OAuthCallback = lazy(() => import("./components/authPage/OAuthCallback"));
 const ProfilePage = lazy(() => import("./components/profilePage/ProfilePage"));
 const CreateGamePage = lazy(() => import("./components/gamePage/CreateGamePage"));
 const GamePage = lazy(() => import("./components/gamePage/GamePage"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 30_000,
+            cacheTime: 5 * 60_000,
+        },
+    },
+});
 export default function App() {
     return (
         <QueryClientProvider client={queryClient}>
@@ -63,6 +71,14 @@ export default function App() {
                             <Route
                                 path="/register"
                                 element={<RegisterPage />}
+                            />
+                            <Route
+                                path="/create-user"
+                                element={
+                                    <ProtectedRoute>
+                                        <CreateUserPage />
+                                    </ProtectedRoute>
+                                }
                             />
                             <Route
                                 path="/oauth-callback"

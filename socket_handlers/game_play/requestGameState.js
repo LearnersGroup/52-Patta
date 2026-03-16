@@ -23,4 +23,5 @@ module.exports = wrapHandler('game-request-state', async (socket, io, data, call
         };
 
         socket.emit("game-state-update", personalView);
+        socket.emit("game-avatars", gameState.playerAvatars || {});
 });

@@ -1,13 +1,16 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { get_all_user_in_room } from "../../api/apiHandler";
 import { useAuth } from "../hooks/useAuth";
 import { socket } from "../../socket";
 import { registerGameListeners } from "../../api/wsGameListeners";
 import { WsRequestGameState } from "../../api/wsEmitters";
+import { setPlayerAvatars } from "../../redux/slices/game";
 import LobbyView from "./LobbyView";
 import GameBoard from "./GameBoard";
+
+const AVATAR_CACHE_PREFIX = "avatars:";
 
 /** Decode the user ID from the JWT stored in localStorage */
 function getUserIdFromToken(user) {
@@ -25,6 +28,7 @@ const GamePage = () => {
     let params = useParams();
     const userId = useMemo(() => getUserIdFromToken(user), [user]);
     const [roomData, setRoomData] = useState(null);
+    const dispatch = useDispatch();
     const navigate = useNavigate();
     const gamePhase = useSelector((state) => state.game.phase);
 
@@ -53,11 +57,38 @@ const GamePage = () => {
         const onPhaseChange = () => {
             // Phase changes are handled by game-state-update via Redux
         };
+        const onGameAvatars = (avatars) => {
+            const nextAvatars = avatars && typeof avatars === "object" ? avatars : {};
+            dispatch(setPlayerAvatars(nextAvatars));
+
+            try {
+                const currentGameId = params.id;
+                if (!currentGameId) return;
+
+                const currentCacheKey = `${AVATAR_CACHE_PREFIX}${currentGameId}`;
+                window.localStorage.setItem(currentCacheKey, JSON.stringify(nextAvatars));
+
+                // Keep only the current game's avatar cache.
+                for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
+                    const key = window.localStorage.key(i);
+                    if (
+                        key &&
+                        key.startsWith(AVATAR_CACHE_PREFIX) &&
+                        key !== currentCacheKey
+                    ) {
+                        window.localStorage.removeItem(key);
+                    }
+                }
+            } catch {
+                // Best effort cache only.
+            }
+        };
 
         socket.on("room-message", onRoomMessage);
         socket.on("fetch-users-in-room", onFetchUsersInRoom);
         socket.on("redirect-to-home-page", goToHomePage);
         socket.on("game-phase-change", onPhaseChange);
+        socket.on("game-avatars", onGameAvatars);
 
         // Register game listeners early so we receive game-state-update
         const cleanupGameListeners = registerGameListeners();
@@ -93,6 +124,7 @@ const GamePage = () => {
             socket.off("fetch-users-in-room", onFetchUsersInRoom);
             socket.off("redirect-to-home-page", goToHomePage);
             socket.off("game-phase-change", onPhaseChange);
+            socket.off("game-avatars", onGameAvatars);
             socket.off("connect", onSocketConnect);
             cleanupGameListeners();
         };

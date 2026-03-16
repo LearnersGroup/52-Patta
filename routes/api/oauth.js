@@ -27,7 +27,8 @@ function handleOAuthCallback(req, res, provider) {
                 return res.redirect(`${CLIENT_URL}/login?error=token_failed`);
             }
             const userName = encodeURIComponent(user.name);
-            res.redirect(`${CLIENT_URL}/oauth-callback?token=${token}&user_name=${userName}`);
+            const needsOnboarding = user.needsOnboarding ? '1' : '0';
+            res.redirect(`${CLIENT_URL}/oauth-callback?token=${token}&user_name=${userName}&needs_onboarding=${needsOnboarding}`);
         }
     );
 }
