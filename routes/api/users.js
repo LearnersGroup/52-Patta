@@ -19,11 +19,7 @@ router.post(
             "password",
             "Please enter a password with 6 or more characters"
         ).isLength({ min: 6, max: 128 }),
-        check("name")
-            .optional({ checkFalsy: true })
-            .trim()
-            .isLength({ max: 50 })
-            .withMessage("Name can be at most 50 characters"),
+        check("name").optional({ checkFalsy: true }).trim().escape().isLength({ max: 50 }).withMessage("Name can be at most 50 characters"),
         check("avatar")
             .optional({ checkFalsy: true })
             .custom((value) => {

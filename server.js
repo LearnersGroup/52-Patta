@@ -104,7 +104,7 @@ app.use(cors({
     origin: allowedOrigins,
     credentials: true
 }));
-app.use(express.json({ extended: false, limit: '100kb' }));
+app.use(express.json({ extended: false, limit: '10kb' }));
 app.use(passport.initialize());
 
 // Rate limiting for auth endpoints
