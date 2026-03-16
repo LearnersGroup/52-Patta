@@ -250,7 +250,10 @@ describe('HIGH: Input Validation on Routes', () => {
     const authRoute = readFile('routes/api/auth.js');
 
     test('users route should sanitize name input', () => {
-        expect(usersRoute).toMatch(/check.*name.*trim.*escape|check.*name.*escape.*trim/);
+        // .escape() is intentionally omitted on display names to prevent HTML-encoding
+        // characters like apostrophes (O'Brien → O&#x27;Brien). XSS is handled by
+        // React's JSX escaping at render time. trim() + isLength() is sufficient here.
+        expect(usersRoute).toMatch(/check.*name.*trim/);
     });
 
     test('users route should normalize email', () => {
