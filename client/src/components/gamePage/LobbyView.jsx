@@ -93,21 +93,20 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                             const initial = name.charAt(0).toUpperCase();
                             const avatar = player.playerId?.avatar || "";
                             return (
-                                <div
-                                    key={player["_id"]}
-                                    className={`lobby-player-block ${player.ready ? "lobby-player-block--ready" : ""}`}
-                                >
-                                    <div className="lobby-player-status-icon">
-                                        {player.ready ? "✓" : "○"}
+                                <div key={player["_id"]} className="lobby-player-block">
+                                    <div className="lobby-player-avatar-wrap">
+                                        <div className="lobby-player-avatar">
+                                            {avatar ? (
+                                                <img src={avatar} alt={`${name} avatar`} />
+                                            ) : (
+                                                <span>{initial}</span>
+                                            )}
+                                        </div>
+                                        <div className={`lobby-player-ready-badge${player.ready ? " lobby-player-ready-badge--ready" : ""}`}>
+                                            {player.ready ? "✓" : "○"}
+                                        </div>
+                                        <div className="lobby-player-name-badge">{name}</div>
                                     </div>
-                                    <div className="lobby-player-avatar">
-                                        {avatar ? (
-                                            <img src={avatar} alt={`${name} avatar`} />
-                                        ) : (
-                                            <span>{initial}</span>
-                                        )}
-                                    </div>
-                                    <div className="lobby-player-name">{name}</div>
                                 </div>
                             );
                         })}
