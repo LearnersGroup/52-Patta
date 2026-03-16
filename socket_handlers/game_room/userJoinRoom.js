@@ -46,6 +46,7 @@ module.exports = wrapHandler('user-join-room', async (socket, io, data, callback
                                         : [],
                                 };
                                 socket.emit("game-state-update", personalView);
+                                socket.emit("game-avatars", gameState.playerAvatars || {});
                                 io.to(roomname).emit("game-player-reconnected", {
                                     playerId,
                                 });

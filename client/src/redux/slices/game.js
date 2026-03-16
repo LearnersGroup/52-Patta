@@ -1,6 +1,21 @@
 import { createSlice } from "@reduxjs/toolkit";
 
+const AVATAR_CACHE_PREFIX = "avatars:";
+
+const readCachedAvatars = (gameId) => {
+    if (!gameId || typeof window === "undefined") return null;
+    try {
+        const raw = window.localStorage.getItem(`${AVATAR_CACHE_PREFIX}${gameId}`);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+        return null;
+    }
+};
+
 const initialState = {
+    gameId: null,
     phase: null, // null | "shuffling" | "dealing" | "bidding" | "powerhouse" | "playing" | "scoring" | "finished" | "series-finished"
     configKey: null,
     seatOrder: [],
@@ -49,11 +64,30 @@ const gameSlice = createSlice({
     reducers: {
         updateGameState: (state, action) => {
             const data = action.payload;
+            const previousGameId = state.gameId;
+            state.gameId = data.gameId || state.gameId;
             state.phase = data.phase;
             state.configKey = data.configKey;
             state.seatOrder = data.seatOrder;
             state.playerNames = data.playerNames || {};
-            state.playerAvatars = data.playerAvatars || {};
+
+            // Avatars arrive via the separate "game-avatars" socket event.
+            // Keep existing avatars across game-state updates.
+            if (previousGameId && state.gameId && previousGameId !== state.gameId) {
+                state.playerAvatars = {};
+            }
+
+            if (!Object.keys(state.playerAvatars || {}).length && state.gameId) {
+                const cached = readCachedAvatars(state.gameId);
+                if (cached) {
+                    state.playerAvatars = cached;
+                }
+            }
+
+            if (!state.playerAvatars) {
+                state.playerAvatars = {};
+            }
+
             state.removedTwos = data.removedTwos;
             state.myHand = data.myHand;
             state.validPlays = data.validPlays;
@@ -115,6 +149,9 @@ const gameSlice = createSlice({
         updateShuffleQueue: (state, action) => {
             state.shuffleQueue = action.payload;
         },
+        setPlayerAvatars: (state, action) => {
+            state.playerAvatars = action.payload || {};
+        },
         toggleHandSort: (state) => {
             state.handSorted = !state.handSorted;
         },
@@ -134,6 +171,7 @@ const gameSlice = createSlice({
 export const {
     updateGameState,
     updateShuffleQueue,
+    setPlayerAvatars,
     toggleHandSort,
     updateNextRoundReady,
     setGameError,

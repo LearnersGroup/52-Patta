@@ -21,7 +21,14 @@ const ProfilePage = lazy(() => import("./components/profilePage/ProfilePage"));
 const CreateGamePage = lazy(() => import("./components/gamePage/CreateGamePage"));
 const GamePage = lazy(() => import("./components/gamePage/GamePage"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+    defaultOptions: {
+        queries: {
+            staleTime: 30_000,
+            cacheTime: 5 * 60_000,
+        },
+    },
+});
 export default function App() {
     return (
         <QueryClientProvider client={queryClient}>

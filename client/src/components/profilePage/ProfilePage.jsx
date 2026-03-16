@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import AvatarCreator from "../shared/AvatarCreator";
 import { removeAuthToken, unlink_provider, update_profile } from "../../api/apiHandler";
+
+const AvatarCreator = lazy(() => import("../shared/AvatarCreator"));
 
 const PROVIDERS = ["google", "facebook"];
 const BACKEND_BASE = (process.env.REACT_APP_BASE_URL || "http://localhost:4000/api").replace('/api', '');
@@ -185,10 +186,12 @@ const ProfilePage = () => {
 
                     {showAvatarEditor && (
                         <div className="identity-avatar-editor">
-                            <AvatarCreator
-                                initialAvatar={profile?.avatar}
-                                onAvatarChange={setAvatarDraft}
-                            />
+                            <Suspense fallback={<div className="loading-screen">Loading avatar editor...</div>}>
+                                <AvatarCreator
+                                    initialAvatar={profile?.avatar}
+                                    onAvatarChange={setAvatarDraft}
+                                />
+                            </Suspense>
                         </div>
                     )}
                 </section>

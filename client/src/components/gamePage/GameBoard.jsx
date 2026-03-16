@@ -23,7 +23,67 @@ const CARDS_PER_PLAYER = {
 };
 
 const GameBoard = ({ userId, isAdmin }) => {
-    const game = useSelector((state) => state.game);
+    const phase = useSelector((state) => state.game.phase);
+    const configKey = useSelector((state) => state.game.configKey);
+    const seatOrder = useSelector((state) => state.game.seatOrder);
+    const playerNames = useSelector((state) => state.game.playerNames);
+    const playerAvatars = useSelector((state) => state.game.playerAvatars);
+    const removedTwos = useSelector((state) => state.game.removedTwos);
+    const myHand = useSelector((state) => state.game.myHand);
+    const validPlays = useSelector((state) => state.game.validPlays);
+    const bidding = useSelector((state) => state.game.bidding);
+    const leader = useSelector((state) => state.game.leader);
+    const powerHouseSuit = useSelector((state) => state.game.powerHouseSuit);
+    const partnerCards = useSelector((state) => state.game.partnerCards);
+    const partnerCardCount = useSelector((state) => state.game.partnerCardCount);
+    const teams = useSelector((state) => state.game.teams);
+    const revealedPartners = useSelector((state) => state.game.revealedPartners);
+    const currentRound = useSelector((state) => state.game.currentRound);
+    const currentTrick = useSelector((state) => state.game.currentTrick);
+    const tricks = useSelector((state) => state.game.tricks);
+    const handSizes = useSelector((state) => state.game.handSizes);
+    const scores = useSelector((state) => state.game.scores);
+    const scoringResult = useSelector((state) => state.game.scoringResult);
+    const nextRoundReady = useSelector((state) => state.game.nextRoundReady);
+    const error = useSelector((state) => state.game.error);
+    const dealer = useSelector((state) => state.game.dealer);
+    const shuffleQueue = useSelector((state) => state.game.shuffleQueue);
+    const dealingConfig = useSelector((state) => state.game.dealingConfig);
+    const currentGameNumber = useSelector((state) => state.game.currentGameNumber);
+    const totalGames = useSelector((state) => state.game.totalGames);
+    const finalRankings = useSelector((state) => state.game.finalRankings);
+
+    const game = {
+        phase,
+        configKey,
+        seatOrder,
+        playerNames,
+        playerAvatars,
+        removedTwos,
+        myHand,
+        validPlays,
+        bidding,
+        leader,
+        powerHouseSuit,
+        partnerCards,
+        partnerCardCount,
+        teams,
+        revealedPartners,
+        currentRound,
+        currentTrick,
+        tricks,
+        handSizes,
+        scores,
+        scoringResult,
+        nextRoundReady,
+        error,
+        dealer,
+        shuffleQueue,
+        dealingConfig,
+        currentGameNumber,
+        totalGames,
+        finalRankings,
+    };
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [inspectMode, setInspectMode] = useState(false);
     const [showDealReveal, setShowDealReveal] = useState(false);
@@ -242,8 +302,6 @@ const GameBoard = ({ userId, isAdmin }) => {
         return <div className="game-board-loading">Loading game state...</div>;
     }
 
-    const playerNames = game.playerNames || {};
-    const playerAvatars = game.playerAvatars || {};
     const getName = (pid) => playerNames[pid] || pid?.substring(0, 8);
     const isBidLeader = game.leader === userId;
     const isMyTurn =

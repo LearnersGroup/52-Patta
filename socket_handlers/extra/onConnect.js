@@ -55,6 +55,7 @@ module.exports = (socket, io) => async () => {
         };
 
         socket.emit("game-state-update", personalView);
+        socket.emit("game-avatars", gameState.playerAvatars || {});
 
     } catch (err) {
         // Don't let a rejoin error break the connection

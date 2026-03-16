@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import AvatarCreator from "../shared/AvatarCreator";
 import { update_profile } from "../../api/apiHandler";
 import { useAuth } from "../hooks/useAuth";
+
+const AvatarCreator = lazy(() => import("../shared/AvatarCreator"));
 
 const NAME_ADJECTIVES = [
     "Lucky",
@@ -167,11 +168,13 @@ const CreateUserPage = () => {
 
                     <div className="form-group">
                         <label>Choose Avatar</label>
-                        <AvatarCreator
-                            initialAvatar={profile?.avatar || ""}
-                            onAvatarChange={setAvatar}
-                            onSeedChange={setSeed}
-                        />
+                        <Suspense fallback={<div className="loading-screen">Loading avatar editor...</div>}>
+                            <AvatarCreator
+                                initialAvatar={profile?.avatar || ""}
+                                onAvatarChange={setAvatar}
+                                onSeedChange={setSeed}
+                            />
+                        </Suspense>
                     </div>
 
                     {errors.length !== 0 && (

@@ -154,6 +154,7 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
 
         // Broadcast personalized state to all players
         await broadcastGameState(io, gameState);
+        io.to(game.roomname).emit("game-avatars", playerAvatars || {});
 
         // Notify room about removed cards
         if (removed.length > 0) {

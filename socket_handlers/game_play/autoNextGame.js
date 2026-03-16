@@ -96,6 +96,7 @@ async function startNextGame(io, gameId, existingState) {
     await persistCheckpoint(gameId);
 
     await broadcastGameState(io, newGameState);
+    io.to(existingState.roomname).emit("game-avatars", playerAvatars || {});
 
     if (removed.length > 0) {
         io.to(existingState.roomname).emit("game-cards-removed", removed);

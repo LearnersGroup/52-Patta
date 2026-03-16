@@ -104,6 +104,7 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
 
         // Broadcast to all players
         await broadcastGameState(io, newGameState);
+        io.to(existingState.roomname).emit("game-avatars", playerAvatars || {});
 
         if (removed.length > 0) {
             io.to(existingState.roomname).emit("game-cards-removed", removed);

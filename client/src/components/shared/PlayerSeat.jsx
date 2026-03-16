@@ -80,6 +80,8 @@ const PlayerSeat = memo(({
                             src={avatar}
                             alt={`${name} avatar`}
                             className="table-seat-avatar-image"
+                            width={36}
+                            height={36}
                         />
                     ) : (
                         avatarInitial
