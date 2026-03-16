@@ -53,37 +53,6 @@ const GameBoard = ({ userId, isAdmin }) => {
     const totalGames = useSelector((state) => state.game.totalGames);
     const finalRankings = useSelector((state) => state.game.finalRankings);
 
-    const game = {
-        phase,
-        configKey,
-        seatOrder,
-        playerNames,
-        playerAvatars,
-        removedTwos,
-        myHand,
-        validPlays,
-        bidding,
-        leader,
-        powerHouseSuit,
-        partnerCards,
-        partnerCardCount,
-        teams,
-        revealedPartners,
-        currentRound,
-        currentTrick,
-        tricks,
-        handSizes,
-        scores,
-        scoringResult,
-        nextRoundReady,
-        error,
-        dealer,
-        shuffleQueue,
-        dealingConfig,
-        currentGameNumber,
-        totalGames,
-        finalRankings,
-    };
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [inspectMode, setInspectMode] = useState(false);
     const [showDealReveal, setShowDealReveal] = useState(false);
@@ -106,18 +75,18 @@ const GameBoard = ({ userId, isAdmin }) => {
     // Auto-close the overlay when the reveal window expires (biddingWindowOpensAt).
     useEffect(() => {
         const prev = prevPhaseRef.current;
-        const curr = game.phase;
+        const curr = phase;
         if (prev === "dealing" && curr === "bidding") {
             dealRevealKeyRef.current += 1;
             setShowDealReveal(true);
 
             // Auto-close when the reveal window ends (server timestamp)
-            const opensAt = game.bidding?.biddingWindowOpensAt;
+            const opensAt = bidding?.biddingWindowOpensAt;
             const delayMs = opensAt ? Math.max(0, opensAt - Date.now()) : 7500;
             setTimeout(() => setShowDealReveal(false), delayMs);
         }
         prevPhaseRef.current = curr;
-    }, [game.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
 
@@ -128,12 +97,12 @@ const GameBoard = ({ userId, isAdmin }) => {
             dealingAnimRef.current = null;
         }
 
-        if (game.phase !== "dealing" || game.myHand.length === 0) {
+        if (phase !== "dealing" || myHand.length === 0) {
             setDealingVisibleCount(0);
             return;
         }
 
-        const total = game.myHand.length;
+        const total = myHand.length;
         let count = 0;
         setDealingVisibleCount(0);
 
@@ -152,10 +121,10 @@ const GameBoard = ({ userId, isAdmin }) => {
                 dealingAnimRef.current = null;
             }
         };
-    }, [game.phase, game.myHand.length]);
+    }, [phase, myHand.length]);
 
     // Reset inspect mode when trick clears
-    const playsCount = game.currentTrick?.plays?.length || 0;
+    const playsCount = currentTrick?.plays?.length || 0;
     useEffect(() => {
         if (playsCount === 0) setInspectMode(false);
     }, [playsCount]);
@@ -164,21 +133,21 @@ const GameBoard = ({ userId, isAdmin }) => {
     // Compare by LENGTH so a player who reveals twice (holds both teammate
     // cards) still triggers the second announcement correctly.
     useEffect(() => {
-        const curr = game.revealedPartners || [];
+        const curr = revealedPartners || [];
         const prev = prevRevealedPartnersRef.current;
 
         if (curr.length > prev.length) {
             // The newly appended reveal is always the last element
             const newPartnerId = curr[curr.length - 1];
-            const playerNames = game.playerNames || {};
-            const resolveName = (pid) => playerNames[pid] || pid?.substring(0, 8);
+            const names = playerNames || {};
+            const resolveName = (pid) => names[pid] || pid?.substring(0, 8);
 
             if (revealAnnouncementTimerRef.current) {
                 clearTimeout(revealAnnouncementTimerRef.current);
             }
             setRevealAnnouncement({
                 playerName: resolveName(newPartnerId),
-                bidderName: resolveName(game.leader),
+                bidderName: resolveName(leader),
             });
             revealAnnouncementTimerRef.current = setTimeout(
                 () => setRevealAnnouncement(null),
@@ -187,7 +156,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
         // Store a snapshot so length comparisons survive re-renders
         prevRevealedPartnersRef.current = [...curr];
-    }, [game.revealedPartners]); // eslint-disable-line
+    }, [revealedPartners]); // eslint-disable-line
 
     // Cleanup timer on unmount
     useEffect(() => () => {
@@ -198,13 +167,13 @@ const GameBoard = ({ userId, isAdmin }) => {
     // These must all live ABOVE any early return (Rules of Hooks).
 
     const allPartnersRevealed =
-        (game.partnerCards?.length ?? 0) > 0 &&
-        game.partnerCards.every((pc) => pc.revealed);
+        (partnerCards?.length ?? 0) > 0 &&
+        partnerCards.every((pc) => pc.revealed);
 
     // Server-confirmed team membership (public info as reveals happen)
-    const myTeam = game.teams?.bid?.includes(userId)
+    const myTeam = teams?.bid?.includes(userId)
         ? "bid"
-        : game.teams?.oppose?.includes(userId)
+        : teams?.oppose?.includes(userId)
         ? "oppose"
         : null;
 
@@ -214,9 +183,8 @@ const GameBoard = ({ userId, isAdmin }) => {
     //   whichCopy === null   → leader holds 1 copy, only 1 copy available
     //   whichCopy !== null   → leader holds 0 copies, 2 copies available
     const myKnownRelation = useMemo(() => {
-        const partnerCards = game.partnerCards;
-        if (!partnerCards?.length || !game.myHand?.length) return null;
-        if (!["powerhouse", "playing"].includes(game.phase)) return null;
+        if (!partnerCards?.length || !myHand?.length) return null;
+        if (!["powerhouse", "playing"].includes(phase)) return null;
         // Only skip inference when server has confirmed us on the bid team
         // (after our partner card was revealed). "oppose" is the default for
         // ALL non-leaders, so we still need to infer when myTeam === "oppose".
@@ -224,14 +192,14 @@ const GameBoard = ({ userId, isAdmin }) => {
         // When all partners are revealed, server data is fully authoritative — skip inference
         if (allPartnersRevealed) return null;
 
-        const is2Deck = game.configKey?.includes("2D");
+        const is2Deck = configKey?.includes("2D");
 
         if (!is2Deck) {
             // 1-deck: if I hold any UNREVEALED partner card slot → certain teammate.
             // Skip revealed slots — those are already filled by the revealed player.
             for (const pc of partnerCards) {
                 if (!pc.card || pc.revealed) continue;
-                const inHand = game.myHand.some(
+                const inHand = myHand.some(
                     (c) => c.suit === pc.card.suit && c.rank === pc.card.rank
                 );
                 if (inHand) return "certain-teammate";
@@ -262,7 +230,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         let hasPotential = false;
 
         for (const g of Object.values(groups)) {
-            const myCount = game.myHand.filter(
+            const myCount = myHand.filter(
                 (c) => c.suit === g.suit && c.rank === g.rank
             ).length;
             if (myCount === 0) continue;
@@ -283,7 +251,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
 
         return hasCertain ? "certain-teammate" : hasPotential ? "potential-teammate" : "certain-not-teammate";
-    }, [game.partnerCards, game.myHand, game.configKey, game.phase, myTeam, allPartnersRevealed]); // eslint-disable-line
+    }, [partnerCards, myHand, configKey, phase, myTeam, allPartnersRevealed]); // eslint-disable-line
 
     // Effective team: private inference overrides the server's default "oppose"
     // assignment (all non-leaders start on oppose until partner card reveal).
@@ -298,18 +266,18 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     // ── Early return (after all hooks) ────────────────────────────────────
 
-    if (!game.phase) {
+    if (!phase) {
         return <div className="game-board-loading">Loading game state...</div>;
     }
 
     const getName = (pid) => playerNames[pid] || pid?.substring(0, 8);
-    const isBidLeader = game.leader === userId;
+    const isBidLeader = leader === userId;
     const isMyTurn =
-        game.phase === "bidding"
+        phase === "bidding"
             // Open bidding: any non-passed active player "has a turn"
-            ? !game.bidding?.passed?.includes(userId)
-            : game.phase === "playing"
-            ? game.currentTrick?.currentTurn === userId
+            ? !bidding?.passed?.includes(userId)
+            : phase === "playing"
+            ? currentTrick?.currentTurn === userId
             : false;
 
     const handleQuitGame = () => {
@@ -320,36 +288,36 @@ const GameBoard = ({ userId, isAdmin }) => {
     // --- Phase-aware helpers for CircularTable ---
 
     const computeCardCount = (pid) => {
-        const total = CARDS_PER_PLAYER[game.configKey] || 13;
-        const trickPlays = game.currentTrick?.plays || [];
+        const total = CARDS_PER_PLAYER[configKey] || 13;
+        const trickPlays = currentTrick?.plays || [];
         const hasPlayed = trickPlays.some((p) => p.playerId === pid);
-        return Math.max(0, total - (game.currentRound || 0) - (hasPlayed ? 1 : 0));
+        return Math.max(0, total - (currentRound || 0) - (hasPlayed ? 1 : 0));
     };
 
     const getIsTurn = (pid) => {
-        switch (game.phase) {
+        switch (phase) {
             case "shuffling":
             case "dealing":
-                return pid === game.dealer;
+                return pid === dealer;
             case "bidding":
-                return pid === game.bidding?.currentTurn;
+                return pid === bidding?.currentTurn;
             case "powerhouse":
-                return pid === game.leader;
+                return pid === leader;
             case "playing":
-                return pid === game.currentTrick?.currentTurn;
+                return pid === currentTrick?.currentTurn;
             default:
                 return false;
         }
     };
 
     const getCardCount = (pid) => {
-        const total = CARDS_PER_PLAYER[game.configKey] || 13;
-        switch (game.phase) {
+        const total = CARDS_PER_PLAYER[configKey] || 13;
+        switch (phase) {
             case "shuffling":
                 return 0;
             case "dealing":
                 // Show hand sizes as they arrive from server during dealing
-                return game.handSizes?.[pid] ?? 0;
+                return handSizes?.[pid] ?? 0;
             case "bidding":
             case "powerhouse":
                 return total;
@@ -361,16 +329,16 @@ const GameBoard = ({ userId, isAdmin }) => {
     };
 
     const getTeamClass = (pid) => {
-        if (["shuffling", "dealing", "bidding", "powerhouse"].includes(game.phase)) return "";
-        const isBidTeam = game.teams?.bid?.includes(pid);
-        const isOppose = game.teams?.oppose?.includes(pid);
+        if (["shuffling", "dealing", "bidding", "powerhouse"].includes(phase)) return "";
+        const isBidTeam = teams?.bid?.includes(pid);
+        const isOppose = teams?.oppose?.includes(pid);
         if (isBidTeam) return "team-bid";
-        if (isOppose && game.leader) return "team-oppose";
+        if (isOppose && leader) return "team-oppose";
         return "";
     };
 
     const playerTrickPoints = {};
-    (game.tricks || []).forEach((t) => {
+    (tricks || []).forEach((t) => {
         if (t.winner) {
             playerTrickPoints[t.winner] =
                 (playerTrickPoints[t.winner] || 0) + (t.points || 0);
@@ -382,10 +350,10 @@ const GameBoard = ({ userId, isAdmin }) => {
     const getRelation = (pid) => {
         if (pid === userId) return null;
 
-        const pidIsLeader          = pid === game.leader;
-        const pidIsRevealedPartner = (game.revealedPartners || []).includes(pid);
-        const pidOnBid             = (game.teams?.bid || []).includes(pid);
-        const partnerCardsChosen   = (game.partnerCards?.length ?? 0) > 0;
+        const pidIsLeader          = pid === leader;
+        const pidIsRevealedPartner = (revealedPartners || []).includes(pid);
+        const pidOnBid             = (teams?.bid || []).includes(pid);
+        const partnerCardsChosen   = (partnerCards?.length ?? 0) > 0;
 
         // ── Bidder (leader) seat ─────────────────────────────────────────
         // Relation only appears after partner cards are selected (not during
@@ -422,13 +390,13 @@ const GameBoard = ({ userId, isAdmin }) => {
     };
 
     const buildPlayerList = () => {
-        return (game.seatOrder || []).map((pid) => ({
+        return (seatOrder || []).map((pid) => ({
             id: pid,
             name: getName(pid),
             isMe: pid === userId,
-            isLeader: pid === game.leader,
-            isDealer: pid === game.dealer,
-            isPartner: game.revealedPartners?.includes(pid),
+            isLeader: pid === leader,
+            isDealer: pid === dealer,
+            isPartner: revealedPartners?.includes(pid),
             isTurn: getIsTurn(pid),
             teamClass: getTeamClass(pid),
             cardCount: getCardCount(pid),
@@ -439,83 +407,82 @@ const GameBoard = ({ userId, isAdmin }) => {
         }));
     };
 
-    const isTablePhase = ["shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(game.phase);
-    const isPlayingPhase = game.phase === "playing";
+    const isTablePhase = ["shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase);
+    const isPlayingPhase = phase === "playing";
 
     // Center content for CircularTable based on phase
     const renderCenterContent = ({ seatPositionMap, tableSize }) => {
-        if (game.phase === "shuffling") {
+        if (phase === "shuffling") {
             return (
                 <ShufflingPanel
                     isTableCenter
-                    dealer={game.dealer}
+                    dealer={dealer}
                     userId={userId}
-                    shuffleQueue={game.shuffleQueue}
+                    shuffleQueue={shuffleQueue}
                     getName={getName}
-                    currentGameNumber={game.currentGameNumber}
-                    totalGames={game.totalGames}
+                    currentGameNumber={currentGameNumber}
+                    totalGames={totalGames}
                 />
             );
         }
-        if (game.phase === "dealing") {
-            const dealerIndex = (game.seatOrder || []).indexOf(game.dealer);
+        if (phase === "dealing") {
+            const dealerIdx = (seatOrder || []).indexOf(dealer);
             return (
                 <DealingOverlay
                     isTableCenter
-                    myHand={game.myHand}
-                    dealingConfig={game.dealingConfig}
-                    isDealer={game.dealer === userId}
+                    myHand={myHand}
+                    dealingConfig={dealingConfig}
+                    isDealer={dealer === userId}
                     visibleCount={dealingVisibleCount}
-                    seatOrder={game.seatOrder || []}
-                    dealerIndex={dealerIndex >= 0 ? dealerIndex : 0}
+                    seatOrder={seatOrder || []}
+                    dealerIndex={dealerIdx >= 0 ? dealerIdx : 0}
                     userId={userId}
                     seatPositionMap={seatPositionMap}
                     tableSize={tableSize}
                 />
             );
         }
-        if (game.phase === "bidding") {
+        if (phase === "bidding") {
             return (
                 <BidCenterDisplay
-                    bidding={game.bidding}
+                    bidding={bidding}
                     getName={getName}
                 />
             );
         }
-        if (game.phase === "powerhouse") {
+        if (phase === "powerhouse") {
             // Sub-phase 1: suit selection
-            if (!game.powerHouseSuit) {
+            if (!powerHouseSuit) {
                 if (isBidLeader) {
                     return (
                         <PowerHouseSelector
                             isTableCenter
-                            powerHouseSuit={game.powerHouseSuit}
-                            partnerCards={game.partnerCards}
-                            myHand={game.myHand}
-                            configKey={game.configKey}
-                            partnerCardCount={game.partnerCardCount}
+                            powerHouseSuit={powerHouseSuit}
+                            partnerCards={partnerCards}
+                            myHand={myHand}
+                            configKey={configKey}
+                            partnerCardCount={partnerCardCount}
                         />
                     );
                 }
                 return (
                     <div className="powerhouse-waiting-center">
                         <div className="waiting-label">Selecting PowerHouse...</div>
-                        <div className="waiting-name">{getName(game.leader)}</div>
+                        <div className="waiting-name">{getName(leader)}</div>
                     </div>
                 );
             }
             // Sub-phase 2: partner selection — center shows suit + status
-            const phSuit = game.powerHouseSuit;
             return (
                 <div className="powerhouse-waiting-center">
-                    <div className={`waiting-suit-symbol ${isRedSuit(phSuit) ? "red" : "black"}`}>
-                        {suitSymbol(phSuit)}
+                    <div className={`waiting-suit-symbol ${isRedSuit(powerHouseSuit) ? "red" : "black"}`}>
+                        {suitSymbol(powerHouseSuit)}
                     </div>
                     <div className="waiting-label">
                         {isBidLeader ? "Select Teammates" : "Selecting Teammates..."}
                     </div>
                     {!isBidLeader && (
-                        <div className="waiting-name">{getName(game.leader)}</div>
+                        <div className="waiting-name">{getName(leader)}</div>
                     )}
                 </div>
             );
@@ -523,13 +490,13 @@ const GameBoard = ({ userId, isAdmin }) => {
         // Playing phase — with powersuit watermark
         return (
             <>
-                {game.powerHouseSuit && (
-                    <div className={`powersuit-watermark ${isRedSuit(game.powerHouseSuit) ? "red" : "black"}`}>
-                        {suitSymbol(game.powerHouseSuit)}
+                {powerHouseSuit && (
+                    <div className={`powersuit-watermark ${isRedSuit(powerHouseSuit) ? "red" : "black"}`}>
+                        {suitSymbol(powerHouseSuit)}
                     </div>
                 )}
                 <PlayArea
-                    plays={game.currentTrick?.plays || []}
+                    plays={currentTrick?.plays || []}
                     inspectMode={inspectMode}
                     onToggleInspect={() => setInspectMode(!inspectMode)}
                     getCardSvg={getCardComponent}
@@ -537,17 +504,17 @@ const GameBoard = ({ userId, isAdmin }) => {
                     getName={getName}
                     seatPositionMap={seatPositionMap}
                     tableSize={tableSize}
-                    roundLabel={`Round ${(game.currentRound || 0) + 1}`}
-                    seatOrder={game.seatOrder}
-                    tricksCount={game.tricks?.length || 0}
+                    roundLabel={`Round ${(currentRound || 0) + 1}`}
+                    seatOrder={seatOrder}
+                    tricksCount={tricks?.length || 0}
                     lastTrickWinner={
-                        game.tricks?.length > 0
-                            ? game.tricks[game.tricks.length - 1].winner
+                        tricks?.length > 0
+                            ? tricks[tricks.length - 1].winner
                             : null
                     }
                     lastTrickCards={
-                        game.tricks?.length > 0
-                            ? game.tricks[game.tricks.length - 1].cards
+                        tricks?.length > 0
+                            ? tricks[tricks.length - 1].cards
                             : null
                     }
                 />
@@ -578,24 +545,24 @@ const GameBoard = ({ userId, isAdmin }) => {
                 </div>
             )}
 
-            {game.error && <div className="game-error-banner">{game.error}</div>}
+            {error && <div className="game-error-banner">{error}</div>}
 
             {/* Non-table phases: use horizontal player list */}
             {!isTablePhase && (
                 <PlayerList
-                    seatOrder={game.seatOrder}
-                    handSizes={game.handSizes}
-                    teams={game.teams}
-                    revealedPartners={game.revealedPartners}
+                    seatOrder={seatOrder}
+                    handSizes={handSizes}
+                    teams={teams}
+                    revealedPartners={revealedPartners}
                     currentTurn={
-                        game.phase === "bidding"
-                            ? game.bidding?.currentTurn
-                            : game.currentTrick?.currentTurn
+                        phase === "bidding"
+                            ? bidding?.currentTurn
+                            : currentTrick?.currentTurn
                     }
-                    leader={game.leader}
-                    dealer={game.dealer}
+                    leader={leader}
+                    dealer={dealer}
                     userId={userId}
-                    scores={game.scores}
+                    scores={scores}
                     playerAvatars={playerAvatars}
                     getName={getName}
                 />
@@ -606,18 +573,18 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <>
                     {/* Minor 1: TeamScoreHUD (with scoreboard button) shows during ALL table phases */}
                     <TeamScoreHUD
-                        tricks={game.tricks}
-                        teams={game.teams}
-                        leader={game.leader}
-                        partnerCards={game.partnerCards}
-                        phase={game.phase}
-                        removedTwos={game.removedTwos || []}
+                        tricks={tricks}
+                        teams={teams}
+                        leader={leader}
+                        partnerCards={partnerCards}
+                        phase={phase}
+                        removedTwos={removedTwos || []}
                     />
 
                     {isPlayingPhase && (
                         <PartnerCardDisplay
-                            partnerCards={game.partnerCards}
-                            powerHouseSuit={game.powerHouseSuit}
+                            partnerCards={partnerCards}
+                            powerHouseSuit={powerHouseSuit}
                             getName={getName}
                         />
                     )}
@@ -647,15 +614,15 @@ const GameBoard = ({ userId, isAdmin }) => {
                         />
 
                         {/* Partner picker overlay — covers CircularTable during partner selection */}
-                        {game.phase === "powerhouse" && game.powerHouseSuit && isBidLeader && (
+                        {phase === "powerhouse" && powerHouseSuit && isBidLeader && (
                             <div className="partner-picker-overlay">
                                 <PowerHouseSelector
                                     isOverlay
-                                    powerHouseSuit={game.powerHouseSuit}
-                                    partnerCards={game.partnerCards}
-                                    myHand={game.myHand}
-                                    configKey={game.configKey}
-                                    partnerCardCount={game.partnerCardCount}
+                                    powerHouseSuit={powerHouseSuit}
+                                    partnerCards={partnerCards}
+                                    myHand={myHand}
+                                    configKey={configKey}
+                                    partnerCardCount={partnerCardCount}
                                 />
                             </div>
                         )}
@@ -663,61 +630,61 @@ const GameBoard = ({ userId, isAdmin }) => {
                 </>
             )}
 
-            {(game.phase === "scoring" || game.phase === "finished") && (
+            {(phase === "scoring" || phase === "finished") && (
                 <ScoreBoard
-                    scores={game.scores}
-                    teams={game.teams}
-                    tricks={game.tricks}
-                    phase={game.phase}
-                    scoringResult={game.scoringResult}
-                    seatOrder={game.seatOrder}
-                    bidding={game.bidding}
+                    scores={scores}
+                    teams={teams}
+                    tricks={tricks}
+                    phase={phase}
+                    scoringResult={scoringResult}
+                    seatOrder={seatOrder}
+                    bidding={bidding}
                     getName={getName}
-                    nextRoundReady={game.nextRoundReady}
+                    nextRoundReady={nextRoundReady}
                     userId={userId}
                     isAdmin={isAdmin}
                     onQuitGame={() => setShowQuitConfirm(true)}
-                    currentGameNumber={game.currentGameNumber}
-                    totalGames={game.totalGames}
+                    currentGameNumber={currentGameNumber}
+                    totalGames={totalGames}
                 />
             )}
 
-            {game.phase === "series-finished" && (
+            {phase === "series-finished" && (
                 <SeriesFinishedPanel
-                    finalRankings={game.finalRankings}
-                    scores={game.scores}
-                    seatOrder={game.seatOrder}
+                    finalRankings={finalRankings}
+                    scores={scores}
+                    seatOrder={seatOrder}
                     getName={getName}
                     userId={userId}
                 />
             )}
 
             {/* Player hand — hidden during shuffling/dealing and while reveal overlay is active */}
-            {game.phase !== "finished" &&
-             game.phase !== "series-finished" &&
-             game.phase !== "shuffling" &&
-             game.phase !== "dealing" &&
+            {phase !== "finished" &&
+             phase !== "series-finished" &&
+             phase !== "shuffling" &&
+             phase !== "dealing" &&
              !showDealReveal && (
                 <PlayerHand
-                    cards={game.myHand}
-                    validPlays={game.validPlays}
-                    isMyTurn={isMyTurn && game.phase === "playing"}
+                    cards={myHand}
+                    validPlays={validPlays}
+                    isMyTurn={isMyTurn && phase === "playing"}
                 />
             )}
 
             {/* Bidding controls below the hand */}
-            {game.phase === "bidding" && !showDealReveal && (
+            {phase === "bidding" && !showDealReveal && (
                 <BiddingPanel
-                    bidding={game.bidding}
+                    bidding={bidding}
                     userId={userId}
                 />
             )}
 
             {/* Click-to-reveal overlay: triggers after dealing phase completes */}
-            {showDealReveal && game.myHand.length > 0 && (
+            {showDealReveal && myHand.length > 0 && (
                 <DealRevealOverlay
                     key={dealRevealKeyRef.current}
-                    cards={game.myHand}
+                    cards={myHand}
                     onComplete={handleRevealComplete}
                 />
             )}

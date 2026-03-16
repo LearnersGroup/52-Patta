@@ -41,7 +41,7 @@ function calculateGameResult(gameState) {
         bidTeamPoints,
         opposeTeamPoints,
         bidAmount,
-        bidTeamSuccess: bidTeamPoints > bidAmount,
+        bidTeamSuccess: bidTeamPoints >= bidAmount,
         playerDeltas: {},
     };
 
