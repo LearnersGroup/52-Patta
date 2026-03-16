@@ -287,20 +287,17 @@ describe('HIGH: WebSocket Input Validation', () => {
         expect(createRoom).toMatch(/!roomname|typeof roomname/);
     });
 
-    test('createRoom should validate roompass length', () => {
-        expect(createRoom).toMatch(/roompass\.length\s*<\s*6|roompass.*length/);
-    });
-
     test('createRoom should validate player_count range', () => {
-        expect(createRoom).toMatch(/count\s*<\s*2|count.*10|isNaN/);
+        expect(createRoom).toMatch(/count\s*<\s*4|count.*13|isNaN/);
     });
 
     test('createRoom should sanitize room name', () => {
         expect(createRoom).toMatch(/sanitizedRoomname|replace.*<\[?\^?>?\]*>/);
     });
 
-    test('joinRoom should validate roomname', () => {
-        expect(joinRoom).toMatch(/!roomname|typeof roomname/);
+    test('joinRoom should validate code', () => {
+        // Rooms are now joined by code, not roomname+password
+        expect(joinRoom).toMatch(/!code|typeof code/);
     });
 });
 

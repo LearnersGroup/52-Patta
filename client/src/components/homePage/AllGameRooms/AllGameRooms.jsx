@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "react-query";
-import { get_all_rooms } from "../../../api/apiHandler";
 import { useNavigate } from "react-router-dom";
 import { socket } from "../../../socket";
 import { useDispatch } from "react-redux";
@@ -9,9 +7,8 @@ import { notify } from "../../../redux/slices/alert";
 const AllGameRooms = () => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const [passes, setPasses] = useState({});          // per-room password map
-    const [shakingRoomId, setShakingRoomId] = useState(null);
-    const { data, status } = useQuery("all-game-rooms", get_all_rooms);
+    const [code, setCode] = useState("");
+    const [joining, setJoining] = useState(false);
 
     const handleCreateGameRoom = () => {
         navigate("/game-room/new");
@@ -35,119 +32,57 @@ const AllGameRooms = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const triggerShake = (roomId) => {
-        setShakingRoomId(roomId);
-        setTimeout(() => setShakingRoomId(null), 500);
-    };
-
-    const handleJoinRoom = (roomname, id, isPublic) => {
-        const roompass = isPublic ? "" : (passes[id] || "");
-        socket.emit("user-join-room", { roomname, roompass, id }, (err) => {
-            if (err === "Invalid Credentials") {
-                triggerShake(id);
-                notify("Incorrect password", "error")(dispatch);
-            } else if (err) {
+    const handleJoinRoom = () => {
+        const trimmed = code.trim().toUpperCase();
+        if (!trimmed) {
+            notify("Enter a room code", "error")(dispatch);
+            return;
+        }
+        setJoining(true);
+        socket.emit("user-join-room", { code: trimmed }, (err) => {
+            setJoining(false);
+            if (err) {
                 notify(err, "error")(dispatch);
             }
         });
     };
 
+    const handleKeyDown = (e) => {
+        if (e.key === "Enter") handleJoinRoom();
+    };
+
     return (
         <div className="rooms-section">
             <div className="section-header">
-                <h2>♠ Active Rooms</h2>
+                <h2>♠ Join a Game</h2>
                 <button className="btn-primary" onClick={handleCreateGameRoom}>
                     + Create Room
                 </button>
             </div>
 
-            {status === "error" && (
-                <p className="rooms-status">Error fetching rooms. Please try again.</p>
-            )}
-            {status === "loading" && (
-                <p className="rooms-status">Loading rooms...</p>
-            )}
-            {status === "success" &&
-                (data.length === 0 ? (
-                    <p className="rooms-status">
-                        No active rooms yet. Be the first to create one!
-                    </p>
-                ) : (
-                    <table className="rooms-table">
-                        <thead>
-                            <tr>
-                                <th>Room Name</th>
-                                <th>Admin</th>
-                                <th>Players</th>
-                                <th>Join</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {data.map((room) => {
-                                const isFull = room.players.length >= room.player_count;
-                                const roomId = room["_id"];
-                                const isPublic = !!room.isPublic;
-                                return (
-                                    <tr key={roomId}>
-                                        <td>
-                                            <span className="room-name-cell">
-                                                <span
-                                                    className={`room-visibility-icon ${isPublic ? "room-visibility-icon--public" : "room-visibility-icon--private"}`}
-                                                    title={isPublic ? "Public room" : "Private room"}
-                                                >
-                                                    {isPublic ? "🌐" : "🔒"}
-                                                </span>
-                                                {room.roomname}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className="room-admin-cell">
-                                                {room.admin.name}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className="player-count-badge">
-                                                {room.players.length} / {room.player_count}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            {isFull ? (
-                                                <span className="room-full-badge">Full</span>
-                                            ) : isPublic ? (
-                                                <div className="join-cell">
-                                                    <button
-                                                        className="btn-primary"
-                                                        onClick={() => handleJoinRoom(room.roomname, roomId, true)}
-                                                    >
-                                                        Join
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="join-cell">
-                                                    <input
-                                                        type="password"
-                                                        className={`join-input${shakingRoomId === roomId ? " shake" : ""}`}
-                                                        value={passes[roomId] || ""}
-                                                        onChange={(e) =>
-                                                            setPasses((prev) => ({ ...prev, [roomId]: e.target.value }))
-                                                        }
-                                                        placeholder="Password"
-                                                    />
-                                                    <button
-                                                        className="btn-primary"
-                                                        onClick={() => handleJoinRoom(room.roomname, roomId, false)}
-                                                    >
-                                                        Join
-                                                    </button>
-                                                </div>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                ))}
+            <div className="join-code-section">
+                <p className="join-code-hint">Enter the room code shared by your host</p>
+                <div className="join-code-row">
+                    <input
+                        className="join-code-input"
+                        type="text"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.toUpperCase())}
+                        onKeyDown={handleKeyDown}
+                        placeholder="e.g. ABC123"
+                        maxLength={6}
+                        autoComplete="off"
+                        spellCheck={false}
+                    />
+                    <button
+                        className="btn-primary"
+                        onClick={handleJoinRoom}
+                        disabled={joining}
+                    >
+                        {joining ? "Joining..." : "Join"}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 };

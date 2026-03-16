@@ -1,6 +1,16 @@
+import { useState } from "react";
 import { WsUserLeaveRoom, WsUserToggleReady, WsGameStart } from "../../api/wsEmitters";
 
 const LobbyView = ({ roomId, roomData, isAdmin }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyCode = () => {
+        if (!roomData?.code) return;
+        navigator.clipboard.writeText(roomData.code).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
     const handleLeave = () => {
         try {
             WsUserLeaveRoom();
@@ -50,6 +60,16 @@ const LobbyView = ({ roomId, roomData, isAdmin }) => {
                     </button>
                 </div>
             </div>
+
+            {roomData?.code && (
+                <div className="room-code-banner">
+                    <span className="room-code-label">Room Code</span>
+                    <span className="room-code-value">{roomData.code}</span>
+                    <button className="room-code-copy" onClick={handleCopyCode}>
+                        {copied ? "Copied!" : "Copy"}
+                    </button>
+                </div>
+            )}
 
             {roomData?.bid_threshold && (
                 <div className="lobby-threshold-info">

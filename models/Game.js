@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const GameSchema = new mongoose.Schema({
+    code: {
+        type: String,
+        unique: true,
+        sparse: true,
+    },
     admin: {
         type: mongoose.Schema.Types.ObjectId, // foreign key
         ref: "user",

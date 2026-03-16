@@ -39,6 +39,48 @@
   }
 }
 
+.room-code-banner {
+  max-width: 720px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 22px;
+  background: rgba(201, 162, 39, 0.06);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+
+  .room-code-label {
+    font-family: $font-heading;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    white-space: nowrap;
+  }
+
+  .room-code-value {
+    font-family: monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: $gold;
+    text-shadow: 0 0 12px rgba(201, 162, 39, 0.35);
+    flex: 1;
+  }
+
+  .room-code-copy {
+    @include btn-base;
+    padding: 6px 16px;
+    font-size: 0.8rem;
+    background: rgba(201, 162, 39, 0.1);
+    border: 1px solid $border-gold;
+    color: $gold;
+
+    &:hover { background: rgba(201, 162, 39, 0.18); }
+  }
+}
+
 .lobby-threshold-info {
   max-width: 720px;
   margin: 0 auto 16px;
