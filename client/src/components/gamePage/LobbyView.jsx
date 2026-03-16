@@ -93,7 +93,7 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                             const initial = name.charAt(0).toUpperCase();
                             const avatar = player.playerId?.avatar || "";
                             return (
-                                <div key={player["_id"]} className="lobby-player-block">
+                                <div key={player["_id"]} className={`lobby-player-block${player.ready ? " lobby-player-block--ready" : ""}`}>
                                     <div className="lobby-player-avatar-wrap">
                                         <div className="lobby-player-avatar">
                                             {avatar ? (

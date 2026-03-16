@@ -186,6 +186,12 @@
       justify-content: center;
       overflow: hidden;
       flex-shrink: 0;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      .lobby-player-block--ready & {
+        border-color: #2ecc71;
+        box-shadow: 0 0 10px rgba(46, 204, 113, 0.35);
+      }
 
       img {
         width: 100%;
@@ -246,6 +252,12 @@
       max-width: 110px;
       overflow: hidden;
       text-overflow: ellipsis;
+      transition: border-color 0.2s ease, color 0.2s ease;
+
+      .lobby-player-block--ready & {
+        border-color: rgba(46, 204, 113, 0.5);
+        color: #a4f0c0;
+      }
     }
   }
 }
