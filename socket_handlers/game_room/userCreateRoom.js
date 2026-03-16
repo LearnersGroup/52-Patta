@@ -66,7 +66,7 @@ module.exports = wrapHandler('user-create-room', async (socket, io, data, callba
         roomname: sanitizedRoomname,
         code,
         player_count: count,
-        players: [{ playerId: socket.user.id }],
+        players: [{ playerId: socket.user.id, ready: true }],
         admin: socket.user.id,
     };
     gameData.deck_count = deckCountParsed;

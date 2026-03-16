@@ -147,6 +147,7 @@ const GamePage = () => {
                     roomId={params.id}
                     roomData={roomData}
                     isAdmin={isAdmin}
+                    userId={userId}
                 />
             )}
         </div>

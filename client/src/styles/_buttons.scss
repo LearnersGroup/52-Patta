@@ -68,6 +68,19 @@
     box-shadow: 0 4px 14px rgba(46, 204, 113, 0.2);
   }
   &:active { transform: translateY(0); }
+
+  &--active {
+    background: rgba(46, 204, 113, 0.22);
+    border-color: #2ecc71;
+    color: #2ecc71;
+
+    &:hover {
+      background: rgba(204, 41, 54, 0.12);
+      border-color: rgba(204, 41, 54, 0.5);
+      color: #ff6b6b;
+      box-shadow: none;
+    }
+  }
 }
 
 .btn-link {

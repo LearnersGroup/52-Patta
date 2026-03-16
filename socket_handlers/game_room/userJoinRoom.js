@@ -76,7 +76,7 @@ module.exports = wrapHandler('user-join-room', async (socket, io, data, callback
                 _id: game.id,
                 $expr: { $lt: [{ $size: "$players" }, "$player_count"] }
             },
-            { $push: { players: { playerId: socket.user.id } } },
+            { $push: { players: { playerId: socket.user.id, ready: true } } },
             { new: true }
         );
 
