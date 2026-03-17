@@ -1,0 +1,391 @@
+// ─── JUDGEMENT GAME — TRUMP ANNOUNCE ────────────────────────
+
+.trump-announce-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.trump-announce-title {
+  font-family: $font-heading;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: $cream-muted;
+  margin-bottom: 2px;
+}
+
+.trump-announce-watermark {
+  font-size: 3.2rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 18px currentColor);
+  animation: trump-pulse 2s ease-in-out infinite;
+
+  &.red  { color: $red-suit; }
+  &.black { color: $cream; }
+}
+
+@keyframes trump-pulse {
+  0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 14px currentColor); }
+  50%       { transform: scale(1.08); filter: drop-shadow(0 0 28px currentColor); }
+}
+
+.trump-announce-sub {
+  font-size: 0.65rem;
+  color: $cream-muted;
+  letter-spacing: 0.08em;
+  font-style: italic;
+}
+
+.trump-announce-countdown {
+  font-size: 0.72rem;
+  color: $gold;
+  font-family: $font-heading;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+.trump-announce-proceed {
+  margin-top: 6px;
+  font-size: 0.72rem;
+  padding: 7px 16px;
+  letter-spacing: 0.08em;
+}
+
+// ─── TRUMP BADGE ON TABLE ────────────────────────────────────
+
+.jdg-trump-table-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba($bg-panel, 0.9);
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+  padding: 5px 9px 4px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+  gap: 1px;
+
+  .jdg-trump-table-suit {
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+
+  .jdg-trump-table-label {
+    font-family: $font-heading;
+    font-size: 0.5rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: $gold;
+  }
+
+  &.red  .jdg-trump-table-suit { color: $red-suit; }
+  &.black .jdg-trump-table-suit { color: $cream; }
+}
+
+// ─── JUDGEMENT INFO HUD (top-left) ──────────────────────────
+
+.jdg-info-hud {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba($bg-panel, 0.92);
+  border: 1px solid $border-gold;
+  border-radius: 20px;
+  padding: 5px 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(6px);
+}
+
+.jdg-hud-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 8px;
+
+  .jdg-hud-suit {
+    font-size: 1.1rem;
+    line-height: 1.1;
+    &.red   { color: $red-suit; }
+    &.black { color: $cream; }
+  }
+
+  .jdg-hud-pill-value {
+    font-family: $font-heading;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: $cream;
+    line-height: 1.1;
+  }
+
+  .jdg-hud-pill-label {
+    font-family: $font-heading;
+    font-size: 0.5rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    line-height: 1;
+    margin-top: 1px;
+  }
+}
+
+.jdg-hud-divider {
+  width: 1px;
+  height: 26px;
+  background: $border-gold;
+  flex-shrink: 0;
+}
+
+// ─── JUDGEMENT SCOREBOARD TABLE ──────────────────────────────
+
+.judgement-scoreboard {
+  @include panel;
+  padding: 20px 16px;
+  margin: 16px 0;
+  animation: fadeInScale 0.4s ease-out;
+}
+
+.jdg-score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid $border-gold;
+}
+
+.jdg-score-title {
+  font-family: $font-heading;
+  font-size: 0.88rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: $gold;
+  margin: 0;
+}
+
+.jdg-trump-badge-inline {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba($bg-panel-light, 0.8);
+  border: 1px solid $border-gold;
+  border-radius: 12px;
+  padding: 3px 10px;
+
+  .jdg-trump-suit-sym {
+    font-size: 1rem;
+    &.red   { color: $red-suit; }
+    &.black { color: $cream; }
+  }
+
+  .jdg-trump-suit-label {
+    font-family: $font-heading;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: $gold;
+  }
+}
+
+.judgement-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 50vh;
+  border-radius: 8px;
+  border: 1px solid rgba(201, 162, 39, 0.15);
+}
+
+.judgement-score-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: $bg-panel;
+  }
+
+  th {
+    font-family: $font-heading;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    padding: 8px 10px;
+    text-align: center;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.25);
+    white-space: nowrap;
+
+    &.jst-round-col { text-align: left; min-width: 52px; }
+    &.jst-me { color: $gold; }
+  }
+
+  td {
+    padding: 6px 10px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: $cream;
+    &.jst-round-label {
+      text-align: left;
+      font-family: $font-heading;
+      font-size: 0.7rem;
+      color: $cream-muted;
+      letter-spacing: 0.06em;
+    }
+  }
+
+  tfoot td {
+    border-top: 1px solid rgba(201, 162, 39, 0.3);
+    border-bottom: none;
+    padding: 9px 10px;
+    background: rgba($bg-panel-light, 0.5);
+
+    &.jst-round-label {
+      font-family: $font-heading;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: $gold;
+    }
+  }
+}
+
+.jst-cell {
+  vertical-align: middle;
+
+  &.jst-hit { background: rgba(46, 204, 113, 0.06); }
+  &.jst-miss { background: rgba(204, 41, 54, 0.06); }
+}
+
+.jst-won-bid {
+  display: block;
+  font-family: $font-heading;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.jst-delta {
+  display: block;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin-top: 1px;
+
+  &.jst-delta-pos  { color: #2ecc71; }
+  &.jst-delta-zero { color: $red-suit; }
+}
+
+.jst-total-cell {
+  strong {
+    font-family: $font-heading;
+    font-size: 1rem;
+    font-weight: 700;
+    color: $gold;
+  }
+}
+
+.jst-me {
+  background: rgba(201, 162, 39, 0.04);
+}
+
+// ─── COUNTDOWN BAR ───────────────────────────────────────────
+
+.jdg-countdown-wrap {
+  margin-top: 14px;
+  border-top: 1px solid $border-gold;
+  padding-top: 12px;
+}
+
+.jdg-countdown-label {
+  font-size: 0.72rem;
+  color: $cream-muted;
+  letter-spacing: 0.06em;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.jdg-countdown-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.jdg-countdown-fill {
+  height: 100%;
+  background: linear-gradient(90deg, $gold-dark, $gold);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+// ─── SEAT BID/SCORE STATUS ───────────────────────────────────
+
+.jdg-seat-status {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.78rem;
+  line-height: 1;
+  font-family: $font-heading;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.jdg-waiting {
+  color: $cream-muted;
+  background: rgba(255, 255, 255, 0.05);
+
+  .jdg-q     { font-size: 0.9rem; font-weight: 700; color: $cream-muted; }
+  .jdg-label { font-size: 0.52rem; letter-spacing: 0.08em; text-transform: uppercase; color: $cream-muted; margin-left: 2px; }
+}
+
+.jdg-bid-placed {
+  color: $gold;
+  background: rgba(201, 162, 39, 0.1);
+  border: 1px solid rgba(201, 162, 39, 0.2);
+
+  .jdg-bid-num { font-size: 0.92rem; font-weight: 700; }
+  .jdg-label   { font-size: 0.52rem; letter-spacing: 0.08em; text-transform: uppercase; margin-left: 2px; }
+}
+
+.jdg-playing {
+  gap: 1px;
+
+  .jdg-tricks       { font-size: 0.92rem; font-weight: 700; }
+  .jdg-sep          { font-size: 0.8rem; color: $cream-muted; }
+  .jdg-bid-target   { font-size: 0.85rem; color: $cream-muted; }
+
+  &.jdg-on-target {
+    color: #2ecc71;
+    background: rgba(46, 204, 113, 0.08);
+    border: 1px solid rgba(46, 204, 113, 0.2);
+  }
+
+  &.jdg-over {
+    color: $red-suit;
+    background: rgba(204, 41, 54, 0.08);
+    border: 1px solid rgba(204, 41, 54, 0.2);
+  }
+
+  &.jdg-under {
+    color: $gold;
+    background: rgba(201, 162, 39, 0.06);
+    border: 1px solid rgba(201, 162, 39, 0.15);
+  }
+}

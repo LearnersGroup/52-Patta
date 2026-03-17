@@ -72,7 +72,8 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
                     !!game.reverse_order,
                     game.trump_mode || "random",
                     game.scoreboard_time || null,
-                    game.judgement_bid_time || null
+                    game.judgement_bid_time || null,
+                    game.card_reveal_time || null
                 );
             } else {
                 config = getConfig(playerCount, deckCount);

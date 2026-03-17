@@ -1,4 +1,5 @@
 import { memo, useState, useEffect } from "react";
+import { suitSymbol, isRedSuit } from "./utils/cardMapper";
 
 const JudgementScoreBoard = memo(({
     seatOrder = [],
@@ -30,23 +31,29 @@ const JudgementScoreBoard = memo(({
         return () => clearInterval(timer);
     }, [phase, scoreboardSecs]); // eslint-disable-line
 
-    const trumpDisplay = trumpCard
-        ? `${trumpCard.rank}${trumpCard.suit}`
-        : trumpSuit
-        ? `(${trumpSuit})`
-        : "None";
+    const displaySuit = trumpCard?.suit || trumpSuit;
 
     return (
-        <div className="scoreboard judgement-scoreboard">
-            <div className="score-header">
-                <h3>Round {seriesRoundIndex + 1} of {totalRoundsInSeries} — Trump: {trumpDisplay}</h3>
+        <div className="judgement-scoreboard">
+            <div className="jdg-score-header">
+                <h3 className="jdg-score-title">
+                    Round {seriesRoundIndex + 1} of {totalRoundsInSeries}
+                </h3>
+                {displaySuit && (
+                    <div className="jdg-trump-badge-inline">
+                        <span className={`jdg-trump-suit-sym ${isRedSuit(displaySuit) ? "red" : "black"}`}>
+                            {suitSymbol(displaySuit)}
+                        </span>
+                        <span className="jdg-trump-suit-label">Trump</span>
+                    </div>
+                )}
             </div>
 
             <div className="judgement-table-wrap">
                 <table className="judgement-score-table">
                     <thead>
                         <tr>
-                            <th className="jst-round-col">Round</th>
+                            <th className="jst-round-col">Rnd</th>
                             {seatOrder.map(pid => (
                                 <th key={pid} className={`jst-player-col ${pid === userId ? "jst-me" : ""}`}>
                                     {getName(pid)}
@@ -64,7 +71,7 @@ const JudgementScoreBoard = memo(({
                                     const delta = rr.deltas?.[pid] ?? 0;
                                     const hit = won === bid;
                                     return (
-                                        <td key={pid} className={`jst-cell ${hit ? "jst-hit" : "jst-miss"}`}>
+                                        <td key={pid} className={`jst-cell ${hit ? "jst-hit" : "jst-miss"} ${pid === userId ? "jst-me" : ""}`}>
                                             <span className="jst-won-bid">{won}/{bid}</span>
                                             <span className={`jst-delta ${delta > 0 ? "jst-delta-pos" : "jst-delta-zero"}`}>
                                                 {delta > 0 ? `+${delta}` : "✗"}
@@ -76,10 +83,10 @@ const JudgementScoreBoard = memo(({
                         ))}
                     </tbody>
                     <tfoot>
-                        <tr className="jst-total-row">
+                        <tr>
                             <td className="jst-round-label">Total</td>
                             {seatOrder.map(pid => (
-                                <td key={pid} className="jst-total-cell">
+                                <td key={pid} className={`jst-total-cell ${pid === userId ? "jst-me" : ""}`}>
                                     <strong>{scores[pid] || 0}</strong>
                                 </td>
                             ))}
@@ -89,20 +96,17 @@ const JudgementScoreBoard = memo(({
             </div>
 
             {isFinished && (
-                <div className="next-round-section">
-                    <div className="auto-countdown">
-                        <div className="countdown-text">
-                            Next round in {countdown}s...
-                        </div>
-                        <div className="countdown-bar">
-                            <div
-                                className="countdown-fill"
-                                style={{
-                                    width: `${(countdown / scoreboardSecs) * 100}%`,
-                                    transition: "width 1s linear",
-                                }}
-                            />
-                        </div>
+                <div className="jdg-countdown-wrap">
+                    <div className="jdg-countdown-label">
+                        Next round in {countdown}s...
+                    </div>
+                    <div className="jdg-countdown-bar">
+                        <div
+                            className="jdg-countdown-fill"
+                            style={{
+                                width: `${(countdown / scoreboardSecs) * 100}%`,
+                            }}
+                        />
                     </div>
                 </div>
             )}

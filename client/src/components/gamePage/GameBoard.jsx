@@ -65,6 +65,7 @@ const GameBoard = ({ userId, isAdmin }) => {
     const roundResults = useSelector((state) => state.game.roundResults);
     const trumpMode = useSelector((state) => state.game.trumpMode);
     const scoreboardTimeMs = useSelector((state) => state.game.scoreboardTimeMs);
+    const cardRevealTimeMs = useSelector((state) => state.game.cardRevealTimeMs);
 
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [inspectMode, setInspectMode] = useState(false);
@@ -77,6 +78,8 @@ const GameBoard = ({ userId, isAdmin }) => {
     const dealingAnimRef = useRef(null);
     // Teammate reveal announcement
     const [revealAnnouncement, setRevealAnnouncement] = useState(null); // { playerName, bidderName }
+    const [trumpCountdown, setTrumpCountdown] = useState(5);
+    const trumpCountdownRef = useRef(null);
     const prevRevealedPartnersRef = useRef([]);
     const revealAnnouncementTimerRef = useRef(null);
 
@@ -90,21 +93,17 @@ const GameBoard = ({ userId, isAdmin }) => {
         const prev = prevPhaseRef.current;
         const curr = phase;
         if (prev === "dealing" && curr === "bidding") {
-            if (isJudgement) {
-                setShowDealReveal(false);
-                prevPhaseRef.current = curr;
-                return;
-            }
             dealRevealKeyRef.current += 1;
             setShowDealReveal(true);
 
-            // Auto-close when the reveal window ends (server timestamp)
+            // Auto-close when the reveal window ends (server timestamp or fallback)
             const opensAt = bidding?.biddingWindowOpensAt;
-            const delayMs = opensAt ? Math.max(0, opensAt - Date.now()) : 7500;
+            const fallbackMs = isJudgement ? (cardRevealTimeMs ?? 10000) : 7500;
+            const delayMs = opensAt ? Math.max(0, opensAt - Date.now()) : fallbackMs;
             setTimeout(() => setShowDealReveal(false), delayMs);
         }
         prevPhaseRef.current = curr;
-    }, [phase, isJudgement, bidding]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [phase, isJudgement, bidding, cardRevealTimeMs]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
 
@@ -180,6 +179,32 @@ const GameBoard = ({ userId, isAdmin }) => {
     useEffect(() => () => {
         if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
     }, []);
+
+    // Trump-announce countdown: 5-second visual countdown matching server timer
+    useEffect(() => {
+        if (trumpCountdownRef.current) {
+            clearInterval(trumpCountdownRef.current);
+            trumpCountdownRef.current = null;
+        }
+        if (phase !== "trump-announce") {
+            setTrumpCountdown(5);
+            return;
+        }
+        setTrumpCountdown(5);
+        trumpCountdownRef.current = setInterval(() => {
+            setTrumpCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(trumpCountdownRef.current);
+                    trumpCountdownRef.current = null;
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => {
+            if (trumpCountdownRef.current) clearInterval(trumpCountdownRef.current);
+        };
+    }, [phase]);
 
     // ── Partner / relation logic ───────────────────────────────────────────
     // These must all live ABOVE any early return (Rules of Hooks).
@@ -484,20 +509,20 @@ const GameBoard = ({ userId, isAdmin }) => {
             const isDealer = dealer === userId;
             return (
                 <div className="trump-announce-center">
-                    <div className="trump-announce-label">Trump Suit</div>
-                    <div className={`trump-announce-suit ${isRedSuit(trumpSuit) ? "red" : "black"}`}>
+                    <div className="trump-announce-title">Trump Suit is...</div>
+                    <div className={`trump-announce-watermark ${isRedSuit(trumpSuit) ? "red" : "black"}`}>
                         {suitSymbol(trumpSuit)}
                     </div>
-                    <div className="trump-announce-mode">
+                    <div className="trump-announce-sub">
                         {trumpMode === "fixed" ? "Fixed rotation" : "Drawn randomly"}
+                    </div>
+                    <div className="trump-announce-countdown">
+                        Proceeding to shuffle in {trumpCountdown}s...
                     </div>
                     {isDealer && (
                         <button className="btn-primary trump-announce-proceed" onClick={WsProceedToShuffle}>
                             Proceed to Shuffle
                         </button>
-                    )}
-                    {!isDealer && (
-                        <div className="trump-announce-waiting">Waiting for {getName(dealer)}...</div>
                     )}
                 </div>
             );
@@ -676,10 +701,25 @@ const GameBoard = ({ userId, isAdmin }) => {
                     )}
 
                     {isJudgement && (
-                        <div className="judgement-playing-hud">
-                            <span>Trump: {trumpCard ? `${trumpCard.rank}${trumpCard.suit}` : (trumpSuit || "None")}</span>
-                            <span>Round {(seriesRoundIndex || 0) + 1}/{totalRoundsInSeries || 1}</span>
-                            <span>{currentCardsPerRound || 0} cards</span>
+                        <div className="jdg-info-hud">
+                            <div className="jdg-hud-pill">
+                                <span className={`jdg-hud-suit ${isRedSuit(trumpSuit || "S") ? "red" : "black"}`}>
+                                    {suitSymbol(trumpSuit || "S")}
+                                </span>
+                                <span className="jdg-hud-pill-label">Trump</span>
+                            </div>
+                            <div className="jdg-hud-divider" />
+                            <div className="jdg-hud-pill">
+                                <span className="jdg-hud-pill-value">
+                                    {(seriesRoundIndex || 0) + 1}/{totalRoundsInSeries || 1}
+                                </span>
+                                <span className="jdg-hud-pill-label">Round</span>
+                            </div>
+                            <div className="jdg-hud-divider" />
+                            <div className="jdg-hud-pill">
+                                <span className="jdg-hud-pill-value">{currentCardsPerRound || 0}</span>
+                                <span className="jdg-hud-pill-label">Cards</span>
+                            </div>
                         </div>
                     )}
 
@@ -710,6 +750,12 @@ const GameBoard = ({ userId, isAdmin }) => {
                     )}
 
                     <div className="circular-table-container">
+                        {isJudgement && trumpSuit && phase !== "trump-announce" && (
+                            <div className={`jdg-trump-table-badge ${isRedSuit(trumpSuit) ? "red" : "black"}`}>
+                                <span className="jdg-trump-table-suit">{suitSymbol(trumpSuit)}</span>
+                                <span className="jdg-trump-table-label">TRUMP</span>
+                            </div>
+                        )}
                         <CircularTable
                             players={buildPlayerList()}
                             centerContent={renderCenterContent}

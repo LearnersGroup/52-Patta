@@ -16,7 +16,7 @@ function validateJudgementConfig(playerCount, deckCount) {
     }
 }
 
-function computeJudgementConfig(playerCount, deckCount, maxCardsPerRound = null, reverseOrder = false, trumpMode = "random", scoreboardTime = null, bidTime = null) {
+function computeJudgementConfig(playerCount, deckCount, maxCardsPerRound = null, reverseOrder = false, trumpMode = "random", scoreboardTime = null, bidTime = null, cardRevealTime = null) {
     validateJudgementConfig(playerCount, deckCount);
 
     const maxPossible = Math.floor((52 * deckCount) / playerCount);
@@ -45,6 +45,7 @@ function computeJudgementConfig(playerCount, deckCount, maxCardsPerRound = null,
         trumpMode: trumpMode === "fixed" ? "fixed" : "random",
         scoreboardTimeMs: scoreboardTime ? scoreboardTime * 1000 : 5000,
         bidTimeMs: bidTime ? bidTime * 1000 : null,
+        cardRevealTimeMs: cardRevealTime ? cardRevealTime * 1000 : 10000,
     };
 }
 

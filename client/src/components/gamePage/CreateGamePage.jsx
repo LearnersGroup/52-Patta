@@ -157,6 +157,8 @@ const CreateGamePage = () => {
 
     const adjustScoreboardTime = (delta) => setScoreboardTime(prev => Math.max(3, Math.min(30, prev + delta)));
     const adjustBidTime = (delta) => setBidTime(prev => Math.max(5, Math.min(60, prev + delta)));
+    const [cardRevealTime, setCardRevealTime] = useState(10);
+    const adjustCardRevealTime = (delta) => setCardRevealTime(t => Math.max(3, Math.min(30, t + delta)));
 
     // ── Socket ───────────────────────────────────────────────────────────────
 
@@ -194,6 +196,7 @@ const CreateGamePage = () => {
             data.trump_mode = trumpMode;
             data.scoreboard_time = scoreboardTime;
             if (bidTimeEnabled) data.judgement_bid_time = bidTime;
+            data.card_reveal_time = cardRevealTime;
         }
         try {
             WsUserCreateRoom(data);
@@ -536,6 +539,17 @@ const CreateGamePage = () => {
                                 <div className="game-count-info">
                                     {bidTimeEnabled ? `Each player has ${bidTime}s to bid` : "Players take as long as they need"}
                                 </div>
+                            </div>
+
+                            {/* Card Reveal Time */}
+                            <div className="form-group">
+                                <label>Card Reveal Time</label>
+                                <div className="game-count-widget">
+                                    <button className="bid-adjust" onClick={() => adjustCardRevealTime(-1)} disabled={cardRevealTime <= 3}>&minus;</button>
+                                    <span className="threshold-value">{cardRevealTime}s</span>
+                                    <button className="bid-adjust" onClick={() => adjustCardRevealTime(1)} disabled={cardRevealTime >= 30}>+</button>
+                                </div>
+                                <div className="game-count-info">Time to reveal your cards after dealing (3–30s)</div>
                             </div>
                         </>
                     )}

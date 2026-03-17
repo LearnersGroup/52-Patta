@@ -113,6 +113,11 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
             if (currentIsJudgement) {
                 currentState.phase = "bidding";
                 currentState.currentRound = 0;
+                // Stamp card-reveal window so the frontend overlay auto-closes
+                const cardRevealMs = currentState.config?.cardRevealTimeMs ?? 10000;
+                if (currentState.bidding) {
+                    currentState.bidding.biddingWindowOpensAt = Date.now() + cardRevealMs;
+                }
 
                 setGameState(gameId, currentState);
 

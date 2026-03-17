@@ -37,6 +37,7 @@ module.exports = wrapHandler('user-create-room', async (socket, io, data, callba
         trump_mode,
         scoreboard_time,
         judgement_bid_time,
+        card_reveal_time,
     } = data;
 
     const normalizedGameType = game_type === "judgement" ? "judgement" : "kaliteri";
@@ -145,6 +146,10 @@ module.exports = wrapHandler('user-create-room', async (socket, io, data, callba
         const jbt = parseInt(judgement_bid_time, 10);
         if (!isNaN(jbt) && jbt >= 5 && jbt <= 60) {
             gameData.judgement_bid_time = jbt;
+        }
+        const crt = parseInt(card_reveal_time, 10);
+        if (!isNaN(crt) && crt >= 3 && crt <= 30) {
+            gameData.card_reveal_time = crt;
         }
     }
 

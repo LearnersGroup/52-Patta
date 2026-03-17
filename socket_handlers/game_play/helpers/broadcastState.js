@@ -61,6 +61,7 @@ function buildPublicView(gameState) {
                       currentBidderIndex: gameState.bidding.currentBidderIndex ?? 0,
                       biddingComplete: !!gameState.bidding.biddingComplete,
                       totalBids: gameState.bidding.totalBids || 0,
+                      biddingWindowOpensAt: gameState.bidding.biddingWindowOpensAt || null,
                   }
                 : null,
 
@@ -95,6 +96,7 @@ function buildPublicView(gameState) {
             scoreboardTimeMs: gameState.config?.scoreboardTimeMs || 5000,
             trumpMode: gameState.config?.trumpMode || "random",
             bidTimeMs: gameState.config?.bidTimeMs ?? null,
+            cardRevealTimeMs: gameState.config?.cardRevealTimeMs ?? 10000,
             // Expose round progress as game series fields for ShufflingPanel
             currentGameNumber: (gameState.seriesRoundIndex || 0) + 1,
             totalGames: gameState.totalRoundsInSeries || gameState.config?.totalRounds || 1,

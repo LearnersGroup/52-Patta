@@ -61,6 +61,7 @@ const initialState = {
     trumpMode: "random",
     scoreboardTimeMs: 5000,
     bidTimeMs: null,
+    cardRevealTimeMs: 10000,
     judgementBids: {},
     judgementBidOrder: [],
     judgementCurrentBidderIndex: null,
@@ -142,6 +143,7 @@ const gameSlice = createSlice({
             state.trumpMode = data.trumpMode || "random";
             state.scoreboardTimeMs = data.scoreboardTimeMs || 5000;
             state.bidTimeMs = data.bidTimeMs ?? null;
+            if (action.payload.cardRevealTimeMs !== undefined) state.cardRevealTimeMs = action.payload.cardRevealTimeMs;
             state.judgementBids = data.bidding?.bids || {};
             state.judgementBidOrder = data.bidding?.bidOrder || [];
             state.judgementCurrentBidderIndex =

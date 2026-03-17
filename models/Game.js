@@ -57,6 +57,10 @@ const GameSchema = new mongoose.Schema({
         type: Number,
         default: null,
     },
+    card_reveal_time: {
+        type: Number,
+        default: null,
+    },
     bid_threshold: {
         type: Number,
         default: null,
