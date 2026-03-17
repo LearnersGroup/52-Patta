@@ -16,8 +16,10 @@ const readCachedAvatars = (gameId) => {
 
 const initialState = {
     gameId: null,
+    game_type: null,
     phase: null, // null | "shuffling" | "dealing" | "bidding" | "powerhouse" | "playing" | "scoring" | "finished" | "series-finished"
     configKey: null,
+    config: null,
     seatOrder: [],
     playerNames: {},
     playerAvatars: {},
@@ -53,6 +55,18 @@ const initialState = {
     totalGames: 1,
     finalRankings: null,
 
+    // Judgement-specific
+    trumpCard: null,
+    trumpSuit: null,
+    judgementBids: {},
+    judgementBidOrder: [],
+    judgementCurrentBidderIndex: null,
+    tricksWon: {},
+    currentCardsPerRound: 0,
+    seriesRoundIndex: 0,
+    totalRoundsInSeries: 0,
+    roundResults: [],
+
     // Client-side per-game score history (accumulated from scoringResult events)
     // Each entry: { gameNumber, playerDeltas, bidTeamSuccess }
     gameHistory: [],
@@ -66,8 +80,10 @@ const gameSlice = createSlice({
             const data = action.payload;
             const previousGameId = state.gameId;
             state.gameId = data.gameId || state.gameId;
+            state.game_type = data.game_type || state.game_type || "kaliteri";
             state.phase = data.phase;
             state.configKey = data.configKey;
+            state.config = data.config || null;
             state.seatOrder = data.seatOrder;
             state.playerNames = data.playerNames || {};
 
@@ -96,7 +112,7 @@ const gameSlice = createSlice({
             state.powerHouseSuit = data.powerHouseSuit;
             state.partnerCards = data.partnerCards || [];
             state.partnerCardCount = data.partnerCardCount || null;
-            state.teams = data.teams;
+            state.teams = data.teams || { bid: [], oppose: [] };
             state.revealedPartners = data.revealedPartners;
             state.currentRound = data.currentRound;
             state.currentTrick = data.currentTrick;
@@ -116,6 +132,19 @@ const gameSlice = createSlice({
             state.currentGameNumber = data.currentGameNumber || 1;
             state.totalGames = data.totalGames || 1;
             state.finalRankings = data.finalRankings || null;
+
+            // Judgement-specific payload
+            state.trumpCard = data.trumpCard || null;
+            state.trumpSuit = data.trumpSuit || null;
+            state.judgementBids = data.bidding?.bids || {};
+            state.judgementBidOrder = data.bidding?.bidOrder || [];
+            state.judgementCurrentBidderIndex =
+                data.bidding?.currentBidderIndex ?? null;
+            state.tricksWon = data.tricksWon || {};
+            state.currentCardsPerRound = data.currentCardsPerRound || 0;
+            state.seriesRoundIndex = data.seriesRoundIndex || 0;
+            state.totalRoundsInSeries = data.totalRoundsInSeries || 0;
+            state.roundResults = data.roundResults || [];
 
             // Accumulate per-game score history when a game finishes
             if (data.scoringResult && data.phase === "finished") {

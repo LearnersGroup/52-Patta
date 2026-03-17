@@ -6,6 +6,7 @@ const tricks = require("./tricks");
 const scoring = require("./scoring");
 const validators = require("./validators");
 const stateManager = require("./stateManager");
+const judgement = require("./judgement");
 
 module.exports = {
     config,
@@ -16,4 +17,5 @@ module.exports = {
     scoring,
     validators,
     stateManager,
+    judgement,
 };

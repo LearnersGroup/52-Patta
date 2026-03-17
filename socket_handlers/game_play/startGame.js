@@ -1,6 +1,7 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
 const { getConfig, SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
+const { computeJudgementConfig } = require("../../game_engine/judgement/config");
 const { createDeck, removeTwos } = require("../../game_engine/deck");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
@@ -45,35 +46,52 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             return;
         }
 
+        const gameType = game.game_type || "kaliteri";
+
         // Determine deck count
         let deckCount = game.deck_count;
         if (!deckCount) {
-            deckCount = playerCount <= 5 ? 1 : 2;
+            if (gameType === "judgement") {
+                deckCount = playerCount <= 6 ? 1 : 2;
+            } else {
+                deckCount = playerCount <= 5 ? 1 : 2;
+            }
         }
 
         // Get config
         let config;
         try {
-            config = getConfig(playerCount, deckCount);
+            if (gameType === "judgement") {
+                config = computeJudgementConfig(
+                    playerCount,
+                    deckCount,
+                    game.max_cards_per_round,
+                    !!game.reverse_order
+                );
+            } else {
+                config = getConfig(playerCount, deckCount);
+            }
         } catch (err) {
             if (callback) callback(err.message);
             return;
         }
 
-        // Override bid threshold if room creator set a custom value
-        if (game.bid_threshold && config.bidThreshold !== null) {
-            config.bidThreshold = game.bid_threshold;
+        if (gameType === "kaliteri") {
+            // Override bid threshold if room creator set a custom value
+            if (game.bid_threshold && config.bidThreshold !== null) {
+                config.bidThreshold = game.bid_threshold;
+            }
+
+            // Inject custom bidding window (ms) — falls back to SHUFFLE_DEALING_CONFIG default
+            config.biddingWindowMs = game.bid_window
+                ? game.bid_window * 1000
+                : SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
+
+            // Inject custom card inspect window (ms) — falls back to SHUFFLE_DEALING_CONFIG default
+            config.inspectWindowMs = game.inspect_time
+                ? game.inspect_time * 1000
+                : SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;
         }
-
-        // Inject custom bidding window (ms) — falls back to SHUFFLE_DEALING_CONFIG default
-        config.biddingWindowMs = game.bid_window
-            ? game.bid_window * 1000
-            : SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
-
-        // Inject custom card inspect window (ms) — falls back to SHUFFLE_DEALING_CONFIG default
-        config.inspectWindowMs = game.inspect_time
-            ? game.inspect_time * 1000
-            : SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;
 
         // Build seat order and player name map from player list (clockwise)
         const seatOrder = game.players.map((p) => p.playerId._id.toString());
@@ -84,66 +102,118 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             playerAvatars[p.playerId._id.toString()] = p.playerId.avatar || "";
         }
 
-        // Create and prepare deck (but do NOT shuffle or deal — that's the dealer's job now)
-        const fullDeck = createDeck(config.decks);
-        const { remainingDeck, removedTwos: removed } = removeTwos(fullDeck, config.removeTwos);
-
         // Initialize scores
         const scores = {};
         for (const pid of seatOrder) {
             scores[pid] = 0;
         }
 
-        // Determine total games (from room setting or default to player count)
-        const totalGames = game.game_count || playerCount;
-
         // Build initial game state — shuffling phase (not bidding)
         const gameId = game._id.toString();
-        const gameState = {
-            gameId,
-            roomname: game.roomname,
-            config,
-            phase: "shuffling",
-            seatOrder,
-            playerNames,
-            playerAvatars,
-            removedTwos: removed,
+        let gameState;
 
-            // Dealer system — admin is first dealer
-            dealerIndex: 0,
-            dealer: seatOrder[0],
+        if (gameType === "judgement") {
+            const fullDeck = createDeck(config.decks);
+            const tricksWon = {};
+            for (const pid of seatOrder) {
+                tricksWon[pid] = 0;
+            }
 
-            // Shuffling state
-            shuffleQueue: [],
-            unshuffledDeck: remainingDeck,
+            gameState = {
+                gameId,
+                roomname: game.roomname,
+                game_type: "judgement",
+                config,
+                phase: "shuffling",
+                seatOrder,
+                playerNames,
+                playerAvatars,
+                removedTwos: [],
 
-            // These will be populated after dealing
-            hands: {},
-            cutCard: null,
-            dealingConfig: {
-                animationDurationMs: SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS,
-            },
+                dealerIndex: 0,
+                dealer: seatOrder[0],
 
-            // Game series tracking
-            currentGameNumber: 1,
-            totalGames,
+                shuffleQueue: [],
+                unshuffledDeck: fullDeck,
 
-            // Bidding & gameplay state (populated after dealing)
-            bidding: null,
-            leader: null,
-            powerHouseSuit: null,
-            partnerCards: [],
-            teams: {
-                bid: [],
-                oppose: [...seatOrder],
-            },
-            revealedPartners: [],
-            currentRound: 0,
-            currentTrick: null,
-            tricks: [],
-            roundLeader: null,
-            scores,
-        };
+                hands: {},
+                cutCard: null,
+                dealingConfig: {
+                    animationDurationMs: SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS,
+                },
+
+                bidding: null,
+                leader: null,
+                currentRound: 0,
+                currentTrick: null,
+                tricks: [],
+                roundLeader: null,
+
+                seriesRoundIndex: 0,
+                currentCardsPerRound: config.roundSequence[0],
+                totalRoundsInSeries: config.totalRounds,
+                trumpCard: null,
+                trumpSuit: null,
+                tricksWon,
+                roundResults: [],
+                scores,
+                nextRoundReady: [],
+            };
+        } else {
+            // Create and prepare deck (but do NOT shuffle or deal — that's the dealer's job now)
+            const fullDeck = createDeck(config.decks);
+            const { remainingDeck, removedTwos: removed } = removeTwos(fullDeck, config.removeTwos);
+
+            // Determine total games (from room setting or default to player count)
+            const totalGames = game.game_count || playerCount;
+
+            gameState = {
+                gameId,
+                roomname: game.roomname,
+                game_type: "kaliteri",
+                config,
+                phase: "shuffling",
+                seatOrder,
+                playerNames,
+                playerAvatars,
+                removedTwos: removed,
+
+                // Dealer system — admin is first dealer
+                dealerIndex: 0,
+                dealer: seatOrder[0],
+
+                // Shuffling state
+                shuffleQueue: [],
+                unshuffledDeck: remainingDeck,
+
+                // These will be populated after dealing
+                hands: {},
+                cutCard: null,
+                dealingConfig: {
+                    animationDurationMs: SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS,
+                },
+
+                // Game series tracking
+                currentGameNumber: 1,
+                totalGames,
+
+                // Bidding & gameplay state (populated after dealing)
+                bidding: null,
+                leader: null,
+                powerHouseSuit: null,
+                partnerCards: [],
+                teams: {
+                    bid: [],
+                    oppose: [...seatOrder],
+                },
+                revealedPartners: [],
+                currentRound: 0,
+                currentTrick: null,
+                tricks: [],
+                roundLeader: null,
+                scores,
+            };
+        }
 
         // Store in memory
         setGameState(gameId, gameState);
@@ -157,8 +227,8 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
         io.to(game.roomname).emit("game-avatars", playerAvatars || {});
 
         // Notify room about removed cards
-        if (removed.length > 0) {
-            io.to(game.roomname).emit("game-cards-removed", removed);
+        if (gameType === "kaliteri" && gameState.removedTwos.length > 0) {
+            io.to(game.roomname).emit("game-cards-removed", gameState.removedTwos);
         }
 
         io.to(game.roomname).emit("game-phase-change", "shuffling");

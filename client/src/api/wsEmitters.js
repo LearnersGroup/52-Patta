@@ -24,6 +24,7 @@ export const WsSelectPartners = (cards, duplicateSpecs) => emitWithCallback("gam
 export const WsPlayCard = (card) => emitWithCallback("game-play-card", { card });
 export const WsNextRound = () => emitWithCallback("game-next-round", {});
 export const WsRequestGameState = () => emitWithCallback("game-request-state", {});
+export const WsJudgementBid = (amount) => emitWithCallback("game-judgement-bid", { amount });
 
 // --- Shuffling & Dealing Emitters ---
 
