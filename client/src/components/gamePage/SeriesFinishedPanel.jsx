@@ -13,7 +13,7 @@ const SeriesFinishedPanel = ({
     userId,
 }) => {
     // Use finalRankings if available, otherwise compute from scores
-    const rankings = finalRankings.length > 0
+    const rankings = (finalRankings || []).length > 0
         ? finalRankings
         : seatOrder
             .map((pid) => ({

@@ -119,7 +119,7 @@ function buildPublicView(gameState) {
         // Game series tracking
         currentGameNumber: gameState.currentGameNumber || 1,
         totalGames: gameState.totalGames || 1,
-        finalRankings: gameState.finalRankings || null,
+        finalRankings: gameState.finalRankings || [],
 
         bidding: gameState.bidding
             ? {
