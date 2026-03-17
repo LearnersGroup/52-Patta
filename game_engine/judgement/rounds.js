@@ -1,3 +1,12 @@
+const TRUMP_ROTATION = ["S", "D", "C", "H"];
+
+function computeTrumpSuit(trumpMode, seriesRoundIndex) {
+    if (trumpMode === "fixed") {
+        return TRUMP_ROTATION[seriesRoundIndex % TRUMP_ROTATION.length];
+    }
+    return TRUMP_ROTATION[Math.floor(Math.random() * TRUMP_ROTATION.length)];
+}
+
 function dealJudgementRound(shuffledDeck, seatOrder, cardsPerRound, dealerIndex) {
     const hands = {};
     seatOrder.forEach((pid) => {
@@ -40,6 +49,7 @@ function getNextJudgementRound(gameState) {
 }
 
 module.exports = {
+    computeTrumpSuit,
     dealJudgementRound,
     getNextJudgementRound,
 };

@@ -44,6 +44,19 @@ const GameSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    trump_mode: {
+        type: String,
+        enum: ["fixed", "random"],
+        default: "random",
+    },
+    scoreboard_time: {
+        type: Number,
+        default: null,
+    },
+    judgement_bid_time: {
+        type: Number,
+        default: null,
+    },
     bid_threshold: {
         type: Number,
         default: null,

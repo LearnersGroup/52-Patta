@@ -34,6 +34,9 @@ module.exports = wrapHandler('user-create-room', async (socket, io, data, callba
         game_type,
         max_cards_per_round,
         reverse_order,
+        trump_mode,
+        scoreboard_time,
+        judgement_bid_time,
     } = data;
 
     const normalizedGameType = game_type === "judgement" ? "judgement" : "kaliteri";
@@ -132,6 +135,17 @@ module.exports = wrapHandler('user-create-room', async (socket, io, data, callba
             gameData.max_cards_per_round = parsedMaxCards;
         }
         gameData.reverse_order = !!reverse_order;
+        if (trump_mode === "fixed" || trump_mode === "random") {
+            gameData.trump_mode = trump_mode;
+        }
+        const sbt = parseInt(scoreboard_time, 10);
+        if (!isNaN(sbt) && sbt >= 3 && sbt <= 30) {
+            gameData.scoreboard_time = sbt;
+        }
+        const jbt = parseInt(judgement_bid_time, 10);
+        if (!isNaN(jbt) && jbt >= 5 && jbt <= 60) {
+            gameData.judgement_bid_time = jbt;
+        }
     }
 
     game = new Game(gameData);

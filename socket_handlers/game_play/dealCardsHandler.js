@@ -9,6 +9,7 @@ const { getGameState, setGameState, persistCheckpoint } = require("../../game_en
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { startBiddingTimer } = require("./helpers/biddingTimer");
 const { expireBidding } = require("./helpers/expireBidding");
+const { scheduleJudgementBidTimeout } = require("./helpers/judgementTimers");
 const wrapHandler = require('../wrapHandler');
 
 module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => {
@@ -58,8 +59,10 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
                 gameState.dealerIndex
             );
             hands = dealt.hands;
-            trumpCard = dealt.trumpCard;
-            trumpSuit = dealt.trumpSuit;
+            // trumpSuit is already set from trump-announce phase — do NOT override
+            // trumpCard is null in new flow (trump is a suit, not a specific flipped card)
+            trumpCard = null;
+            trumpSuit = gameState.trumpSuit; // preserve existing
             bidding = initJudgementBidding(gameState.seatOrder, gameState.dealerIndex);
         } else {
             // Deal cards starting from player next to dealer
@@ -79,8 +82,8 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
         gameState.cutCard = null;
         gameState.bidding = bidding;
         if (isJudgement) {
-            gameState.trumpCard = trumpCard;
-            gameState.trumpSuit = trumpSuit;
+            gameState.trumpCard = null;
+            // trumpSuit stays unchanged (already set from trump-announce)
         }
         // Clear shuffle working data
         gameState.unshuffledDeck = [];
@@ -118,6 +121,21 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
 
                 await broadcastGameState(io, currentState);
                 io.to(currentState.roomname).emit("game-phase-change", "bidding");
+
+                // Start per-player bid timer if configured
+                if (currentState.config?.bidTimeMs) {
+                    const firstBidder = currentState.bidding?.bidOrder?.[0];
+                    if (firstBidder) {
+                        const { applyJudgementBid, getAutoBidAmount } = require('./judgementBid');
+                        scheduleJudgementBidTimeout(gameId, currentState.config.bidTimeMs, async () => {
+                            const { getGameState: gs } = require('../../game_engine/stateManager');
+                            const st = gs(gameId);
+                            if (!st || st.phase !== 'bidding') return;
+                            const autoBid = getAutoBidAmount(st.bidding, st.currentCardsPerRound);
+                            await applyJudgementBid(io, st, firstBidder, autoBid);
+                        });
+                    }
+                }
                 return;
             }
 

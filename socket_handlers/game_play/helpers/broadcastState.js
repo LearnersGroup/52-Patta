@@ -91,6 +91,13 @@ function buildPublicView(gameState) {
             seriesRoundIndex: gameState.seriesRoundIndex || 0,
             totalRoundsInSeries: gameState.totalRoundsInSeries || gameState.config?.totalRounds || 0,
             roundResults: gameState.roundResults || [],
+
+            scoreboardTimeMs: gameState.config?.scoreboardTimeMs || 5000,
+            trumpMode: gameState.config?.trumpMode || "random",
+            bidTimeMs: gameState.config?.bidTimeMs ?? null,
+            // Expose round progress as game series fields for ShufflingPanel
+            currentGameNumber: (gameState.seriesRoundIndex || 0) + 1,
+            totalGames: gameState.totalRoundsInSeries || gameState.config?.totalRounds || 1,
         };
     }
 

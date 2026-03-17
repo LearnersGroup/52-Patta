@@ -1,6 +1,6 @@
-import { WsNextRound } from "../../api/wsEmitters";
+import { memo, useState, useEffect } from "react";
 
-const JudgementScoreBoard = ({
+const JudgementScoreBoard = memo(({
     seatOrder = [],
     roundResults = [],
     scores = {},
@@ -10,63 +10,105 @@ const JudgementScoreBoard = ({
     phase,
     nextRoundReady = { readyPlayers: [], totalPlayers: 0 },
     userId,
+    scoreboardTimeMs = 5000,
+    seriesRoundIndex = 0,
+    totalRoundsInSeries = 1,
 }) => {
-    const readyPlayers = nextRoundReady?.readyPlayers || [];
-    const iAmReady = readyPlayers.includes(userId);
+    const scoreboardSecs = Math.round(scoreboardTimeMs / 1000);
+    const [countdown, setCountdown] = useState(scoreboardSecs);
+    const isFinished = phase === "finished";
+
+    useEffect(() => {
+        if (!isFinished) { setCountdown(scoreboardSecs); return; }
+        setCountdown(scoreboardSecs);
+        const timer = setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) { clearInterval(timer); return 0; }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [phase, scoreboardSecs]); // eslint-disable-line
+
+    const trumpDisplay = trumpCard
+        ? `${trumpCard.rank}${trumpCard.suit}`
+        : trumpSuit
+        ? `(${trumpSuit})`
+        : "None";
 
     return (
         <div className="scoreboard judgement-scoreboard">
             <div className="score-header">
-                <h3>Judgement Scoreboard</h3>
-                <div className="judgement-trump-line">
-                    Trump: {trumpCard ? `${trumpCard.rank}${trumpCard.suit}` : (trumpSuit || "None")}
-                </div>
+                <h3>Round {seriesRoundIndex + 1} of {totalRoundsInSeries} — Trump: {trumpDisplay}</h3>
             </div>
 
-            <div className="judgement-score-table">
-                <div className="judgement-score-head">
-                    <span>Player</span>
-                    <span>Total</span>
-                </div>
-                {seatOrder.map((pid) => (
-                    <div className="judgement-score-row" key={pid}>
-                        <span>{getName(pid)}</span>
-                        <strong>{scores[pid] || 0}</strong>
-                    </div>
-                ))}
-            </div>
-
-            {roundResults.length > 0 && (
-                <div className="judgement-round-history">
-                    <h4>Round History</h4>
-                    {roundResults.map((rr) => (
-                        <div key={rr.roundNumber} className="judgement-round-card">
-                            <div className="judgement-round-title">Round {rr.roundNumber}</div>
-                            {seatOrder.map((pid) => (
-                                <div key={`${rr.roundNumber}-${pid}`} className="judgement-round-line">
-                                    <span>{getName(pid)}</span>
-                                    <span>Bid {rr.bids?.[pid] ?? 0}</span>
-                                    <span>Won {rr.tricksWon?.[pid] ?? 0}</span>
-                                    <strong>+{rr.deltas?.[pid] ?? 0}</strong>
-                                </div>
+            <div className="judgement-table-wrap">
+                <table className="judgement-score-table">
+                    <thead>
+                        <tr>
+                            <th className="jst-round-col">Round</th>
+                            {seatOrder.map(pid => (
+                                <th key={pid} className={`jst-player-col ${pid === userId ? "jst-me" : ""}`}>
+                                    {getName(pid)}
+                                </th>
                             ))}
-                        </div>
-                    ))}
-                </div>
-            )}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {roundResults.map(rr => (
+                            <tr key={rr.roundNumber}>
+                                <td className="jst-round-label">{rr.roundNumber}</td>
+                                {seatOrder.map(pid => {
+                                    const bid = rr.bids?.[pid] ?? 0;
+                                    const won = rr.tricksWon?.[pid] ?? 0;
+                                    const delta = rr.deltas?.[pid] ?? 0;
+                                    const hit = won === bid;
+                                    return (
+                                        <td key={pid} className={`jst-cell ${hit ? "jst-hit" : "jst-miss"}`}>
+                                            <span className="jst-won-bid">{won}/{bid}</span>
+                                            <span className={`jst-delta ${delta > 0 ? "jst-delta-pos" : "jst-delta-zero"}`}>
+                                                {delta > 0 ? `+${delta}` : "✗"}
+                                            </span>
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        ))}
+                    </tbody>
+                    <tfoot>
+                        <tr className="jst-total-row">
+                            <td className="jst-round-label">Total</td>
+                            {seatOrder.map(pid => (
+                                <td key={pid} className="jst-total-cell">
+                                    <strong>{scores[pid] || 0}</strong>
+                                </td>
+                            ))}
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
 
-            {phase === "finished" && (
+            {isFinished && (
                 <div className="next-round-section">
-                    <button className="btn-primary" onClick={WsNextRound} disabled={iAmReady}>
-                        {iAmReady ? "Ready ✓" : "Ready for Next Round"}
-                    </button>
-                    <div className="next-round-status">
-                        {readyPlayers.length} / {nextRoundReady?.totalPlayers || seatOrder.length} ready
+                    <div className="auto-countdown">
+                        <div className="countdown-text">
+                            Next round in {countdown}s...
+                        </div>
+                        <div className="countdown-bar">
+                            <div
+                                className="countdown-fill"
+                                style={{
+                                    width: `${(countdown / scoreboardSecs) * 100}%`,
+                                    transition: "width 1s linear",
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             )}
         </div>
     );
-};
+});
 
+JudgementScoreBoard.displayName = "JudgementScoreBoard";
 export default JudgementScoreBoard;

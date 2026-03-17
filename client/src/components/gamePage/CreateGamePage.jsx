@@ -70,6 +70,10 @@ const CreateGamePage = () => {
     const [inspectTime, setInspectTime] = useState(15);
     const [maxCardsPerRound, setMaxCardsPerRound] = useState(1);
     const [reverseOrder, setReverseOrder] = useState(false);
+    const [trumpMode, setTrumpMode] = useState("random");
+    const [scoreboardTime, setScoreboardTime] = useState(5);
+    const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
+    const [bidTime, setBidTime] = useState(15);
 
     const config      = useMemo(() => computeClientConfig(playerCount, deckCount), [playerCount, deckCount]);
     const oneDeckOk   = useMemo(() => isDeckCountValid(playerCount, 1),            [playerCount]);
@@ -151,6 +155,9 @@ const CreateGamePage = () => {
         setMaxCardsPerRound((prev) => Math.max(1, Math.min(maxPossible, prev + delta)));
     };
 
+    const adjustScoreboardTime = (delta) => setScoreboardTime(prev => Math.max(3, Math.min(30, prev + delta)));
+    const adjustBidTime = (delta) => setBidTime(prev => Math.max(5, Math.min(60, prev + delta)));
+
     // ── Socket ───────────────────────────────────────────────────────────────
 
     useEffect(() => {
@@ -182,6 +189,11 @@ const CreateGamePage = () => {
         } else {
             data.max_cards_per_round = maxCardsPerRound;
             data.reverse_order = reverseOrder;
+        }
+        if (gameType === "judgement") {
+            data.trump_mode = trumpMode;
+            data.scoreboard_time = scoreboardTime;
+            if (bidTimeEnabled) data.judgement_bid_time = bidTime;
         }
         try {
             WsUserCreateRoom(data);
@@ -465,6 +477,64 @@ const CreateGamePage = () => {
                                     >
                                         Up & Down
                                     </button>
+                                </div>
+                            </div>
+
+                            {/* Trump Mode */}
+                            <div className="form-group">
+                                <label>Trump Mode</label>
+                                <div className="deck-toggle">
+                                    <button
+                                        className={`deck-btn ${trumpMode === "random" ? "active" : ""}`}
+                                        onClick={() => setTrumpMode("random")}
+                                    >
+                                        Random
+                                    </button>
+                                    <button
+                                        className={`deck-btn ${trumpMode === "fixed" ? "active" : ""}`}
+                                        onClick={() => setTrumpMode("fixed")}
+                                    >
+                                        Fixed (S→D→C→H)
+                                    </button>
+                                </div>
+                                {trumpMode === "fixed" && (
+                                    <div className="game-count-info">
+                                        Trump cycles: ♠ → ♦ → ♣ → ♥ → ♠ each round
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Scoreboard Time */}
+                            <div className="form-group">
+                                <label>Scoreboard Display Time</label>
+                                <div className="game-count-widget">
+                                    <button className="bid-adjust" onClick={() => adjustScoreboardTime(-1)} disabled={scoreboardTime <= 3}>&minus;</button>
+                                    <span className="threshold-value">{scoreboardTime}s</span>
+                                    <button className="bid-adjust" onClick={() => adjustScoreboardTime(1)} disabled={scoreboardTime >= 30}>+</button>
+                                </div>
+                                <div className="game-count-info">How long to show the scoreboard between rounds (3–30s)</div>
+                            </div>
+
+                            {/* Bid Time */}
+                            <div className="form-group">
+                                <label>Bidding Time Limit</label>
+                                <div className="deck-toggle">
+                                    <button className={`deck-btn ${!bidTimeEnabled ? "active" : ""}`} onClick={() => setBidTimeEnabled(false)}>
+                                        No Limit
+                                    </button>
+                                    <button className={`deck-btn ${bidTimeEnabled ? "active" : ""}`} onClick={() => setBidTimeEnabled(true)}>
+                                        Time Limit
+                                    </button>
+                                </div>
+                                {bidTimeEnabled && (
+                                    <div className="game-count-widget" style={{ marginTop: "8px" }}>
+                                        <button className="bid-adjust" onClick={() => adjustBidTime(-5)} disabled={bidTime <= 5}>&minus;</button>
+                                        <span className="threshold-value">{bidTime}s</span>
+                                        <button className="bid-adjust" onClick={() => adjustBidTime(5)} disabled={bidTime >= 60}>+</button>
+                                    </div>
+                                )}
+                                <div className="game-count-info">
+                                    {bidTimeEnabled ? `Each player has ${bidTime}s to bid` : "Players take as long as they need"}
                                 </div>
                             </div>
                         </>

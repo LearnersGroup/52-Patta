@@ -6,6 +6,8 @@ const { setGameState, persistCheckpoint } = require("../../game_engine/stateMana
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
 const { scheduleAutoNextGame } = require("./autoNextGame");
+const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
+const { autoNextJudgementRound } = require("./helpers/autoNextJudgementRound");
 const wrapHandler = require("../wrapHandler");
 
 module.exports = wrapHandler('game-play-card', async (socket, io, data, callback) => {
@@ -96,6 +98,12 @@ module.exports = wrapHandler('game-play-card', async (socket, io, data, callback
             };
 
             io.to(gameState.roomname).emit("game-phase-change", newState.phase);
+
+            // Schedule auto-advance to next round after scoreboard display time
+            if (newState.phase === "finished") {
+                const scoreboardTimeMs = newState.config?.scoreboardTimeMs || 5000;
+                scheduleJudgementAdvance(gameState.gameId, scoreboardTimeMs, () => autoNextJudgementRound(io, gameState.gameId));
+            }
         } else {
             // Finalize teams: any unrevealed partner cards — those players stay on opposing team
             const scoringResult = calculateGameResult(newState);

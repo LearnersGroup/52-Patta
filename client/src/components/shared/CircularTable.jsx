@@ -154,6 +154,7 @@ const CircularTable = ({
                             cardCount={player.cardCount}
                             score={player.score}
                             relation={player.relation}
+                            scoreContent={player.scoreContent}
                         />
                     </div>
                 );

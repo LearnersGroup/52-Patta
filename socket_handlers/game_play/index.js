@@ -11,6 +11,7 @@ const shuffleAction = require("./shuffleAction");
 const undoShuffle = require("./undoShuffle");
 const dealCardsHandler = require("./dealCardsHandler");
 const judgementBid = require("./judgementBid");
+const acknowledgeTrumpAnnounce = require("./acknowledgeTrumpAnnounce");
 
 module.exports = {
     startGame,
@@ -26,4 +27,5 @@ module.exports = {
     undoShuffle,
     dealCardsHandler,
     judgementBid,
+    acknowledgeTrumpAnnounce,
 };

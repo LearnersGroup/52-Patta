@@ -2,9 +2,12 @@ const Game = require("../../models/Game");
 const User = require("../../models/User");
 const { getConfig, SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
 const { computeJudgementConfig } = require("../../game_engine/judgement/config");
+const { computeTrumpSuit } = require("../../game_engine/judgement/rounds");
 const { createDeck, removeTwos } = require("../../game_engine/deck");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
+const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
+const { proceedFromTrumpAnnounce } = require("./helpers/autoNextJudgementRound");
 const wrapHandler = require('../wrapHandler');
 
 module.exports = wrapHandler('game-start', async (socket, io, data, callback) => {
@@ -66,7 +69,10 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
                     playerCount,
                     deckCount,
                     game.max_cards_per_round,
-                    !!game.reverse_order
+                    !!game.reverse_order,
+                    game.trump_mode || "random",
+                    game.scoreboard_time || null,
+                    game.judgement_bid_time || null
                 );
             } else {
                 config = getConfig(playerCount, deckCount);
@@ -118,13 +124,14 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             for (const pid of seatOrder) {
                 tricksWon[pid] = 0;
             }
+            const trumpSuit = computeTrumpSuit(config.trumpMode, 0);
 
             gameState = {
                 gameId,
                 roomname: game.roomname,
                 game_type: "judgement",
                 config,
-                phase: "shuffling",
+                phase: "trump-announce",
                 seatOrder,
                 playerNames,
                 playerAvatars,
@@ -153,7 +160,7 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
                 currentCardsPerRound: config.roundSequence[0],
                 totalRoundsInSeries: config.totalRounds,
                 trumpCard: null,
-                trumpSuit: null,
+                trumpSuit,
                 tricksWon,
                 roundResults: [],
                 scores,
@@ -219,7 +226,7 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
         setGameState(gameId, gameState);
 
         // Update game state in MongoDB
-        await Game.findByIdAndUpdate(gameId, { state: "shuffling" });
+        await Game.findByIdAndUpdate(gameId, { state: gameType === "judgement" ? "trump-announce" : "shuffling" });
         await persistCheckpoint(gameId);
 
         // Broadcast personalized state to all players
@@ -231,5 +238,10 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             io.to(game.roomname).emit("game-cards-removed", gameState.removedTwos);
         }
 
-        io.to(game.roomname).emit("game-phase-change", "shuffling");
+        if (gameType === "judgement") {
+            io.to(game.roomname).emit("game-phase-change", "trump-announce");
+            scheduleJudgementAdvance(gameId, 5000, () => proceedFromTrumpAnnounce(io, gameId));
+        } else {
+            io.to(game.roomname).emit("game-phase-change", "shuffling");
+        }
 });

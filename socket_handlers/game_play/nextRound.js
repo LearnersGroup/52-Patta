@@ -5,6 +5,8 @@ const { initBidding } = require("../../game_engine/bidding");
 const { getNextJudgementRound } = require("../../game_engine/judgement/rounds");
 const { getGameState, setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
+const { autoNextJudgementRound } = require("./helpers/autoNextJudgementRound");
+const { clearJudgementAdvance } = require("./helpers/judgementTimers");
 const wrapHandler = require('../wrapHandler');
 
 module.exports = wrapHandler('game-next-round', async (socket, io, data, callback) => {
@@ -22,7 +24,7 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
             return;
         }
 
-        // Track ready-for-next per player
+        // Track ready-for-next per player (shared for all game types)
         if (!existingState.nextRoundReady) {
             existingState.nextRoundReady = [];
         }
@@ -50,64 +52,9 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
         // --- All players ready, start next round ---
 
         if (existingState.game_type === "judgement") {
-            const { config, seatOrder, playerNames, playerAvatars, scores } = existingState;
-            const nextRound = getNextJudgementRound(existingState);
-
-            if (nextRound.done) {
-                existingState.phase = "series-finished";
-                setGameState(gameId, existingState);
-                await Game.findByIdAndUpdate(gameId, { state: "series-finished" });
-                await persistCheckpoint(gameId);
-                await broadcastGameState(io, existingState);
-                io.to(existingState.roomname).emit("game-phase-change", "series-finished");
-                return;
-            }
-
-            const newDealerIndex = (existingState.dealerIndex + 1) % seatOrder.length;
-            const fullDeck = createDeck(config.decks);
-            const tricksWon = {};
-            for (const pid of seatOrder) {
-                tricksWon[pid] = 0;
-            }
-
-            const newGameState = {
-                ...existingState,
-                config,
-                phase: "shuffling",
-                seatOrder,
-                playerNames,
-                playerAvatars: playerAvatars || {},
-                removedTwos: [],
-                dealerIndex: newDealerIndex,
-                dealer: seatOrder[newDealerIndex],
-                shuffleQueue: [],
-                unshuffledDeck: fullDeck,
-                hands: {},
-                cutCard: null,
-                bidding: null,
-                leader: null,
-                currentRound: 0,
-                currentTrick: null,
-                tricks: [],
-                roundLeader: null,
-                trumpCard: null,
-                trumpSuit: null,
-                tricksWon,
-                scores,
-                nextRoundReady: [],
-                seriesRoundIndex: nextRound.seriesRoundIndex,
-                currentCardsPerRound: nextRound.cardsPerRound,
-                scoringResult: null,
-            };
-
-            setGameState(gameId, newGameState);
-
-            await Game.findByIdAndUpdate(gameId, { state: "shuffling" });
-            await persistCheckpoint(gameId);
-
-            await broadcastGameState(io, newGameState);
-            io.to(existingState.roomname).emit("game-avatars", playerAvatars || {});
-            io.to(existingState.roomname).emit("game-phase-change", "shuffling");
+            // Cancel auto-advance timer (manual advance takes over)
+            clearJudgementAdvance(gameId);
+            await autoNextJudgementRound(io, gameId);
             return;
         }
 

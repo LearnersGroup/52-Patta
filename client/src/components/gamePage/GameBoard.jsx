@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { WsRequestGameState, WsQuitGame } from "../../api/wsEmitters";
+import { WsRequestGameState, WsQuitGame, WsProceedToShuffle } from "../../api/wsEmitters";
 import BiddingPanel from "./BiddingPanel";
 import JudgementBiddingPanel from "./JudgementBiddingPanel";
 import BidCenterDisplay from "./BidCenterDisplay";
@@ -63,6 +63,8 @@ const GameBoard = ({ userId, isAdmin }) => {
     const seriesRoundIndex = useSelector((state) => state.game.seriesRoundIndex);
     const totalRoundsInSeries = useSelector((state) => state.game.totalRoundsInSeries);
     const roundResults = useSelector((state) => state.game.roundResults);
+    const trumpMode = useSelector((state) => state.game.trumpMode);
+    const scoreboardTimeMs = useSelector((state) => state.game.scoreboardTimeMs);
 
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [inspectMode, setInspectMode] = useState(false);
@@ -321,6 +323,8 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     const getIsTurn = (pid) => {
         switch (phase) {
+            case "trump-announce":
+                return false; // passive phase, dealer has a button not a "turn"
             case "shuffling":
             case "dealing":
                 return pid === dealer;
@@ -417,6 +421,41 @@ const GameBoard = ({ userId, isAdmin }) => {
         return null;
     };
 
+    const getJudgementScoreContent = (pid) => {
+        if (!isJudgement) return null;
+        if (phase === "bidding") {
+            const bid = bidding?.bids?.[pid];
+            if (bid === undefined) {
+                return (
+                    <div className="jdg-seat-status jdg-waiting">
+                        <span className="jdg-q">??</span>
+                        <span className="jdg-label">bid</span>
+                    </div>
+                );
+            }
+            return (
+                <div className="jdg-seat-status jdg-bid-placed">
+                    <span className="jdg-bid-num">{bid}</span>
+                    <span className="jdg-label">bid</span>
+                </div>
+            );
+        }
+        if (phase === "playing") {
+            const bid = bidding?.bids?.[pid] ?? "?";
+            const won = tricksWon?.[pid] || 0;
+            const onTarget = typeof bid === "number" && won === bid;
+            const over = typeof bid === "number" && won > bid;
+            return (
+                <div className={`jdg-seat-status jdg-playing ${onTarget ? "jdg-on-target" : over ? "jdg-over" : "jdg-under"}`}>
+                    <span className="jdg-tricks">{won}</span>
+                    <span className="jdg-sep">/</span>
+                    <span className="jdg-bid-target">{bid}</span>
+                </div>
+            );
+        }
+        return null;
+    };
+
     const buildPlayerList = () => {
         return (seatOrder || []).map((pid) => ({
             id: pid,
@@ -432,14 +471,38 @@ const GameBoard = ({ userId, isAdmin }) => {
             avatarInitial: getName(pid).charAt(0).toUpperCase(),
             avatar: playerAvatars[pid] || "",
             relation: getRelation(pid), // "teammate" | "opponent" | null
+            scoreContent: getJudgementScoreContent(pid),
         }));
     };
 
-    const isTablePhase = ["shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase);
+    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase);
     const isPlayingPhase = phase === "playing";
 
     // Center content for CircularTable based on phase
     const renderCenterContent = ({ seatPositionMap, tableSize }) => {
+        if (phase === "trump-announce") {
+            const isDealer = dealer === userId;
+            return (
+                <div className="trump-announce-center">
+                    <div className="trump-announce-label">Trump Suit</div>
+                    <div className={`trump-announce-suit ${isRedSuit(trumpSuit) ? "red" : "black"}`}>
+                        {suitSymbol(trumpSuit)}
+                    </div>
+                    <div className="trump-announce-mode">
+                        {trumpMode === "fixed" ? "Fixed rotation" : "Drawn randomly"}
+                    </div>
+                    {isDealer && (
+                        <button className="btn-primary trump-announce-proceed" onClick={WsProceedToShuffle}>
+                            Proceed to Shuffle
+                        </button>
+                    )}
+                    {!isDealer && (
+                        <div className="trump-announce-waiting">Waiting for {getName(dealer)}...</div>
+                    )}
+                </div>
+            );
+        }
+
         if (phase === "shuffling") {
             return (
                 <ShufflingPanel
@@ -448,8 +511,9 @@ const GameBoard = ({ userId, isAdmin }) => {
                     userId={userId}
                     shuffleQueue={shuffleQueue}
                     getName={getName}
-                    currentGameNumber={currentGameNumber}
-                    totalGames={totalGames}
+                    currentGameNumber={isJudgement ? (seriesRoundIndex + 1) : currentGameNumber}
+                    totalGames={isJudgement ? totalRoundsInSeries : totalGames}
+                    gameLabel={isJudgement ? "Round" : "Game"}
                 />
             );
         }
@@ -680,6 +744,9 @@ const GameBoard = ({ userId, isAdmin }) => {
                         phase={phase}
                         nextRoundReady={nextRoundReady}
                         userId={userId}
+                        scoreboardTimeMs={scoreboardTimeMs}
+                        seriesRoundIndex={seriesRoundIndex}
+                        totalRoundsInSeries={totalRoundsInSeries}
                     />
                 ) : (
                     <ScoreBoard
