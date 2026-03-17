@@ -69,7 +69,7 @@ const AllGameRooms = () => {
                         value={code}
                         onChange={(e) => setCode(e.target.value.toUpperCase())}
                         onKeyDown={handleKeyDown}
-                        placeholder="e.g. ABC123"
+                        placeholder="ABC123"
                         maxLength={6}
                         autoComplete="off"
                         spellCheck={false}
