@@ -44,8 +44,6 @@ const CreateGamePage = () => {
     const navigate = useNavigate();
     const { user }                      = useAuth();
     const roomName                      = `${user?.user_name || "Player"}'s Room`;
-    const [pass, setPass]               = useState("");
-    const [isPublic, setIsPublic]       = useState(false);
     const [errors, setErrors]           = useState([]);
     const [playerCount, setPlayerCount] = useState(4);
     const [deckCount, setDeckCount]     = useState(1);
@@ -115,8 +113,6 @@ const CreateGamePage = () => {
     const handleCreateRoom = () => {
         const data = {
             roomname:     roomName,
-            roompass:     isPublic ? "" : pass,
-            isPublic:     isPublic,
             player_count: playerCount,
             deck_count:   deckCount,
             game_count:   gameCount,
@@ -154,44 +150,6 @@ const CreateGamePage = () => {
                         <label>Room Name</label>
                         <div className="room-name-display">{roomName}</div>
                     </div>
-
-                    {/* Private / Public toggle */}
-                    <div className="form-group">
-                        <label>Visibility</label>
-                        <div className="visibility-toggle">
-                            <button
-                                className={`visibility-btn ${!isPublic ? "active" : ""}`}
-                                onClick={() => setIsPublic(false)}
-                            >
-                                🔒 Private
-                            </button>
-                            <button
-                                className={`visibility-btn ${isPublic ? "active" : ""}`}
-                                onClick={() => setIsPublic(true)}
-                            >
-                                🌐 Public
-                            </button>
-                        </div>
-                        <div className="visibility-hint">
-                            {isPublic
-                                ? "Anyone can join without a password"
-                                : "Only players with the password can join"}
-                        </div>
-                    </div>
-
-                    {/* Room Password (private only) */}
-                    {!isPublic && (
-                        <div className="form-group">
-                            <label>Room Password</label>
-                            <input
-                                type="password"
-                                className="form-input"
-                                value={pass}
-                                onChange={(e) => setPass(e.target.value)}
-                                placeholder="Set a room password (min 6 chars)"
-                            />
-                        </div>
-                    )}
 
                     {/* Player Count */}
                     <div className="form-group">

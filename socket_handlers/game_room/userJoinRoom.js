@@ -1,24 +1,26 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
-const bcrypt = require("bcryptjs");
 const { findGameForSocket } = require("../game_play/helpers/findGameForSocket");
 const { buildPublicView } = require("../game_play/helpers/broadcastState");
 const { getValidPlays } = require("../../game_engine/tricks");
 const wrapHandler = require('../wrapHandler');
 
 module.exports = wrapHandler('user-join-room', async (socket, io, data, callback) => {
-    const { roomname, roompass } = data;
+    const { code } = data;
 
-    if (!roomname || typeof roomname !== 'string') {
-        callback("Room name is required");
+    if (!code || typeof code !== 'string') {
+        callback("Room code is required");
         return;
     }
 
-        let game = await Game.findOne({ roomname: roomname });
+    const normalizedCode = code.trim().toUpperCase();
+        let game = await Game.findOne({ code: normalizedCode });
         if (!game) {
             callback("Room does not exists");
             return;
         }
+
+        const roomname = game.roomname;
 
         //verify player not already in the room
         const playerInRoom = game.players.some(player => player.playerId.toString() === socket.user.id);
@@ -74,35 +76,13 @@ module.exports = wrapHandler('user-join-room', async (socket, io, data, callback
                 _id: game.id,
                 $expr: { $lt: [{ $size: "$players" }, "$player_count"] }
             },
-            { $push: { players: { playerId: socket.user.id } } },
+            { $push: { players: { playerId: socket.user.id, ready: true } } },
             { new: true }
         );
 
         if (!updatedGame) {
             callback("Room is full");
             return;
-        }
-
-        //verify credentials (skip for public rooms)
-        if (!game.isPublic) {
-            if (!roompass || !game.roompass) {
-                await Game.findOneAndUpdate(
-                    { _id: game.id },
-                    { $pull: { players: { playerId: socket.user.id } } }
-                );
-                callback("Password required");
-                return;
-            }
-            const isMatch = await bcrypt.compare(roompass, game.roompass);
-            if (!isMatch) {
-                // Rollback: remove the player we just added
-                await Game.findOneAndUpdate(
-                    { _id: game.id },
-                    { $pull: { players: { playerId: socket.user.id } } }
-                );
-                callback("Invalid Credentials");
-                return;
-            }
         }
 
         //Update user game-room

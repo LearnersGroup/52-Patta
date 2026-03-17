@@ -1,33 +1,35 @@
+import { useState } from "react";
 import { WsUserLeaveRoom, WsUserToggleReady, WsGameStart } from "../../api/wsEmitters";
 
-const LobbyView = ({ roomId, roomData, isAdmin }) => {
+const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyCode = () => {
+        if (!roomData?.code) return;
+        navigator.clipboard.writeText(roomData.code).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+
     const handleLeave = () => {
-        try {
-            WsUserLeaveRoom();
-        } catch (error) {
-            console.log(error);
-        }
+        try { WsUserLeaveRoom(); } catch (e) { console.log(e); }
     };
 
     const toggleReady = () => {
-        try {
-            WsUserToggleReady();
-        } catch (err) {
-            console.log(err);
-        }
+        try { WsUserToggleReady(); } catch (e) { console.log(e); }
     };
 
     const handleStartGame = () => {
-        try {
-            WsGameStart();
-        } catch (err) {
-            console.log(err);
-        }
+        try { WsGameStart(); } catch (e) { console.log(e); }
     };
 
     const players = roomData?.players ?? [];
     const requiredPlayers = roomData?.player_count || 4;
     const allReady = players.length >= requiredPlayers && players.every((p) => p.ready);
+
+    const myEntry = players.find((p) => p.playerId?._id === userId || p.playerId?.toString() === userId);
+    const iAmReady = myEntry?.ready ?? false;
 
     return (
         <>
@@ -42,14 +44,27 @@ const LobbyView = ({ roomId, roomData, isAdmin }) => {
                             Start Game
                         </button>
                     )}
-                    <button className="btn-ready" onClick={toggleReady}>
-                        Ready
+                    <button
+                        className={iAmReady ? "btn-ready btn-ready--active" : "btn-ready"}
+                        onClick={toggleReady}
+                    >
+                        {iAmReady ? "Not Ready" : "Ready"}
                     </button>
                     <button className="btn-danger" onClick={handleLeave}>
                         Leave
                     </button>
                 </div>
             </div>
+
+            {roomData?.code && (
+                <div className="room-code-banner">
+                    <span className="room-code-label">Room Code</span>
+                    <span className="room-code-value">{roomData.code}</span>
+                    <button className="room-code-copy" onClick={handleCopyCode}>
+                        {copied ? "Copied!" : "Copy"}
+                    </button>
+                </div>
+            )}
 
             {roomData?.bid_threshold && (
                 <div className="lobby-threshold-info">
@@ -72,55 +87,30 @@ const LobbyView = ({ roomId, roomData, isAdmin }) => {
                         Waiting for players to join...
                     </div>
                 ) : (
-                    <table className="players-table">
-                        <thead>
-                            <tr>
-                                <th>Player</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {players.map((player) => {
-                                const name =
-                                    player.playerId?.name || "Unknown";
-                                const initial = name.charAt(0).toUpperCase();
-                                const avatar = player.playerId?.avatar || "";
-                                return (
-                                    <tr key={player["_id"]}>
-                                        <td>
-                                            <div className="player-name-cell">
-                                                <div className="player-avatar">
-                                                    {avatar ? (
-                                                        <img
-                                                            src={avatar}
-                                                            alt={`${name} avatar`}
-                                                            className="player-avatar-image"
-                                                        />
-                                                    ) : (
-                                                        initial
-                                                    )}
-                                                </div>
-                                                {name}
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span
-                                                className={`status-badge ${
-                                                    player.ready
-                                                        ? "ready"
-                                                        : "not-ready"
-                                                }`}
-                                            >
-                                                {player.ready
-                                                    ? "Ready"
-                                                    : "Not Ready"}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                    <div className="lobby-players-grid">
+                        {players.map((player) => {
+                            const name = player.playerId?.name || "Unknown";
+                            const initial = name.charAt(0).toUpperCase();
+                            const avatar = player.playerId?.avatar || "";
+                            return (
+                                <div key={player["_id"]} className={`lobby-player-block${player.ready ? " lobby-player-block--ready" : ""}`}>
+                                    <div className="lobby-player-avatar-wrap">
+                                        <div className="lobby-player-avatar">
+                                            {avatar ? (
+                                                <img src={avatar} alt={`${name} avatar`} />
+                                            ) : (
+                                                <span>{initial}</span>
+                                            )}
+                                        </div>
+                                        <div className={`lobby-player-ready-badge${player.ready ? " lobby-player-ready-badge--ready" : ""}`}>
+                                            {player.ready ? "✓" : "○"}
+                                        </div>
+                                        <div className="lobby-player-name-badge">{name}</div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 )}
             </div>
         </>
