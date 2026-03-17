@@ -389,3 +389,202 @@
     border: 1px solid rgba(201, 162, 39, 0.15);
   }
 }
+
+// ─── BIDDING COUNTER ─────────────────────────────────────────
+
+.judgement-bidding-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.judgement-bid-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.judgement-forbidden-note {
+  font-size: 0.72rem;
+  color: $red-suit;
+  letter-spacing: 0.06em;
+  font-family: $font-heading;
+  background: rgba(204, 41, 54, 0.08);
+  border: 1px solid rgba(204, 41, 54, 0.2);
+  border-radius: 6px;
+  padding: 3px 10px;
+}
+
+.jdg-bid-counter {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba($bg-panel, 0.9);
+  border: 1px solid $border-gold;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.jdg-bid-adj {
+  background: none;
+  border: none;
+  color: $gold;
+  font-size: 1.4rem;
+  font-weight: 300;
+  line-height: 1;
+  padding: 6px 18px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover:not(:disabled) {
+    background: rgba(201, 162, 39, 0.12);
+    color: $gold-light;
+  }
+
+  &:disabled {
+    color: rgba(201, 162, 39, 0.25);
+    cursor: default;
+  }
+}
+
+.jdg-bid-amount {
+  font-family: $font-heading;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: $cream;
+  min-width: 48px;
+  text-align: center;
+  line-height: 1;
+  padding: 6px 4px;
+  border-left: 1px solid $border-gold;
+  border-right: 1px solid $border-gold;
+}
+
+.jdg-bid-submit {
+  min-width: 110px;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+}
+
+.judgement-bid-waiting {
+  font-size: 0.82rem;
+  color: $cream-muted;
+  font-style: italic;
+  padding: 6px 0;
+
+  .judgement-bid-waiting-name {
+    color: $cream;
+    font-weight: 600;
+    font-style: normal;
+  }
+}
+
+// ─── BIDDING CENTER TABLE DISPLAY ────────────────────────────
+
+.jdg-bid-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.jdg-bid-center-name {
+  font-family: $font-heading;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: $cream;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.jdg-bid-center-turn-label {
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $cream-muted;
+}
+
+.jdg-bid-center-tally {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.jdg-bid-center-count {
+  font-family: $font-heading;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: $gold;
+  line-height: 1;
+}
+
+.jdg-bid-center-sep {
+  font-size: 1.1rem;
+  color: $cream-muted;
+  line-height: 1;
+}
+
+.jdg-bid-center-cards {
+  font-family: $font-heading;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: $cream-muted;
+  line-height: 1;
+}
+
+.jdg-bid-center-sub {
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: $cream-muted;
+}
+
+// ─── JUDGEMENT SCOREBOARD MODAL ──────────────────────────────
+
+.jdg-ssb-panel {
+  width: min(96vw, 680px);
+}
+
+.jdg-ssb-trump {
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid $border-gold;
+  background: rgba($bg-panel-light, 0.7);
+
+  &.red   { color: $red-suit; }
+  &.black { color: $cream; }
+}
+
+.jdg-ssb-leader-col {
+  color: $gold !important;
+}
+
+.jdg-ssb-live-row td {
+  background: rgba(201, 162, 39, 0.04);
+}
+
+.jdg-ssb-live-label {
+  color: $gold !important;
+}
+
+.ssb-live-badge {
+  display: inline-block;
+  background: rgba(201, 162, 39, 0.15);
+  border: 1px solid rgba(201, 162, 39, 0.35);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.6rem;
+  color: $gold;
+  letter-spacing: 0.08em;
+  font-family: $font-heading;
+  text-transform: uppercase;
+}

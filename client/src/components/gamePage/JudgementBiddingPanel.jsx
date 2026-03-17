@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { WsJudgementBid } from "../../api/wsEmitters";
 
 const JudgementBiddingPanel = ({ bidding, userId, cardsInRound = 0, getName = (pid) => pid?.substring(0, 8) }) => {
@@ -13,19 +13,30 @@ const JudgementBiddingPanel = ({ bidding, userId, cardsInRound = 0, getName = (p
 
     const [amount, setAmount] = useState(0);
 
+    // Auto-skip forbidden bid when it's my turn
     useEffect(() => {
-        if (forbiddenBid === amount && isMyTurn) {
-            setAmount(0);
+        if (!isMyTurn) return;
+        if (forbiddenBid === 0) {
+            setAmount(1);
+        } else if (amount === forbiddenBid) {
+            setAmount((prev) => {
+                const next = prev + 1;
+                return next > cardsInRound ? Math.max(0, prev - 1) : next;
+            });
         }
-    }, [forbiddenBid, amount, isMyTurn]);
+    }, [forbiddenBid, isMyTurn]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const amountOptions = useMemo(() => {
-        const opts = [];
-        for (let i = 0; i <= cardsInRound; i += 1) {
-            opts.push(i);
-        }
-        return opts;
-    }, [cardsInRound]);
+    const adjustAmount = (delta) => {
+        setAmount((prev) => {
+            let next = Math.max(0, Math.min(cardsInRound, prev + delta));
+            // Jump over the forbidden bid
+            if (forbiddenBid !== null && next === forbiddenBid) {
+                next = Math.max(0, Math.min(cardsInRound, next + delta));
+                if (next === forbiddenBid) next = prev; // nowhere to move, stay put
+            }
+            return next;
+        });
+    };
 
     const handleSubmit = () => {
         if (!isMyTurn) return;
@@ -37,38 +48,38 @@ const JudgementBiddingPanel = ({ bidding, userId, cardsInRound = 0, getName = (p
 
     return (
         <div className="bidding-controls-bar judgement-bidding-panel">
-            <div className="judgement-bid-order">
-                {bidOrder.map((pid, idx) => {
-                    const bid = bidding?.bids?.[pid];
-                    const isCurrent = idx === currentBidderIndex && !bidding?.biddingComplete;
-                    return (
-                        <div key={pid} className={`judgement-bid-row ${isCurrent ? "is-current" : ""}`}>
-                            <span className="judgement-bid-player">{getName(pid)}</span>
-                            <span className="judgement-bid-value">{bid ?? "—"}</span>
-                        </div>
-                    );
-                })}
-            </div>
-
-            <div className="judgement-bid-meta">
-                Total bids: <strong>{totalBidsSoFar}</strong> / {cardsInRound}
-                {isDealerTurn && forbiddenBid !== null && (
-                    <span className="judgement-forbidden"> Dealer cannot bid {forbiddenBid}</span>
-                )}
-            </div>
-
-            {isMyTurn && (
+            {isMyTurn ? (
                 <div className="judgement-bid-controls">
-                    <select value={amount} onChange={(e) => setAmount(Number(e.target.value))}>
-                        {amountOptions.map((opt) => (
-                            <option key={opt} value={opt} disabled={forbiddenBid === opt}>
-                                {opt}{forbiddenBid === opt ? " (not allowed)" : ""}
-                            </option>
-                        ))}
-                    </select>
-                    <button className="btn-primary" onClick={handleSubmit}>
-                        Submit Bid
+                    {forbiddenBid !== null && (
+                        <div className="judgement-forbidden-note">
+                            Cannot bid {forbiddenBid}
+                        </div>
+                    )}
+                    <div className="jdg-bid-counter">
+                        <button
+                            className="jdg-bid-adj"
+                            onClick={() => adjustAmount(-1)}
+                            disabled={amount <= 0}
+                        >
+                            −
+                        </button>
+                        <span className="jdg-bid-amount">{amount}</span>
+                        <button
+                            className="jdg-bid-adj"
+                            onClick={() => adjustAmount(1)}
+                            disabled={amount >= cardsInRound}
+                        >
+                            +
+                        </button>
+                    </div>
+                    <button className="btn-primary jdg-bid-submit" onClick={handleSubmit}>
+                        Bid {amount}
                     </button>
+                </div>
+            ) : (
+                <div className="judgement-bid-waiting">
+                    <span className="judgement-bid-waiting-name">{getName(currentBidder)}</span>
+                    <span className="judgement-bid-waiting-label"> is bidding...</span>
                 </div>
             )}
         </div>

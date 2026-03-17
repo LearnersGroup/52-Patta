@@ -9,6 +9,7 @@ import PlayerHand from "./PlayerHand";
 import PlayerList from "./PlayerList";
 import ScoreBoard from "./ScoreBoard";
 import JudgementScoreBoard from "./JudgementScoreBoard";
+import JudgementScoreboardModal from "./JudgementScoreboardModal";
 import PartnerCardDisplay from "./PartnerCardDisplay";
 import TeamScoreHUD from "./TeamScoreHUD";
 import DealRevealOverlay from "./DealRevealOverlay";
@@ -69,6 +70,7 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [inspectMode, setInspectMode] = useState(false);
+    const [showJdgScoreboard, setShowJdgScoreboard] = useState(false);
     const [showDealReveal, setShowDealReveal] = useState(false);
     // Minor 4: dealing animation counter
     const [dealingVisibleCount, setDealingVisibleCount] = useState(0);
@@ -563,12 +565,17 @@ const GameBoard = ({ userId, isAdmin }) => {
 
         if (phase === "bidding") {
             if (isJudgement) {
+                const totalBids = bidding?.totalBids || 0;
                 return (
-                    <div className="bid-center-display">
-                        <div className="bid-center-label">Judgement Bidding</div>
-                        <div className="bid-center-bidder">
-                            Current: <span className="bid-center-bidder-name">{getName(biddingCurrentTurn)}</span>
+                    <div className="jdg-bid-center">
+                        <div className="jdg-bid-center-name">{getName(biddingCurrentTurn)}</div>
+                        <div className="jdg-bid-center-turn-label">is bidding</div>
+                        <div className="jdg-bid-center-tally">
+                            <span className="jdg-bid-center-count">{totalBids}</span>
+                            <span className="jdg-bid-center-sep">/</span>
+                            <span className="jdg-bid-center-cards">{currentCardsPerRound || 0}</span>
                         </div>
+                        <div className="jdg-bid-center-sub">bids placed</div>
                     </div>
                 );
             }
@@ -720,6 +727,14 @@ const GameBoard = ({ userId, isAdmin }) => {
                                 <span className="jdg-hud-pill-value">{currentCardsPerRound || 0}</span>
                                 <span className="jdg-hud-pill-label">Cards</span>
                             </div>
+                            <div className="jdg-hud-divider" />
+                            <button
+                                className="hud-scoreboard-btn"
+                                onClick={() => setShowJdgScoreboard(true)}
+                                title="View scoreboard"
+                            >
+                                ⊞
+                            </button>
                         </div>
                     )}
 
@@ -812,6 +827,11 @@ const GameBoard = ({ userId, isAdmin }) => {
                         totalGames={totalGames}
                     />
                 )
+            )}
+
+            {/* Judgement scoreboard modal — accessible during all table phases */}
+            {isJudgement && showJdgScoreboard && (
+                <JudgementScoreboardModal onClose={() => setShowJdgScoreboard(false)} />
             )}
 
             {phase === "series-finished" && (

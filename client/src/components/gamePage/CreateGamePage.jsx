@@ -68,9 +68,9 @@ const CreateGamePage = () => {
     const [gameCount, setGameCount]     = useState(4);
     const [bidWindow, setBidWindow]     = useState(15);
     const [inspectTime, setInspectTime] = useState(15);
-    const [maxCardsPerRound, setMaxCardsPerRound] = useState(1);
-    const [reverseOrder, setReverseOrder] = useState(false);
-    const [trumpMode, setTrumpMode] = useState("random");
+    const [maxCardsPerRound, setMaxCardsPerRound] = useState(7);
+    const [reverseOrder, setReverseOrder] = useState(true);
+    const [trumpMode, setTrumpMode] = useState("fixed");
     const [scoreboardTime, setScoreboardTime] = useState(5);
     const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
     const [bidTime, setBidTime] = useState(15);
@@ -114,7 +114,9 @@ const CreateGamePage = () => {
         setInspectTime(15);
         setMaxCardsPerRound((prev) => {
             const maxPossible = Math.floor((52 * deckCount) / playerCount);
-            if (!prev || prev < 1 || prev > maxPossible) return maxPossible;
+            // Default target is 7; cap at maxPossible
+            const target = Math.min(7, maxPossible);
+            if (!prev || prev < 1 || prev > maxPossible) return target;
             return prev;
         });
     }, [gameType, playerCount, deckCount]);
