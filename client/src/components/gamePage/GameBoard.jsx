@@ -113,7 +113,8 @@ const GameBoard = ({ userId, isAdmin }) => {
             scorecardTimerRef.current = null;
         }
 
-        const isFinished = phase === "scoring" || phase === "finished";
+        // Include series-finished so the last round also gets the 3s hold
+        const isFinished = phase === "scoring" || phase === "finished" || phase === "series-finished";
 
         if (isFinished && isJudgement) {
             scorecardTimerRef.current = setTimeout(() => setScorecardVisible(true), 3000);
@@ -121,7 +122,7 @@ const GameBoard = ({ userId, isAdmin }) => {
             setScorecardVisible(isFinished && !isJudgement);
         }
 
-        // Reset when phase leaves finished/scoring
+        // Reset when phase leaves finished/scoring/series-finished
         if (!isFinished) setScorecardVisible(false);
 
         return () => {
@@ -491,7 +492,7 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     // For Judgement, keep the table visible until the scorecard delay has elapsed
     const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase)
-        || (isJudgement && (phase === "finished" || phase === "scoring") && !scorecardVisible);
+        || (isJudgement && (phase === "finished" || phase === "scoring" || phase === "series-finished") && !scorecardVisible);
     const isPlayingPhase = phase === "playing";
 
     // Center content for CircularTable based on phase
@@ -809,7 +810,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <JudgementScoreboardModal onClose={() => setShowJdgScoreboard(false)} />
             )}
 
-            {phase === "series-finished" && (
+            {phase === "series-finished" && (!isJudgement || scorecardVisible) && (
                 <SeriesFinishedPanel
                     finalRankings={finalRankings}
                     scores={scores}

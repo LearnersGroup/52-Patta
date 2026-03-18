@@ -31,8 +31,8 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             return;
         }
 
-        // Check game is still in lobby state
-        if (game.state !== "lobby") {
+        // Check game is still in lobby (or series-finished before auto-cleanup fires)
+        if (!["lobby", "series-finished"].includes(game.state)) {
             if (callback) callback("Game has already started");
             return;
         }
