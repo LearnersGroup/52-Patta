@@ -1,7 +1,4 @@
 const { playCard: playCardEngine } = require("../../game_engine/tricks");
-const { calculateGameResult, applyScoring } = require("../../game_engine/scoring");
-const { calculateJudgementRoundResult, applyJudgementScoring } = require("../../game_engine/judgement/scoring");
-const { getNextJudgementRound } = require("../../game_engine/judgement/rounds");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
@@ -9,6 +6,9 @@ const { scheduleAutoNextGame } = require("./autoNextGame");
 const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
 const { autoNextJudgementRound } = require("./helpers/autoNextJudgementRound");
 const wrapHandler = require("../wrapHandler");
+
+require("../../game_engine/strategies");
+const { getStrategy } = require("../../game_engine/gameRegistry");
 
 module.exports = wrapHandler('game-play-card', async (socket, io, data, callback) => {
     const { gameState, error } = await findGameForSocket(socket);
@@ -44,7 +44,7 @@ module.exports = wrapHandler('game-play-card', async (socket, io, data, callback
 
     const isJudgement = gameState.game_type === "judgement";
 
-    // Check for partner reveal and notify
+    // Check for partner reveal and notify (Kaliteri only)
     if (!isJudgement) {
         const previousRevealed = gameState.revealedPartners?.length || 0;
         const currentRevealed = newState.revealedPartners?.length || 0;
@@ -71,57 +71,15 @@ module.exports = wrapHandler('game-play-card', async (socket, io, data, callback
 
     // Check if game is over (phase transitioned to scoring)
     if (newState.phase === "scoring") {
-        if (isJudgement) {
-            const deltas = calculateJudgementRoundResult(
-                newState.bidding?.bids || {},
-                newState.tricksWon || {}
-            );
-            const nextScores = applyJudgementScoring(newState.scores || {}, deltas);
-            const roundEntry = {
-                roundNumber: (newState.seriesRoundIndex || 0) + 1,
-                bids: { ...(newState.bidding?.bids || {}) },
-                tricksWon: { ...(newState.tricksWon || {}) },
-                deltas,
-                cumulative: nextScores,
-                trumpCard: newState.trumpCard || null,
-                trumpSuit: newState.trumpSuit || null,
-            };
+        const strategy = getStrategy(gameState.game_type);
 
-            const nextRound = getNextJudgementRound(newState);
-            newState = {
-                ...newState,
-                scores: nextScores,
-                scoringResult: null,
-                roundResults: [...(newState.roundResults || []), roundEntry],
-                phase: nextRound.done ? "series-finished" : "finished",
-                nextRoundReady: [],
-            };
+        newState = strategy.onRoundEnd(io, gameState, newState);
 
-            io.to(gameState.roomname).emit("game-phase-change", newState.phase);
-
-            // Schedule auto-advance to next round after scoreboard display time
-            if (newState.phase === "finished") {
-                const scoreboardTimeMs = newState.config?.scoreboardTimeMs || 5000;
-                scheduleJudgementAdvance(gameState.gameId, scoreboardTimeMs, () => autoNextJudgementRound(io, gameState.gameId));
-            }
-        } else {
-            // Finalize teams: any unrevealed partner cards — those players stay on opposing team
-            const scoringResult = calculateGameResult(newState);
-            const newScores = applyScoring(newState.scores, scoringResult);
-
-            newState = {
-                ...newState,
-                scores: newScores,
-                scoringResult,
-                phase: "finished",
-            };
-
-            io.to(gameState.roomname).emit("game-phase-change", "finished");
-            io.to(gameState.roomname).emit("game-result", scoringResult);
-
-            // Schedule auto-progression to next game (or series end)
-            scheduleAutoNextGame(io, gameState.gameId);
-        }
+        strategy.afterRoundEnd(io, gameState, newState, {
+            scheduleAutoNextGame,
+            scheduleJudgementAdvance,
+            autoNextJudgementRound,
+        });
     }
 
     setGameState(gameState.gameId, newState);
