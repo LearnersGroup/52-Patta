@@ -26,6 +26,8 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
 
     const players = roomData?.players ?? [];
     const requiredPlayers = roomData?.player_count || 4;
+    const gameType = roomData?.game_type || "kaliteri";
+    const gameTypeLabel = gameType === "judgement" ? "Judgement" : "Kaliteri";
     const allReady = players.length >= requiredPlayers && players.every((p) => p.ready);
 
     const myEntry = players.find((p) => p.playerId?._id === userId || p.playerId?.toString() === userId);
@@ -37,6 +39,9 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                 <div className="game-title-block">
                     <div className="game-room-label">&spades; Game Room</div>
                     <div className="game-room-id">{roomId}</div>
+                    <div className={`game-type-badge game-type-${gameType}`}>
+                        {gameTypeLabel}
+                    </div>
                 </div>
                 <div className="game-actions">
                     {isAdmin && allReady && (

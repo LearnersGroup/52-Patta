@@ -11,6 +11,7 @@ const ShufflingPanel = memo(({
     currentGameNumber,
     totalGames,
     isTableCenter = false,
+    gameLabel = "Game",
 }) => {
     const isDealer = dealer === userId;
     const dealerName = getName(dealer);
@@ -56,7 +57,7 @@ const ShufflingPanel = memo(({
                     <h3>{isTableCenter ? "Choose your Shuffles" : "🃏 You are the Dealer"}</h3>
                     {totalGames > 1 && (
                         <div className="game-counter">
-                            Game {currentGameNumber} of {totalGames}
+                            {gameLabel} {currentGameNumber} of {totalGames}
                         </div>
                     )}
                 </div>

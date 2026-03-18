@@ -19,6 +19,11 @@ module.exports = wrapHandler('game-pass-bid', async (socket, io, data, callback)
         return;
     }
 
+    if (gameState.game_type === "judgement") {
+        if (callback) callback("Pass is not used in Judgement bidding");
+        return;
+    }
+
     const result = passBidEngine(
         gameState.bidding,
         gameState.seatOrder,

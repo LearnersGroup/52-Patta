@@ -22,6 +22,7 @@ const PlayerSeat = memo(({
     cardCount = 0,
     score = 0,
     relation = null, // "teammate" | "opponent" | null
+    scoreContent = null,
 }) => {
     const CardBack = getCardBackComponent();
 
@@ -130,7 +131,7 @@ const PlayerSeat = memo(({
 
             {/* Score */}
             <div className="table-seat-meta">
-                {score} pts
+                {scoreContent !== null ? scoreContent : `${score} pts`}
             </div>
         </>
     );

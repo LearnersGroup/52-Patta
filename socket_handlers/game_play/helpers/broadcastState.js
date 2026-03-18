@@ -37,8 +37,75 @@ function buildPublicView(gameState) {
         handSizes[pid] = hand.length;
     }
 
+    const isJudgement = gameState.game_type === "judgement";
+
+    if (isJudgement) {
+        return {
+            gameId: gameState.gameId,
+            game_type: "judgement",
+            phase: gameState.phase,
+            config: gameState.config,
+            seatOrder: gameState.seatOrder,
+            playerNames: gameState.playerNames || {},
+            removedTwos: gameState.removedTwos || [],
+
+            dealer: gameState.dealer || null,
+            dealerIndex: gameState.dealerIndex ?? 0,
+            shuffleQueue: gameState.shuffleQueue || [],
+            dealingConfig: gameState.dealingConfig || null,
+
+            bidding: gameState.bidding
+                ? {
+                      bids: gameState.bidding.bids || {},
+                      bidOrder: gameState.bidding.bidOrder || [],
+                      currentBidderIndex: gameState.bidding.currentBidderIndex ?? 0,
+                      biddingComplete: !!gameState.bidding.biddingComplete,
+                      totalBids: gameState.bidding.totalBids || 0,
+                      biddingWindowOpensAt: gameState.bidding.biddingWindowOpensAt || null,
+                  }
+                : null,
+
+            leader: gameState.leader || null,
+            currentRound: gameState.currentRound,
+            currentTrick: gameState.currentTrick
+                ? {
+                      ...gameState.currentTrick,
+                      currentTurn:
+                          gameState.seatOrder[gameState.currentTrick.turnIndex] || null,
+                  }
+                : null,
+            tricks: (gameState.tricks || []).map((t) => ({
+                winner: t.winner,
+                points: t.points,
+                cards: t.cards,
+            })),
+            roundLeader: gameState.roundLeader,
+            handSizes,
+
+            scores: gameState.scores || {},
+            scoringResult: gameState.scoringResult || null,
+
+            trumpCard: gameState.trumpCard || null,
+            trumpSuit: gameState.trumpSuit || null,
+            tricksWon: gameState.tricksWon || {},
+            currentCardsPerRound: gameState.currentCardsPerRound || 0,
+            seriesRoundIndex: gameState.seriesRoundIndex || 0,
+            totalRoundsInSeries: gameState.totalRoundsInSeries || gameState.config?.totalRounds || 0,
+            roundResults: gameState.roundResults || [],
+
+            scoreboardTimeMs: gameState.config?.scoreboardTimeMs || 5000,
+            trumpMode: gameState.config?.trumpMode || "random",
+            bidTimeMs: gameState.config?.bidTimeMs ?? null,
+            cardRevealTimeMs: gameState.config?.cardRevealTimeMs ?? 10000,
+            // Expose round progress as game series fields for ShufflingPanel
+            currentGameNumber: (gameState.seriesRoundIndex || 0) + 1,
+            totalGames: gameState.totalRoundsInSeries || gameState.config?.totalRounds || 1,
+        };
+    }
+
     return {
         gameId: gameState.gameId,
+        game_type: gameState.game_type || "kaliteri",
         phase: gameState.phase,
         configKey: gameState.config?.key,
         seatOrder: gameState.seatOrder,
@@ -54,7 +121,7 @@ function buildPublicView(gameState) {
         // Game series tracking
         currentGameNumber: gameState.currentGameNumber || 1,
         totalGames: gameState.totalGames || 1,
-        finalRankings: gameState.finalRankings || null,
+        finalRankings: gameState.finalRankings || [],
 
         bidding: gameState.bidding
             ? {

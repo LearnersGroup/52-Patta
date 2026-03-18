@@ -1,12 +1,15 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { WsRequestGameState, WsQuitGame } from "../../api/wsEmitters";
+import { WsRequestGameState, WsQuitGame, WsProceedToShuffle } from "../../api/wsEmitters";
 import BiddingPanel from "./BiddingPanel";
+import JudgementBiddingPanel from "./JudgementBiddingPanel";
 import BidCenterDisplay from "./BidCenterDisplay";
 import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
 import PlayerList from "./PlayerList";
 import ScoreBoard from "./ScoreBoard";
+import JudgementScoreBoard from "./JudgementScoreBoard";
+import JudgementScoreboardModal from "./JudgementScoreboardModal";
 import PartnerCardDisplay from "./PartnerCardDisplay";
 import TeamScoreHUD from "./TeamScoreHUD";
 import DealRevealOverlay from "./DealRevealOverlay";
@@ -23,6 +26,8 @@ const CARDS_PER_PLAYER = {
 };
 
 const GameBoard = ({ userId, isAdmin }) => {
+    const gameType = useSelector((state) => state.game.game_type) || "kaliteri";
+    const isJudgement = gameType === "judgement";
     const phase = useSelector((state) => state.game.phase);
     const configKey = useSelector((state) => state.game.configKey);
     const seatOrder = useSelector((state) => state.game.seatOrder);
@@ -52,9 +57,20 @@ const GameBoard = ({ userId, isAdmin }) => {
     const currentGameNumber = useSelector((state) => state.game.currentGameNumber);
     const totalGames = useSelector((state) => state.game.totalGames);
     const finalRankings = useSelector((state) => state.game.finalRankings);
+    const trumpCard = useSelector((state) => state.game.trumpCard);
+    const trumpSuit = useSelector((state) => state.game.trumpSuit);
+    const tricksWon = useSelector((state) => state.game.tricksWon);
+    const currentCardsPerRound = useSelector((state) => state.game.currentCardsPerRound);
+    const seriesRoundIndex = useSelector((state) => state.game.seriesRoundIndex);
+    const totalRoundsInSeries = useSelector((state) => state.game.totalRoundsInSeries);
+    const roundResults = useSelector((state) => state.game.roundResults);
+    const trumpMode = useSelector((state) => state.game.trumpMode);
+    const scoreboardTimeMs = useSelector((state) => state.game.scoreboardTimeMs);
+    const cardRevealTimeMs = useSelector((state) => state.game.cardRevealTimeMs);
 
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [inspectMode, setInspectMode] = useState(false);
+    const [showJdgScoreboard, setShowJdgScoreboard] = useState(false);
     const [showDealReveal, setShowDealReveal] = useState(false);
     // Minor 4: dealing animation counter
     const [dealingVisibleCount, setDealingVisibleCount] = useState(0);
@@ -64,6 +80,8 @@ const GameBoard = ({ userId, isAdmin }) => {
     const dealingAnimRef = useRef(null);
     // Teammate reveal announcement
     const [revealAnnouncement, setRevealAnnouncement] = useState(null); // { playerName, bidderName }
+    const [trumpCountdown, setTrumpCountdown] = useState(5);
+    const trumpCountdownRef = useRef(null);
     const prevRevealedPartnersRef = useRef([]);
     const revealAnnouncementTimerRef = useRef(null);
 
@@ -80,13 +98,14 @@ const GameBoard = ({ userId, isAdmin }) => {
             dealRevealKeyRef.current += 1;
             setShowDealReveal(true);
 
-            // Auto-close when the reveal window ends (server timestamp)
+            // Auto-close when the reveal window ends (server timestamp or fallback)
             const opensAt = bidding?.biddingWindowOpensAt;
-            const delayMs = opensAt ? Math.max(0, opensAt - Date.now()) : 7500;
+            const fallbackMs = isJudgement ? (cardRevealTimeMs ?? 10000) : 7500;
+            const delayMs = opensAt ? Math.max(0, opensAt - Date.now()) : fallbackMs;
             setTimeout(() => setShowDealReveal(false), delayMs);
         }
         prevPhaseRef.current = curr;
-    }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [phase, isJudgement, bidding, cardRevealTimeMs]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
 
@@ -162,6 +181,32 @@ const GameBoard = ({ userId, isAdmin }) => {
     useEffect(() => () => {
         if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
     }, []);
+
+    // Trump-announce countdown: 5-second visual countdown matching server timer
+    useEffect(() => {
+        if (trumpCountdownRef.current) {
+            clearInterval(trumpCountdownRef.current);
+            trumpCountdownRef.current = null;
+        }
+        if (phase !== "trump-announce") {
+            setTrumpCountdown(5);
+            return;
+        }
+        setTrumpCountdown(5);
+        trumpCountdownRef.current = setInterval(() => {
+            setTrumpCountdown((prev) => {
+                if (prev <= 1) {
+                    clearInterval(trumpCountdownRef.current);
+                    trumpCountdownRef.current = null;
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        return () => {
+            if (trumpCountdownRef.current) clearInterval(trumpCountdownRef.current);
+        };
+    }, [phase]);
 
     // ── Partner / relation logic ───────────────────────────────────────────
     // These must all live ABOVE any early return (Rules of Hooks).
@@ -270,12 +315,18 @@ const GameBoard = ({ userId, isAdmin }) => {
         return <div className="game-board-loading">Loading game state...</div>;
     }
 
+    const biddingCurrentTurn = isJudgement
+        ? bidding?.bidOrder?.[bidding?.currentBidderIndex]
+        : bidding?.currentTurn;
+
     const getName = (pid) => playerNames[pid] || pid?.substring(0, 8);
     const isBidLeader = leader === userId;
     const isMyTurn =
         phase === "bidding"
-            // Open bidding: any non-passed active player "has a turn"
-            ? !bidding?.passed?.includes(userId)
+            ? (isJudgement
+                ? bidding?.bidOrder?.[bidding?.currentBidderIndex] === userId
+                // Open bidding: any non-passed active player "has a turn"
+                : !bidding?.passed?.includes(userId))
             : phase === "playing"
             ? currentTrick?.currentTurn === userId
             : false;
@@ -288,6 +339,9 @@ const GameBoard = ({ userId, isAdmin }) => {
     // --- Phase-aware helpers for CircularTable ---
 
     const computeCardCount = (pid) => {
+        if (isJudgement) {
+            return handSizes?.[pid] ?? 0;
+        }
         const total = CARDS_PER_PLAYER[configKey] || 13;
         const trickPlays = currentTrick?.plays || [];
         const hasPlayed = trickPlays.some((p) => p.playerId === pid);
@@ -296,11 +350,13 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     const getIsTurn = (pid) => {
         switch (phase) {
+            case "trump-announce":
+                return false; // passive phase, dealer has a button not a "turn"
             case "shuffling":
             case "dealing":
                 return pid === dealer;
             case "bidding":
-                return pid === bidding?.currentTurn;
+                return pid === biddingCurrentTurn;
             case "powerhouse":
                 return pid === leader;
             case "playing":
@@ -311,6 +367,9 @@ const GameBoard = ({ userId, isAdmin }) => {
     };
 
     const getCardCount = (pid) => {
+        if (isJudgement) {
+            return handSizes?.[pid] ?? 0;
+        }
         const total = CARDS_PER_PLAYER[configKey] || 13;
         switch (phase) {
             case "shuffling":
@@ -389,29 +448,88 @@ const GameBoard = ({ userId, isAdmin }) => {
         return null;
     };
 
+    const getJudgementScoreContent = (pid) => {
+        if (!isJudgement) return null;
+        if (phase === "bidding") {
+            const bid = bidding?.bids?.[pid];
+            if (bid === undefined) {
+                return (
+                    <div className="jdg-seat-status jdg-waiting">
+                        <span className="jdg-q">??</span>
+                        <span className="jdg-label">bid</span>
+                    </div>
+                );
+            }
+            return (
+                <div className="jdg-seat-status jdg-bid-placed">
+                    <span className="jdg-bid-num">{bid}</span>
+                    <span className="jdg-label">bid</span>
+                </div>
+            );
+        }
+        if (phase === "playing") {
+            const bid = bidding?.bids?.[pid] ?? "?";
+            const won = tricksWon?.[pid] || 0;
+            const onTarget = typeof bid === "number" && won === bid;
+            const over = typeof bid === "number" && won > bid;
+            return (
+                <div className={`jdg-seat-status jdg-playing ${onTarget ? "jdg-on-target" : over ? "jdg-over" : "jdg-under"}`}>
+                    <span className="jdg-tricks">{won}</span>
+                    <span className="jdg-sep">/</span>
+                    <span className="jdg-bid-target">{bid}</span>
+                </div>
+            );
+        }
+        return null;
+    };
+
     const buildPlayerList = () => {
         return (seatOrder || []).map((pid) => ({
             id: pid,
             name: getName(pid),
             isMe: pid === userId,
-            isLeader: pid === leader,
+            isLeader: !isJudgement && pid === leader,
             isDealer: pid === dealer,
             isPartner: revealedPartners?.includes(pid),
             isTurn: getIsTurn(pid),
             teamClass: getTeamClass(pid),
             cardCount: getCardCount(pid),
-            score: playerTrickPoints[pid] ?? 0,
+            score: isJudgement ? (tricksWon?.[pid] || 0) : (playerTrickPoints[pid] ?? 0),
             avatarInitial: getName(pid).charAt(0).toUpperCase(),
             avatar: playerAvatars[pid] || "",
             relation: getRelation(pid), // "teammate" | "opponent" | null
+            scoreContent: getJudgementScoreContent(pid),
         }));
     };
 
-    const isTablePhase = ["shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase);
+    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase);
     const isPlayingPhase = phase === "playing";
 
     // Center content for CircularTable based on phase
     const renderCenterContent = ({ seatPositionMap, tableSize }) => {
+        if (phase === "trump-announce") {
+            const isDealer = dealer === userId;
+            return (
+                <div className="trump-announce-center">
+                    <div className="trump-announce-title">Trump Suit is...</div>
+                    <div className={`trump-announce-watermark ${isRedSuit(trumpSuit) ? "red" : "black"}`}>
+                        {suitSymbol(trumpSuit)}
+                    </div>
+                    <div className="trump-announce-sub">
+                        {trumpMode === "fixed" ? "Fixed rotation" : "Drawn randomly"}
+                    </div>
+                    <div className="trump-announce-countdown">
+                        Proceeding to shuffle in {trumpCountdown}s...
+                    </div>
+                    {isDealer && (
+                        <button className="btn-primary trump-announce-proceed" onClick={WsProceedToShuffle}>
+                            Proceed to Shuffle
+                        </button>
+                    )}
+                </div>
+            );
+        }
+
         if (phase === "shuffling") {
             return (
                 <ShufflingPanel
@@ -420,11 +538,13 @@ const GameBoard = ({ userId, isAdmin }) => {
                     userId={userId}
                     shuffleQueue={shuffleQueue}
                     getName={getName}
-                    currentGameNumber={currentGameNumber}
-                    totalGames={totalGames}
+                    currentGameNumber={isJudgement ? (seriesRoundIndex + 1) : currentGameNumber}
+                    totalGames={isJudgement ? totalRoundsInSeries : totalGames}
+                    gameLabel={isJudgement ? "Round" : "Game"}
                 />
             );
         }
+
         if (phase === "dealing") {
             const dealerIdx = (seatOrder || []).indexOf(dealer);
             return (
@@ -442,16 +562,30 @@ const GameBoard = ({ userId, isAdmin }) => {
                 />
             );
         }
+
         if (phase === "bidding") {
-            return (
-                <BidCenterDisplay
-                    bidding={bidding}
-                    getName={getName}
-                />
-            );
+            if (isJudgement) {
+                const totalBids = bidding?.totalBids || 0;
+                return (
+                    <div className="jdg-bid-center">
+                        <div className="jdg-bid-center-name">{getName(biddingCurrentTurn)}</div>
+                        <div className="jdg-bid-center-turn-label">is bidding</div>
+                        <div className="jdg-bid-center-tally">
+                            <span className="jdg-bid-center-count">{totalBids}</span>
+                            <span className="jdg-bid-center-sep">/</span>
+                            <span className="jdg-bid-center-cards">{currentCardsPerRound || 0}</span>
+                        </div>
+                        <div className="jdg-bid-center-sub">bids placed</div>
+                    </div>
+                );
+            }
+
+            return <BidCenterDisplay bidding={bidding} getName={getName} />;
         }
+
         if (phase === "powerhouse") {
-            // Sub-phase 1: suit selection
+            if (isJudgement) return null;
+
             if (!powerHouseSuit) {
                 if (isBidLeader) {
                     return (
@@ -472,7 +606,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                     </div>
                 );
             }
-            // Sub-phase 2: partner selection — center shows suit + status
+
             return (
                 <div className="powerhouse-waiting-center">
                     <div className={`waiting-suit-symbol ${isRedSuit(powerHouseSuit) ? "red" : "black"}`}>
@@ -481,18 +615,16 @@ const GameBoard = ({ userId, isAdmin }) => {
                     <div className="waiting-label">
                         {isBidLeader ? "Select Teammates" : "Selecting Teammates..."}
                     </div>
-                    {!isBidLeader && (
-                        <div className="waiting-name">{getName(leader)}</div>
-                    )}
+                    {!isBidLeader && <div className="waiting-name">{getName(leader)}</div>}
                 </div>
             );
         }
-        // Playing phase — with powersuit watermark
+
         return (
             <>
-                {powerHouseSuit && (
-                    <div className={`powersuit-watermark ${isRedSuit(powerHouseSuit) ? "red" : "black"}`}>
-                        {suitSymbol(powerHouseSuit)}
+                {(isJudgement ? trumpSuit : powerHouseSuit) && (
+                    <div className={`powersuit-watermark ${isRedSuit(isJudgement ? trumpSuit : powerHouseSuit) ? "red" : "black"}`}>
+                        {suitSymbol(isJudgement ? trumpSuit : powerHouseSuit)}
                     </div>
                 )}
                 <PlayArea
@@ -504,19 +636,15 @@ const GameBoard = ({ userId, isAdmin }) => {
                     getName={getName}
                     seatPositionMap={seatPositionMap}
                     tableSize={tableSize}
-                    roundLabel={`Round ${(currentRound || 0) + 1}`}
+                    roundLabel={
+                        isJudgement
+                            ? `Round ${(seriesRoundIndex || 0) + 1}/${totalRoundsInSeries || 1} — ${currentCardsPerRound || 0} cards`
+                            : `Round ${(currentRound || 0) + 1}`
+                    }
                     seatOrder={seatOrder}
                     tricksCount={tricks?.length || 0}
-                    lastTrickWinner={
-                        tricks?.length > 0
-                            ? tricks[tricks.length - 1].winner
-                            : null
-                    }
-                    lastTrickCards={
-                        tricks?.length > 0
-                            ? tricks[tricks.length - 1].cards
-                            : null
-                    }
+                    lastTrickWinner={tricks?.length > 0 ? tricks[tricks.length - 1].winner : null}
+                    lastTrickCards={tricks?.length > 0 ? tricks[tricks.length - 1].cards : null}
                 />
             </>
         );
@@ -524,14 +652,6 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     return (
         <div className="game-board">
-            {isAdmin && (
-                <div className="quit-game-bar">
-                    <button className="btn-danger btn-sm" onClick={() => setShowQuitConfirm(true)}>
-                        Quit Game
-                    </button>
-                </div>
-            )}
-
             {showQuitConfirm && (
                 <div className="quit-confirm-overlay">
                     <div className="quit-confirm-dialog">
@@ -554,11 +674,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                     handSizes={handSizes}
                     teams={teams}
                     revealedPartners={revealedPartners}
-                    currentTurn={
-                        phase === "bidding"
-                            ? bidding?.currentTurn
-                            : currentTrick?.currentTurn
-                    }
+                    currentTurn={phase === "bidding" ? biddingCurrentTurn : currentTrick?.currentTurn}
                     leader={leader}
                     dealer={dealer}
                     userId={userId}
@@ -572,16 +688,19 @@ const GameBoard = ({ userId, isAdmin }) => {
             {isTablePhase && (
                 <>
                     {/* Minor 1: TeamScoreHUD (with scoreboard button) shows during ALL table phases */}
-                    <TeamScoreHUD
-                        tricks={tricks}
-                        teams={teams}
-                        leader={leader}
-                        partnerCards={partnerCards}
-                        phase={phase}
-                        removedTwos={removedTwos || []}
-                    />
+                    {!isJudgement && (
+                        <TeamScoreHUD
+                            tricks={tricks}
+                            teams={teams}
+                            leader={leader}
+                            partnerCards={partnerCards}
+                            phase={phase}
+                            removedTwos={removedTwos || []}
+                        />
+                    )}
 
-                    {isPlayingPhase && (
+
+                    {!isJudgement && isPlayingPhase && (
                         <PartnerCardDisplay
                             partnerCards={partnerCards}
                             powerHouseSuit={powerHouseSuit}
@@ -608,13 +727,55 @@ const GameBoard = ({ userId, isAdmin }) => {
                     )}
 
                     <div className="circular-table-container">
+                        {/* Top-left: Judgement info HUD */}
+                        {isJudgement && (
+                            <div className="jdg-info-hud">
+                                <div className="jdg-hud-pill">
+                                    <span className={`jdg-hud-suit ${isRedSuit(trumpSuit || "S") ? "red" : "black"}`}>
+                                        {suitSymbol(trumpSuit || "S")}
+                                    </span>
+                                    <span className="jdg-hud-pill-label">Trump</span>
+                                </div>
+                                <div className="jdg-hud-divider" />
+                                <div className="jdg-hud-pill">
+                                    <span className="jdg-hud-pill-value">
+                                        {(seriesRoundIndex || 0) + 1}/{totalRoundsInSeries || 1}
+                                    </span>
+                                    <span className="jdg-hud-pill-label">Round</span>
+                                </div>
+                                <div className="jdg-hud-divider" />
+                                <div className="jdg-hud-pill">
+                                    <span className="jdg-hud-pill-value">{currentCardsPerRound || 0}</span>
+                                    <span className="jdg-hud-pill-label">Cards</span>
+                                </div>
+                                <div className="jdg-hud-divider" />
+                                <button
+                                    className="hud-scoreboard-btn"
+                                    onClick={() => setShowJdgScoreboard(true)}
+                                    title="View scoreboard"
+                                >
+                                    ⊞
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Top-right: Quit button (both games, admin only) */}
+                        {isAdmin && (
+                            <button
+                                className="btn-danger btn-sm table-quit-btn"
+                                onClick={() => setShowQuitConfirm(true)}
+                            >
+                                Quit
+                            </button>
+                        )}
+
                         <CircularTable
                             players={buildPlayerList()}
                             centerContent={renderCenterContent}
                         />
 
                         {/* Partner picker overlay — covers CircularTable during partner selection */}
-                        {phase === "powerhouse" && powerHouseSuit && isBidLeader && (
+                        {!isJudgement && phase === "powerhouse" && powerHouseSuit && isBidLeader && (
                             <div className="partner-picker-overlay">
                                 <PowerHouseSelector
                                     isOverlay
@@ -631,22 +792,44 @@ const GameBoard = ({ userId, isAdmin }) => {
             )}
 
             {(phase === "scoring" || phase === "finished") && (
-                <ScoreBoard
-                    scores={scores}
-                    teams={teams}
-                    tricks={tricks}
-                    phase={phase}
-                    scoringResult={scoringResult}
-                    seatOrder={seatOrder}
-                    bidding={bidding}
-                    getName={getName}
-                    nextRoundReady={nextRoundReady}
-                    userId={userId}
-                    isAdmin={isAdmin}
-                    onQuitGame={() => setShowQuitConfirm(true)}
-                    currentGameNumber={currentGameNumber}
-                    totalGames={totalGames}
-                />
+                isJudgement ? (
+                    <JudgementScoreBoard
+                        seatOrder={seatOrder}
+                        roundResults={roundResults}
+                        scores={scores}
+                        getName={getName}
+                        trumpCard={trumpCard}
+                        trumpSuit={trumpSuit}
+                        phase={phase}
+                        nextRoundReady={nextRoundReady}
+                        userId={userId}
+                        scoreboardTimeMs={scoreboardTimeMs}
+                        seriesRoundIndex={seriesRoundIndex}
+                        totalRoundsInSeries={totalRoundsInSeries}
+                    />
+                ) : (
+                    <ScoreBoard
+                        scores={scores}
+                        teams={teams}
+                        tricks={tricks}
+                        phase={phase}
+                        scoringResult={scoringResult}
+                        seatOrder={seatOrder}
+                        bidding={bidding}
+                        getName={getName}
+                        nextRoundReady={nextRoundReady}
+                        userId={userId}
+                        isAdmin={isAdmin}
+                        onQuitGame={() => setShowQuitConfirm(true)}
+                        currentGameNumber={currentGameNumber}
+                        totalGames={totalGames}
+                    />
+                )
+            )}
+
+            {/* Judgement scoreboard modal — accessible during all table phases */}
+            {isJudgement && showJdgScoreboard && (
+                <JudgementScoreboardModal onClose={() => setShowJdgScoreboard(false)} />
             )}
 
             {phase === "series-finished" && (
@@ -674,10 +857,19 @@ const GameBoard = ({ userId, isAdmin }) => {
 
             {/* Bidding controls below the hand */}
             {phase === "bidding" && !showDealReveal && (
-                <BiddingPanel
-                    bidding={bidding}
-                    userId={userId}
-                />
+                isJudgement ? (
+                    <JudgementBiddingPanel
+                        bidding={bidding}
+                        userId={userId}
+                        cardsInRound={currentCardsPerRound}
+                        getName={getName}
+                    />
+                ) : (
+                    <BiddingPanel
+                        bidding={bidding}
+                        userId={userId}
+                    />
+                )
             )}
 
             {/* Click-to-reveal overlay: triggers after dealing phase completes */}

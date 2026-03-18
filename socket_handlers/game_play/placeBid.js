@@ -19,6 +19,11 @@ module.exports = wrapHandler('game-place-bid', async (socket, io, data, callback
         return;
     }
 
+    if (gameState.game_type === "judgement") {
+        if (callback) callback("Use Judgement bidding for this game mode");
+        return;
+    }
+
     const amount = parseInt(data?.amount, 10);
     if (isNaN(amount)) {
         if (callback) callback("Invalid bid amount");

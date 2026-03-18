@@ -31,6 +31,36 @@ const GameSchema = new mongoose.Schema({
         type: Number,
         default: null,
     },
+    game_type: {
+        type: String,
+        enum: ["kaliteri", "judgement"],
+        default: "kaliteri",
+    },
+    max_cards_per_round: {
+        type: Number,
+        default: null,
+    },
+    reverse_order: {
+        type: Boolean,
+        default: false,
+    },
+    trump_mode: {
+        type: String,
+        enum: ["fixed", "random"],
+        default: "random",
+    },
+    scoreboard_time: {
+        type: Number,
+        default: null,
+    },
+    judgement_bid_time: {
+        type: Number,
+        default: null,
+    },
+    card_reveal_time: {
+        type: Number,
+        default: null,
+    },
     bid_threshold: {
         type: Number,
         default: null,

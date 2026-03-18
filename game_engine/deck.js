@@ -15,7 +15,7 @@ function createDeck(deckCount) {
             }
         }
     }
-    return cards;
+    return shuffleDeck(cards);
 }
 
 /**

@@ -67,9 +67,11 @@ function playCard(gameState, playerId, card) {
     };
 
     // Check for partner reveal
-    const partnerRevealState = checkPartnerReveal(newState, playerId, card);
-    if (partnerRevealState) {
-        newState = partnerRevealState;
+    if (gameState.game_type !== "judgement") {
+        const partnerRevealState = checkPartnerReveal(newState, playerId, card);
+        if (partnerRevealState) {
+            newState = partnerRevealState;
+        }
     }
 
     // Check if trick is complete
@@ -91,8 +93,12 @@ function playCard(gameState, playerId, card) {
  */
 function completeTrick(gameState) {
     const trick = gameState.currentTrick;
-    const winner = resolveTrick(trick, gameState.powerHouseSuit);
-    const points = calculateTrickPoints(trick.plays);
+    const trickTrumpSuit = gameState.game_type === "judgement"
+        ? gameState.trumpSuit
+        : gameState.powerHouseSuit;
+    const winner = resolveTrick(trick, trickTrumpSuit);
+    const isJudgement = gameState.game_type === "judgement";
+    const points = isJudgement ? 0 : calculateTrickPoints(trick.plays);
 
     const completedTrick = {
         winner: winner.playerId,
@@ -103,14 +109,26 @@ function completeTrick(gameState) {
     const newTricks = [...(gameState.tricks || []), completedTrick];
     const newRound = gameState.currentRound + 1;
 
+    const newTricksWon = isJudgement
+        ? {
+              ...(gameState.tricksWon || {}),
+              [winner.playerId]: (gameState.tricksWon?.[winner.playerId] || 0) + 1,
+          }
+        : gameState.tricksWon;
+
+    const totalRoundsThisGame = isJudgement
+        ? (gameState.currentCardsPerRound || gameState.config?.rounds)
+        : gameState.config.rounds;
+
     // Check if game is over
-    if (newRound >= gameState.config.rounds) {
+    if (newRound >= totalRoundsThisGame) {
         return {
             state: {
                 ...gameState,
                 tricks: newTricks,
                 currentRound: newRound,
                 currentTrick: null,
+                tricksWon: newTricksWon,
                 phase: "scoring",
             },
         };
@@ -126,6 +144,7 @@ function completeTrick(gameState) {
             currentRound: newRound,
             currentTrick: newTrick,
             roundLeader: winner.playerId,
+            tricksWon: newTricksWon,
         },
     };
 }

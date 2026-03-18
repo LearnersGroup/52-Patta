@@ -1,10 +1,12 @@
 const User = require("../../models/User");
 const Game = require("../../models/Game");
-const { getConfig } = require("../../game_engine/config");
 const { createDeck, removeTwos, dealCards } = require("../../game_engine/deck");
 const { initBidding } = require("../../game_engine/bidding");
+const { getNextJudgementRound } = require("../../game_engine/judgement/rounds");
 const { getGameState, setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
+const { autoNextJudgementRound } = require("./helpers/autoNextJudgementRound");
+const { clearJudgementAdvance } = require("./helpers/judgementTimers");
 const wrapHandler = require('../wrapHandler');
 
 module.exports = wrapHandler('game-next-round', async (socket, io, data, callback) => {
@@ -22,7 +24,7 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
             return;
         }
 
-        // Track ready-for-next per player
+        // Track ready-for-next per player (shared for all game types)
         if (!existingState.nextRoundReady) {
             existingState.nextRoundReady = [];
         }
@@ -48,6 +50,13 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
         if (!allReady) return;
 
         // --- All players ready, start next round ---
+
+        if (existingState.game_type === "judgement") {
+            // Cancel auto-advance timer (manual advance takes over)
+            clearJudgementAdvance(gameId);
+            await autoNextJudgementRound(io, gameId);
+            return;
+        }
 
         const game = await Game.findById(gameId)
             .populate("players.playerId", ["name"]);
