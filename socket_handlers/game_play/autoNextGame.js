@@ -139,8 +139,10 @@ async function finishSeries(io, gameId, existingState) {
 
             // Reset game to lobby and clear ready flags
             await Game.findByIdAndUpdate(gameId, {
-                state: "lobby",
-                $set: { "players.$[].ready": false },
+                $set: {
+                    state: "lobby",
+                    "players.$[].ready": false,
+                },
             });
 
             // Clear in-memory game state

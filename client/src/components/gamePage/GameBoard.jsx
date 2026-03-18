@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { WsRequestGameState, WsQuitGame, WsProceedToShuffle } from "../../api/wsEmitters";
+import { WsRequestGameState, WsQuitGame, WsProceedToShuffle, WsReturnToLobby } from "../../api/wsEmitters";
 import BidCenterDisplay from "./BidCenterDisplay";
 import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
@@ -817,7 +817,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                     getName={getName}
                     userId={userId}
                     playerAvatars={playerAvatars}
-                    onReturnToLobby={clearGameState}
+                    onReturnToLobby={() => { WsReturnToLobby(); clearGameState(); }}
                 />
             )}
 

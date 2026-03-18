@@ -38,8 +38,10 @@ async function autoNextJudgementRound(io, gameId) {
                 const cur = getGameState(gameId);
                 if (!cur || cur.phase !== 'series-finished') return;
                 await Game.findByIdAndUpdate(gameId, {
-                    state: 'lobby',
-                    $set: { 'players.$[].ready': false },
+                    $set: {
+                        state: 'lobby',
+                        'players.$[].ready': false,
+                    },
                 });
                 deleteGameState(gameId);
                 io.to(gameState.roomname).emit('game-series-complete', { finalRankings: rankings });
