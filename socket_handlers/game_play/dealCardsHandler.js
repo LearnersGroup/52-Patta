@@ -1,16 +1,16 @@
 const User = require("../../models/User");
 const Game = require("../../models/Game");
 const { SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
-const { processShuffleBatch, dealFromDealer } = require("../../game_engine/shuffle");
-const { initBidding } = require("../../game_engine/bidding");
-const { initJudgementBidding } = require("../../game_engine/judgement/bidding");
-const { dealJudgementRound } = require("../../game_engine/judgement/rounds");
+const { processShuffleBatch } = require("../../game_engine/shuffle");
 const { getGameState, setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { startBiddingTimer } = require("./helpers/biddingTimer");
 const { expireBidding } = require("./helpers/expireBidding");
 const { scheduleJudgementBidTimeout } = require("./helpers/judgementTimers");
 const wrapHandler = require('../wrapHandler');
+
+require("../../game_engine/strategies");
+const { getStrategy } = require("../../game_engine/gameRegistry");
 
 module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => {
         const user = await User.findOne({ _id: socket.user.id });
@@ -37,7 +37,7 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
             return;
         }
 
-        const isJudgement = gameState.game_type === "judgement";
+        const strategy = getStrategy(gameState.game_type);
 
         // Process the entire shuffle batch (no cut)
         const { deck: processedDeck } = processShuffleBatch(
@@ -46,45 +46,18 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
             "deal"
         );
 
-        let hands;
-        let bidding;
-        let trumpCard = null;
-        let trumpSuit = null;
-
-        if (isJudgement) {
-            const dealt = dealJudgementRound(
-                processedDeck,
-                gameState.seatOrder,
-                gameState.currentCardsPerRound,
-                gameState.dealerIndex
-            );
-            hands = dealt.hands;
-            // trumpSuit is already set from trump-announce phase — do NOT override
-            // trumpCard is null in new flow (trump is a suit, not a specific flipped card)
-            trumpCard = null;
-            trumpSuit = gameState.trumpSuit; // preserve existing
-            bidding = initJudgementBidding(gameState.seatOrder, gameState.dealerIndex);
-        } else {
-            // Deal cards starting from player next to dealer
-            ({ hands } = dealFromDealer(
-                processedDeck,
-                gameState.seatOrder,
-                gameState.dealerIndex
-            ));
-
-            // Initialize bidding state (will be used when dealing animation completes)
-            bidding = initBidding(gameState.config, gameState.seatOrder);
-        }
+        // Deal cards via strategy
+        const dealResult = strategy.deal(processedDeck, gameState);
 
         // Update game state to dealing phase
         gameState.phase = "dealing";
-        gameState.hands = hands;
+        gameState.hands = dealResult.hands;
         gameState.cutCard = null;
-        gameState.bidding = bidding;
-        if (isJudgement) {
-            gameState.trumpCard = null;
-            // trumpSuit stays unchanged (already set from trump-announce)
-        }
+        gameState.bidding = dealResult.bidding;
+
+        // Apply game-specific deal extras (e.g. trumpCard for judgement)
+        strategy.applyDealExtras(gameState, dealResult);
+
         // Clear shuffle working data
         gameState.unshuffledDeck = [];
         gameState.shuffleQueue = [];
@@ -108,25 +81,21 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
             const currentState = getGameState(gameId);
             if (!currentState || currentState.phase !== "dealing") return;
 
-            const currentIsJudgement = currentState.game_type === "judgement";
+            const currentStrategy = getStrategy(currentState.game_type);
 
-            if (currentIsJudgement) {
-                currentState.phase = "bidding";
-                currentState.currentRound = 0;
-                // Stamp card-reveal window so the frontend overlay auto-closes
-                const cardRevealMs = currentState.config?.cardRevealTimeMs ?? 10000;
-                if (currentState.bidding) {
-                    currentState.bidding.biddingWindowOpensAt = Date.now() + cardRevealMs;
-                }
+            // Strategy mutates currentState and returns transition info
+            const transition = currentStrategy.transitionToBidding(currentState);
 
-                setGameState(gameId, currentState);
+            setGameState(gameId, currentState);
 
-                await Game.findByIdAndUpdate(gameId, { state: "bidding" });
-                await persistCheckpoint(gameId);
+            await Game.findByIdAndUpdate(gameId, { state: "bidding" });
+            await persistCheckpoint(gameId);
 
-                await broadcastGameState(io, currentState);
-                io.to(currentState.roomname).emit("game-phase-change", "bidding");
+            await broadcastGameState(io, currentState);
+            io.to(currentState.roomname).emit("game-phase-change", "bidding");
 
+            // Game-specific bidding timer setup
+            if (transition.type === "judgement") {
                 // Start per-player bid timer if configured
                 if (currentState.config?.bidTimeMs) {
                     const firstBidder = currentState.bidding?.bidOrder?.[0];
@@ -141,31 +110,9 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
                         });
                     }
                 }
-                return;
+            } else {
+                // Kaliteri: start the expiry timer (reveal window + bidding window)
+                startBiddingTimer(gameId, transition.timerDelayMs, () => expireBidding(io, gameId));
             }
-
-            // Use per-room configured inspect window if available, else the global default (15s)
-            const revealMs = currentState.config?.inspectWindowMs
-                || SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;
-            // Use per-room configured bidding window if available, else the global default (15s)
-            const windowMs = currentState.config?.biddingWindowMs
-                || SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
-
-            currentState.phase = "bidding";
-            currentState.cutCard = null; // clear cut card after reveal
-            // Stamp the reveal window and bidding expiry on the bidding state
-            currentState.bidding.biddingWindowOpensAt = Date.now() + revealMs;
-            currentState.bidding.biddingExpiresAt = Date.now() + revealMs + windowMs;
-
-            setGameState(gameId, currentState);
-
-            await Game.findByIdAndUpdate(gameId, { state: "bidding" });
-            await persistCheckpoint(gameId);
-
-            await broadcastGameState(io, currentState);
-            io.to(currentState.roomname).emit("game-phase-change", "bidding");
-
-            // Start the expiry timer: reveal window + bidding window
-            startBiddingTimer(gameId, revealMs + windowMs, () => expireBidding(io, gameId));
         }, totalDelay);
 });

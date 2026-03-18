@@ -1,33 +1,25 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { WsRequestGameState, WsQuitGame, WsProceedToShuffle } from "../../api/wsEmitters";
-import BiddingPanel from "./BiddingPanel";
-import JudgementBiddingPanel from "./JudgementBiddingPanel";
+import { WsRequestGameState, WsQuitGame, WsProceedToShuffle, WsReturnToLobby } from "../../api/wsEmitters";
 import BidCenterDisplay from "./BidCenterDisplay";
 import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
 import PlayerList from "./PlayerList";
-import ScoreBoard from "./ScoreBoard";
-import JudgementScoreBoard from "./JudgementScoreBoard";
 import JudgementScoreboardModal from "./JudgementScoreboardModal";
 import PartnerCardDisplay from "./PartnerCardDisplay";
-import TeamScoreHUD from "./TeamScoreHUD";
 import DealRevealOverlay from "./DealRevealOverlay";
 import { CircularTable, PlayArea } from "../shared";
 import { getCardComponent, cardKey, suitSymbol, isRedSuit } from "./utils/cardMapper";
 import ShufflingPanel from "./ShufflingPanel";
 import DealingOverlay from "./DealingOverlay";
 import SeriesFinishedPanel from "./SeriesFinishedPanel";
-
-// Cards per player for each game config (mirrors server config.js)
-const CARDS_PER_PLAYER = {
-    "4P1D": 13, "5P1D": 10, "6P1D": 8, "6P2D": 17,
-    "7P2D": 14, "8P2D": 13, "9P2D": 11, "10P2D": 10,
-};
+import { getGameConfig } from "./gameRegistry";
+import { clearGameState } from "../../api/wsGameListeners";
 
 const GameBoard = ({ userId, isAdmin }) => {
     const gameType = useSelector((state) => state.game.game_type) || "kaliteri";
     const isJudgement = gameType === "judgement";
+    const gameConfig = getGameConfig(gameType);
     const phase = useSelector((state) => state.game.phase);
     const configKey = useSelector((state) => state.game.configKey);
     const seatOrder = useSelector((state) => state.game.seatOrder);
@@ -72,6 +64,9 @@ const GameBoard = ({ userId, isAdmin }) => {
     const [inspectMode, setInspectMode] = useState(false);
     const [showJdgScoreboard, setShowJdgScoreboard] = useState(false);
     const [showDealReveal, setShowDealReveal] = useState(false);
+    // Judgement: delay scoreboard by 3s so the last trick animation plays out first
+    const [scorecardVisible, setScorecardVisible] = useState(false);
+    const scorecardTimerRef = useRef(null);
     // Minor 4: dealing animation counter
     const [dealingVisibleCount, setDealingVisibleCount] = useState(0);
     const prevPhaseRef = useRef(null);
@@ -100,14 +95,40 @@ const GameBoard = ({ userId, isAdmin }) => {
 
             // Auto-close when the reveal window ends (server timestamp or fallback)
             const opensAt = bidding?.biddingWindowOpensAt;
-            const fallbackMs = isJudgement ? (cardRevealTimeMs ?? 10000) : 7500;
+            const fallbackMs = cardRevealTimeMs ?? gameConfig.dealRevealFallbackMs;
             const delayMs = opensAt ? Math.max(0, opensAt - Date.now()) : fallbackMs;
             setTimeout(() => setShowDealReveal(false), delayMs);
         }
         prevPhaseRef.current = curr;
-    }, [phase, isJudgement, bidding, cardRevealTimeMs]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [phase, gameConfig, bidding, cardRevealTimeMs]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
+
+    // For Judgement: delay scoreboard by 3s after phase reaches "finished"
+    // so the last-trick sweep animation plays out before the table disappears.
+    // For Kaliteri: show immediately (Kaliteri has its own post-round flow).
+    useEffect(() => {
+        if (scorecardTimerRef.current) {
+            clearTimeout(scorecardTimerRef.current);
+            scorecardTimerRef.current = null;
+        }
+
+        // Include series-finished so the last round also gets the 3s hold
+        const isFinished = phase === "scoring" || phase === "finished" || phase === "series-finished";
+
+        if (isFinished && isJudgement) {
+            scorecardTimerRef.current = setTimeout(() => setScorecardVisible(true), 3000);
+        } else {
+            setScorecardVisible(isFinished && !isJudgement);
+        }
+
+        // Reset when phase leaves finished/scoring/series-finished
+        if (!isFinished) setScorecardVisible(false);
+
+        return () => {
+            if (scorecardTimerRef.current) clearTimeout(scorecardTimerRef.current);
+        };
+    }, [phase, isJudgement]);
 
     // Minor 4: animate dealingVisibleCount from 0 → myHand.length during dealing phase
     useEffect(() => {
@@ -338,15 +359,7 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     // --- Phase-aware helpers for CircularTable ---
 
-    const computeCardCount = (pid) => {
-        if (isJudgement) {
-            return handSizes?.[pid] ?? 0;
-        }
-        const total = CARDS_PER_PLAYER[configKey] || 13;
-        const trickPlays = currentTrick?.plays || [];
-        const hasPlayed = trickPlays.some((p) => p.playerId === pid);
-        return Math.max(0, total - (currentRound || 0) - (hasPlayed ? 1 : 0));
-    };
+    const cardCountCtx = { configKey, handSizes, currentRound, currentTrick, phase };
 
     const getIsTurn = (pid) => {
         switch (phase) {
@@ -366,26 +379,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
     };
 
-    const getCardCount = (pid) => {
-        if (isJudgement) {
-            return handSizes?.[pid] ?? 0;
-        }
-        const total = CARDS_PER_PLAYER[configKey] || 13;
-        switch (phase) {
-            case "shuffling":
-                return 0;
-            case "dealing":
-                // Show hand sizes as they arrive from server during dealing
-                return handSizes?.[pid] ?? 0;
-            case "bidding":
-            case "powerhouse":
-                return total;
-            case "playing":
-                return computeCardCount(pid);
-            default:
-                return 0;
-        }
-    };
+    const getCardCount = (pid) => gameConfig.getCardCount(pid, cardCountCtx);
 
     const getTeamClass = (pid) => {
         if (["shuffling", "dealing", "bidding", "powerhouse"].includes(phase)) return "";
@@ -396,13 +390,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         return "";
     };
 
-    const playerTrickPoints = {};
-    (tricks || []).forEach((t) => {
-        if (t.winner) {
-            playerTrickPoints[t.winner] =
-                (playerTrickPoints[t.winner] || 0) + (t.points || 0);
-        }
-    });
+    const scoreCtx = { tricks, tricksWon };
 
     // ── Relation resolver (per opponent seat) ─────────────────────────────
     // Returns "teammate" | "opponent" | "potential-teammate" | null
@@ -488,21 +476,23 @@ const GameBoard = ({ userId, isAdmin }) => {
             id: pid,
             name: getName(pid),
             isMe: pid === userId,
-            isLeader: !isJudgement && pid === leader,
+            isLeader: gameConfig.hasPartners && pid === leader,
             isDealer: pid === dealer,
             isPartner: revealedPartners?.includes(pid),
             isTurn: getIsTurn(pid),
             teamClass: getTeamClass(pid),
             cardCount: getCardCount(pid),
-            score: isJudgement ? (tricksWon?.[pid] || 0) : (playerTrickPoints[pid] ?? 0),
+            score: gameConfig.getSeatScore(pid, scoreCtx),
             avatarInitial: getName(pid).charAt(0).toUpperCase(),
             avatar: playerAvatars[pid] || "",
-            relation: getRelation(pid), // "teammate" | "opponent" | null
+            relation: getRelation(pid),
             scoreContent: getJudgementScoreContent(pid),
         }));
     };
 
-    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase);
+    // For Judgement, keep the table visible until the scorecard delay has elapsed
+    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase)
+        || (isJudgement && (phase === "finished" || phase === "scoring" || phase === "series-finished") && !scorecardVisible);
     const isPlayingPhase = phase === "playing";
 
     // Center content for CircularTable based on phase
@@ -538,9 +528,9 @@ const GameBoard = ({ userId, isAdmin }) => {
                     userId={userId}
                     shuffleQueue={shuffleQueue}
                     getName={getName}
-                    currentGameNumber={isJudgement ? (seriesRoundIndex + 1) : currentGameNumber}
-                    totalGames={isJudgement ? totalRoundsInSeries : totalGames}
-                    gameLabel={isJudgement ? "Round" : "Game"}
+                    currentGameNumber={gameConfig.getSeriesInfo({ currentGameNumber, totalGames, seriesRoundIndex, totalRoundsInSeries }).current}
+                    totalGames={gameConfig.getSeriesInfo({ currentGameNumber, totalGames, seriesRoundIndex, totalRoundsInSeries }).total}
+                    gameLabel={gameConfig.gameLabel}
                 />
             );
         }
@@ -584,7 +574,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
 
         if (phase === "powerhouse") {
-            if (isJudgement) return null;
+            if (!gameConfig.hasPowerhouse) return null;
 
             if (!powerHouseSuit) {
                 if (isBidLeader) {
@@ -620,11 +610,12 @@ const GameBoard = ({ userId, isAdmin }) => {
             );
         }
 
+        const activeTrumpSuit = gameConfig.getTrumpSuit({ powerHouseSuit, trumpSuit });
         return (
             <>
-                {(isJudgement ? trumpSuit : powerHouseSuit) && (
-                    <div className={`powersuit-watermark ${isRedSuit(isJudgement ? trumpSuit : powerHouseSuit) ? "red" : "black"}`}>
-                        {suitSymbol(isJudgement ? trumpSuit : powerHouseSuit)}
+                {activeTrumpSuit && (
+                    <div className={`powersuit-watermark ${isRedSuit(activeTrumpSuit) ? "red" : "black"}`}>
+                        {suitSymbol(activeTrumpSuit)}
                     </div>
                 )}
                 <PlayArea
@@ -636,11 +627,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                     getName={getName}
                     seatPositionMap={seatPositionMap}
                     tableSize={tableSize}
-                    roundLabel={
-                        isJudgement
-                            ? `Round ${(seriesRoundIndex || 0) + 1}/${totalRoundsInSeries || 1} — ${currentCardsPerRound || 0} cards`
-                            : `Round ${(currentRound || 0) + 1}`
-                    }
+                    roundLabel={gameConfig.getRoundLabel({ currentRound, seriesRoundIndex, totalRoundsInSeries, currentCardsPerRound })}
                     seatOrder={seatOrder}
                     tricksCount={tricks?.length || 0}
                     lastTrickWinner={tricks?.length > 0 ? tricks[tricks.length - 1].winner : null}
@@ -688,8 +675,8 @@ const GameBoard = ({ userId, isAdmin }) => {
             {isTablePhase && (
                 <>
                     {/* Minor 1: TeamScoreHUD (with scoreboard button) shows during ALL table phases */}
-                    {!isJudgement && (
-                        <TeamScoreHUD
+                    {gameConfig.HUD && (
+                        <gameConfig.HUD
                             tricks={tricks}
                             teams={teams}
                             leader={leader}
@@ -699,8 +686,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                         />
                     )}
 
-
-                    {!isJudgement && isPlayingPhase && (
+                    {gameConfig.hasPartners && isPlayingPhase && (
                         <PartnerCardDisplay
                             partnerCards={partnerCards}
                             powerHouseSuit={powerHouseSuit}
@@ -775,7 +761,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                         />
 
                         {/* Partner picker overlay — covers CircularTable during partner selection */}
-                        {!isJudgement && phase === "powerhouse" && powerHouseSuit && isBidLeader && (
+                        {gameConfig.hasPowerhouse && phase === "powerhouse" && powerHouseSuit && isBidLeader && (
                             <div className="partner-picker-overlay">
                                 <PowerHouseSelector
                                     isOverlay
@@ -791,40 +777,32 @@ const GameBoard = ({ userId, isAdmin }) => {
                 </>
             )}
 
-            {(phase === "scoring" || phase === "finished") && (
-                isJudgement ? (
-                    <JudgementScoreBoard
-                        seatOrder={seatOrder}
-                        roundResults={roundResults}
-                        scores={scores}
-                        getName={getName}
-                        trumpCard={trumpCard}
-                        trumpSuit={trumpSuit}
-                        phase={phase}
-                        nextRoundReady={nextRoundReady}
-                        userId={userId}
-                        scoreboardTimeMs={scoreboardTimeMs}
-                        seriesRoundIndex={seriesRoundIndex}
-                        totalRoundsInSeries={totalRoundsInSeries}
-                    />
-                ) : (
-                    <ScoreBoard
-                        scores={scores}
-                        teams={teams}
-                        tricks={tricks}
-                        phase={phase}
-                        scoringResult={scoringResult}
-                        seatOrder={seatOrder}
-                        bidding={bidding}
-                        getName={getName}
-                        nextRoundReady={nextRoundReady}
-                        userId={userId}
-                        isAdmin={isAdmin}
-                        onQuitGame={() => setShowQuitConfirm(true)}
-                        currentGameNumber={currentGameNumber}
-                        totalGames={totalGames}
-                    />
-                )
+            {scorecardVisible && (
+                <gameConfig.ScoreBoard
+                    // Shared props
+                    seatOrder={seatOrder}
+                    scores={scores}
+                    getName={getName}
+                    phase={phase}
+                    nextRoundReady={nextRoundReady}
+                    userId={userId}
+                    // Kaliteri props
+                    teams={teams}
+                    tricks={tricks}
+                    scoringResult={scoringResult}
+                    bidding={bidding}
+                    isAdmin={isAdmin}
+                    onQuitGame={() => setShowQuitConfirm(true)}
+                    currentGameNumber={currentGameNumber}
+                    totalGames={totalGames}
+                    // Judgement props
+                    roundResults={roundResults}
+                    trumpCard={trumpCard}
+                    trumpSuit={trumpSuit}
+                    scoreboardTimeMs={scoreboardTimeMs}
+                    seriesRoundIndex={seriesRoundIndex}
+                    totalRoundsInSeries={totalRoundsInSeries}
+                />
             )}
 
             {/* Judgement scoreboard modal — accessible during all table phases */}
@@ -832,13 +810,15 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <JudgementScoreboardModal onClose={() => setShowJdgScoreboard(false)} />
             )}
 
-            {phase === "series-finished" && (
+            {phase === "series-finished" && (!isJudgement || scorecardVisible) && (
                 <SeriesFinishedPanel
                     finalRankings={finalRankings}
                     scores={scores}
                     seatOrder={seatOrder}
                     getName={getName}
                     userId={userId}
+                    playerAvatars={playerAvatars}
+                    onReturnToLobby={() => { WsReturnToLobby(); clearGameState(); }}
                 />
             )}
 
@@ -857,19 +837,12 @@ const GameBoard = ({ userId, isAdmin }) => {
 
             {/* Bidding controls below the hand */}
             {phase === "bidding" && !showDealReveal && (
-                isJudgement ? (
-                    <JudgementBiddingPanel
-                        bidding={bidding}
-                        userId={userId}
-                        cardsInRound={currentCardsPerRound}
-                        getName={getName}
-                    />
-                ) : (
-                    <BiddingPanel
-                        bidding={bidding}
-                        userId={userId}
-                    />
-                )
+                <gameConfig.BiddingPanel
+                    bidding={bidding}
+                    userId={userId}
+                    cardsInRound={currentCardsPerRound}
+                    getName={getName}
+                />
             )}
 
             {/* Click-to-reveal overlay: triggers after dealing phase completes */}

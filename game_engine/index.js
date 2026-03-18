@@ -7,6 +7,10 @@ const scoring = require("./scoring");
 const validators = require("./validators");
 const stateManager = require("./stateManager");
 const judgement = require("./judgement");
+const gameRegistry = require("./gameRegistry");
+
+// Auto-register all game strategies
+require("./strategies");
 
 module.exports = {
     config,
@@ -18,4 +22,5 @@ module.exports = {
     validators,
     stateManager,
     judgement,
+    gameRegistry,
 };

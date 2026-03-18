@@ -11,6 +11,8 @@ const SeriesFinishedPanel = ({
     seatOrder = [],
     getName = (pid) => pid?.substring(0, 8),
     userId,
+    playerAvatars = {},
+    onReturnToLobby,
 }) => {
     // Use finalRankings if available, otherwise compute from scores
     const rankings = (finalRankings || []).length > 0
@@ -26,6 +28,26 @@ const SeriesFinishedPanel = ({
 
     const top3 = rankings.slice(0, 3);
     const rest = rankings.slice(3);
+
+    const renderAvatar = (player) => {
+        const avatarUrl = playerAvatars?.[player.playerId];
+        const initial = (player.name || getName(player.playerId) || "?")
+            .charAt(0)
+            .toUpperCase();
+        return (
+            <div className="podium-avatar-wrap">
+                <div className="podium-avatar">
+                    {avatarUrl
+                        ? <img src={avatarUrl} alt={player.name} className="podium-avatar-img" />
+                        : <span className="podium-avatar-initial">{initial}</span>
+                    }
+                </div>
+                <div className="podium-medal">
+                    {RANK_BADGES[player.rank]?.emoji}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="series-finished-panel">
@@ -44,9 +66,7 @@ const SeriesFinishedPanel = ({
                                 isMe ? "is-me" : ""
                             }`}
                         >
-                            <div className="podium-badge">
-                                {badge?.emoji}
-                            </div>
+                            {renderAvatar(player)}
                             <div className="podium-name">
                                 {isMe ? "You" : (player.name || getName(player.playerId))}
                             </div>
@@ -83,9 +103,13 @@ const SeriesFinishedPanel = ({
             )}
 
             <div className="series-footer">
-                <div className="series-redirect">
-                    Returning to lobby...
-                </div>
+                {onReturnToLobby ? (
+                    <button className="btn-primary series-lobby-btn" onClick={onReturnToLobby}>
+                        Return to Lobby
+                    </button>
+                ) : (
+                    <div className="series-redirect">Returning to lobby...</div>
+                )}
             </div>
         </div>
     );

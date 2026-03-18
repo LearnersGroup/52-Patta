@@ -125,11 +125,19 @@ async function finishSeries(io, gameId, existingState) {
 
     setGameState(gameId, existingState);
 
-    await Game.findByIdAndUpdate(gameId, { state: "series-finished" });
+    // Reset ready flags now so players returning to lobby see ready=false immediately
+    await Game.findByIdAndUpdate(gameId, {
+        $set: {
+            state: "series-finished",
+            "players.$[].ready": false,
+        },
+    });
     await persistCheckpoint(gameId);
 
     await broadcastGameState(io, existingState);
     io.to(existingState.roomname).emit("game-phase-change", "series-finished");
+    // Push fresh room data now so any client returning to lobby sees ready=false immediately
+    io.to(existingState.roomname).emit("fetch-users-in-room");
 
     // After displaying the leaderboard, return to lobby
     setTimeout(async () => {
@@ -137,8 +145,7 @@ async function finishSeries(io, gameId, existingState) {
             const currentState = getGameState(gameId);
             if (!currentState || currentState.phase !== "series-finished") return;
 
-            // Reset game to lobby
-            await Game.findByIdAndUpdate(gameId, { state: "lobby" });
+            await Game.findByIdAndUpdate(gameId, { $set: { state: "lobby" } });
 
             // Clear in-memory game state
             deleteGameState(gameId);
@@ -147,6 +154,9 @@ async function finishSeries(io, gameId, existingState) {
             io.to(existingState.roomname).emit("game-series-complete", {
                 finalRankings: rankings,
             });
+
+            // Refresh lobby player list on all clients
+            io.to(existingState.roomname).emit("fetch-users-in-room");
         } catch (error) {
             console.error("Series cleanup error:", error.message);
         }

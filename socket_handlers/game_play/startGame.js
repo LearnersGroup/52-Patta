@@ -1,14 +1,15 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
-const { getConfig, SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
-const { computeJudgementConfig } = require("../../game_engine/judgement/config");
-const { computeTrumpSuit } = require("../../game_engine/judgement/rounds");
-const { createDeck, removeTwos } = require("../../game_engine/deck");
+const { SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
 const { proceedFromTrumpAnnounce } = require("./helpers/autoNextJudgementRound");
 const wrapHandler = require('../wrapHandler');
+
+// Ensure all strategies are registered
+require("../../game_engine/strategies");
+const { getStrategy } = require("../../game_engine/gameRegistry");
 
 module.exports = wrapHandler('game-start', async (socket, io, data, callback) => {
         const user = await User.findOne({ _id: socket.user.id });
@@ -30,8 +31,8 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             return;
         }
 
-        // Check game is still in lobby state
-        if (game.state !== "lobby") {
+        // Check game is still in lobby (or series-finished before auto-cleanup fires)
+        if (!["lobby", "series-finished"].includes(game.state)) {
             if (callback) callback("Game has already started");
             return;
         }
@@ -50,54 +51,21 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
         }
 
         const gameType = game.game_type || "kaliteri";
+        const strategy = getStrategy(gameType);
 
         // Determine deck count
         let deckCount = game.deck_count;
         if (!deckCount) {
-            if (gameType === "judgement") {
-                deckCount = playerCount <= 6 ? 1 : 2;
-            } else {
-                deckCount = playerCount <= 5 ? 1 : 2;
-            }
+            deckCount = strategy.autoDeckCount(playerCount);
         }
 
         // Get config
         let config;
         try {
-            if (gameType === "judgement") {
-                config = computeJudgementConfig(
-                    playerCount,
-                    deckCount,
-                    game.max_cards_per_round,
-                    !!game.reverse_order,
-                    game.trump_mode || "random",
-                    game.scoreboard_time || null,
-                    game.judgement_bid_time || null,
-                    game.card_reveal_time || null
-                );
-            } else {
-                config = getConfig(playerCount, deckCount);
-            }
+            config = strategy.computeConfig(game, playerCount, deckCount);
         } catch (err) {
             if (callback) callback(err.message);
             return;
-        }
-
-        if (gameType === "kaliteri") {
-            // Override bid threshold if room creator set a custom value
-            if (game.bid_threshold && config.bidThreshold !== null) {
-                config.bidThreshold = game.bid_threshold;
-            }
-
-            // Inject custom bidding window (ms) — falls back to SHUFFLE_DEALING_CONFIG default
-            config.biddingWindowMs = game.bid_window
-                ? game.bid_window * 1000
-                : SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
-
-            // Inject custom card inspect window (ms) — falls back to SHUFFLE_DEALING_CONFIG default
-            config.inspectWindowMs = game.inspect_time
-                ? game.inspect_time * 1000
-                : SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;
         }
 
         // Build seat order and player name map from player list (clockwise)
@@ -115,134 +83,26 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             scores[pid] = 0;
         }
 
-        // Build initial game state — shuffling phase (not bidding)
+        // Build initial game state via strategy
         const gameId = game._id.toString();
-        let gameState;
-
-        if (gameType === "judgement") {
-            const fullDeck = createDeck(config.decks);
-            const tricksWon = {};
-            for (const pid of seatOrder) {
-                tricksWon[pid] = 0;
-            }
-            const trumpSuit = computeTrumpSuit(config.trumpMode, 0);
-
-            gameState = {
-                gameId,
-                roomname: game.roomname,
-                game_type: "judgement",
-                config,
-                phase: "trump-announce",
-                seatOrder,
-                playerNames,
-                playerAvatars,
-                removedTwos: [],
-
-                dealerIndex: 0,
-                dealer: seatOrder[0],
-
-                shuffleQueue: [],
-                unshuffledDeck: fullDeck,
-
-                hands: {},
-                cutCard: null,
-                dealingConfig: {
-                    animationDurationMs: SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS,
-                },
-
-                bidding: null,
-                leader: null,
-                currentRound: 0,
-                currentTrick: null,
-                tricks: [],
-                roundLeader: null,
-
-                seriesRoundIndex: 0,
-                currentCardsPerRound: config.roundSequence[0],
-                totalRoundsInSeries: config.totalRounds,
-                trumpCard: null,
-                trumpSuit,
-                tricksWon,
-                roundResults: [],
-                scores,
-                nextRoundReady: [],
-            };
-        } else {
-            // Create and prepare deck (but do NOT shuffle or deal — that's the dealer's job now)
-            const fullDeck = createDeck(config.decks);
-            const { remainingDeck, removedTwos: removed } = removeTwos(fullDeck, config.removeTwos);
-
-            // Determine total games (from room setting or default to player count)
-            const totalGames = game.game_count || playerCount;
-
-            gameState = {
-                gameId,
-                roomname: game.roomname,
-                game_type: "kaliteri",
-                config,
-                phase: "shuffling",
-                seatOrder,
-                playerNames,
-                playerAvatars,
-                removedTwos: removed,
-
-                // Dealer system — admin is first dealer
-                dealerIndex: 0,
-                dealer: seatOrder[0],
-
-                // Shuffling state
-                shuffleQueue: [],
-                unshuffledDeck: remainingDeck,
-
-                // These will be populated after dealing
-                hands: {},
-                cutCard: null,
-                dealingConfig: {
-                    animationDurationMs: SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS,
-                },
-
-                // Game series tracking
-                currentGameNumber: 1,
-                totalGames,
-
-                // Bidding & gameplay state (populated after dealing)
-                bidding: null,
-                leader: null,
-                powerHouseSuit: null,
-                partnerCards: [],
-                teams: {
-                    bid: [],
-                    oppose: [...seatOrder],
-                },
-                revealedPartners: [],
-                currentRound: 0,
-                currentTrick: null,
-                tricks: [],
-                roundLeader: null,
-                scores,
-            };
-        }
+        const gameState = strategy.buildInitialState({
+            gameId, game, config, seatOrder, playerNames, playerAvatars, scores,
+        });
 
         // Store in memory
         setGameState(gameId, gameState);
 
         // Update game state in MongoDB
-        await Game.findByIdAndUpdate(gameId, { state: gameType === "judgement" ? "trump-announce" : "shuffling" });
+        await Game.findByIdAndUpdate(gameId, { state: strategy.initialDbState() });
         await persistCheckpoint(gameId);
 
         // Broadcast personalized state to all players
         await broadcastGameState(io, gameState);
         io.to(game.roomname).emit("game-avatars", playerAvatars || {});
 
-        // Notify room about removed cards
-        if (gameType === "kaliteri" && gameState.removedTwos.length > 0) {
-            io.to(game.roomname).emit("game-cards-removed", gameState.removedTwos);
-        }
-
-        if (gameType === "judgement") {
-            io.to(game.roomname).emit("game-phase-change", "trump-announce");
-            scheduleJudgementAdvance(gameId, 5000, () => proceedFromTrumpAnnounce(io, gameId));
-        } else {
-            io.to(game.roomname).emit("game-phase-change", "shuffling");
-        }
+        // Game-specific post-start actions
+        strategy.afterStart(io, gameState, {
+            scheduleJudgementAdvance,
+            proceedFromTrumpAnnounce,
+        });
 });

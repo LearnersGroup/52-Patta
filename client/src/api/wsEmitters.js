@@ -33,6 +33,7 @@ export const WsShuffleAction = (type) => emitWithCallback("game-shuffle-action",
 export const WsUndoShuffle = () => emitWithCallback("game-undo-shuffle", {});
 export const WsDeal = () => emitWithCallback("game-deal", { dealType: "deal" });
 export const WsQuitGame = () => emitWithCallback("game-quit", {});
+export const WsReturnToLobby = () => emitWithCallback("game-return-to-lobby", {});
 
 // --- Username ---
 

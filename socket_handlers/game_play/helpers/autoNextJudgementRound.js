@@ -28,18 +28,27 @@ async function autoNextJudgementRound(io, gameId) {
 
         const finalState = { ...gameState, phase: 'series-finished', finalRankings: rankings };
         setGameState(gameId, finalState);
-        await Game.findByIdAndUpdate(gameId, { state: 'series-finished' });
+        // Reset ready flags now so players returning to lobby see ready=false immediately
+        await Game.findByIdAndUpdate(gameId, {
+            $set: {
+                state: 'series-finished',
+                'players.$[].ready': false,
+            },
+        });
         await persistCheckpoint(gameId);
         await broadcastGameState(io, finalState);
         io.to(gameState.roomname).emit('game-phase-change', 'series-finished');
+        // Push fresh room data now so any client returning to lobby sees ready=false immediately
+        io.to(gameState.roomname).emit('fetch-users-in-room');
 
         setTimeout(async () => {
             try {
                 const cur = getGameState(gameId);
                 if (!cur || cur.phase !== 'series-finished') return;
-                await Game.findByIdAndUpdate(gameId, { state: 'lobby' });
+                await Game.findByIdAndUpdate(gameId, { $set: { state: 'lobby' } });
                 deleteGameState(gameId);
                 io.to(gameState.roomname).emit('game-series-complete', { finalRankings: rankings });
+                io.to(gameState.roomname).emit('fetch-users-in-room');
             } catch (err) {
                 console.error('[autoNextJudgementRound] series cleanup:', err.message);
             }
