@@ -14,6 +14,7 @@ import ShufflingPanel from "./ShufflingPanel";
 import DealingOverlay from "./DealingOverlay";
 import SeriesFinishedPanel from "./SeriesFinishedPanel";
 import { getGameConfig } from "./gameRegistry";
+import { clearGameState } from "../../api/wsGameListeners";
 
 const GameBoard = ({ userId, isAdmin }) => {
     const gameType = useSelector((state) => state.game.game_type) || "kaliteri";
@@ -63,6 +64,9 @@ const GameBoard = ({ userId, isAdmin }) => {
     const [inspectMode, setInspectMode] = useState(false);
     const [showJdgScoreboard, setShowJdgScoreboard] = useState(false);
     const [showDealReveal, setShowDealReveal] = useState(false);
+    // Judgement: delay scoreboard by 3s so the last trick animation plays out first
+    const [scorecardVisible, setScorecardVisible] = useState(false);
+    const scorecardTimerRef = useRef(null);
     // Minor 4: dealing animation counter
     const [dealingVisibleCount, setDealingVisibleCount] = useState(0);
     const prevPhaseRef = useRef(null);
@@ -99,6 +103,31 @@ const GameBoard = ({ userId, isAdmin }) => {
     }, [phase, gameConfig, bidding, cardRevealTimeMs]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
+
+    // For Judgement: delay scoreboard by 3s after phase reaches "finished"
+    // so the last-trick sweep animation plays out before the table disappears.
+    // For Kaliteri: show immediately (Kaliteri has its own post-round flow).
+    useEffect(() => {
+        if (scorecardTimerRef.current) {
+            clearTimeout(scorecardTimerRef.current);
+            scorecardTimerRef.current = null;
+        }
+
+        const isFinished = phase === "scoring" || phase === "finished";
+
+        if (isFinished && isJudgement) {
+            scorecardTimerRef.current = setTimeout(() => setScorecardVisible(true), 3000);
+        } else {
+            setScorecardVisible(isFinished && !isJudgement);
+        }
+
+        // Reset when phase leaves finished/scoring
+        if (!isFinished) setScorecardVisible(false);
+
+        return () => {
+            if (scorecardTimerRef.current) clearTimeout(scorecardTimerRef.current);
+        };
+    }, [phase, isJudgement]);
 
     // Minor 4: animate dealingVisibleCount from 0 → myHand.length during dealing phase
     useEffect(() => {
@@ -460,7 +489,9 @@ const GameBoard = ({ userId, isAdmin }) => {
         }));
     };
 
-    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase);
+    // For Judgement, keep the table visible until the scorecard delay has elapsed
+    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase)
+        || (isJudgement && (phase === "finished" || phase === "scoring") && !scorecardVisible);
     const isPlayingPhase = phase === "playing";
 
     // Center content for CircularTable based on phase
@@ -745,7 +776,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                 </>
             )}
 
-            {(phase === "scoring" || phase === "finished") && (
+            {scorecardVisible && (
                 <gameConfig.ScoreBoard
                     // Shared props
                     seatOrder={seatOrder}
@@ -785,6 +816,8 @@ const GameBoard = ({ userId, isAdmin }) => {
                     seatOrder={seatOrder}
                     getName={getName}
                     userId={userId}
+                    playerAvatars={playerAvatars}
+                    onReturnToLobby={clearGameState}
                 />
             )}
 
