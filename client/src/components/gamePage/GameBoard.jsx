@@ -652,14 +652,6 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     return (
         <div className="game-board">
-            {isAdmin && (
-                <div className="quit-game-bar">
-                    <button className="btn-danger btn-sm" onClick={() => setShowQuitConfirm(true)}>
-                        Quit Game
-                    </button>
-                </div>
-            )}
-
             {showQuitConfirm && (
                 <div className="quit-confirm-overlay">
                     <div className="quit-confirm-dialog">
@@ -707,36 +699,6 @@ const GameBoard = ({ userId, isAdmin }) => {
                         />
                     )}
 
-                    {isJudgement && (
-                        <div className="jdg-info-hud">
-                            <div className="jdg-hud-pill">
-                                <span className={`jdg-hud-suit ${isRedSuit(trumpSuit || "S") ? "red" : "black"}`}>
-                                    {suitSymbol(trumpSuit || "S")}
-                                </span>
-                                <span className="jdg-hud-pill-label">Trump</span>
-                            </div>
-                            <div className="jdg-hud-divider" />
-                            <div className="jdg-hud-pill">
-                                <span className="jdg-hud-pill-value">
-                                    {(seriesRoundIndex || 0) + 1}/{totalRoundsInSeries || 1}
-                                </span>
-                                <span className="jdg-hud-pill-label">Round</span>
-                            </div>
-                            <div className="jdg-hud-divider" />
-                            <div className="jdg-hud-pill">
-                                <span className="jdg-hud-pill-value">{currentCardsPerRound || 0}</span>
-                                <span className="jdg-hud-pill-label">Cards</span>
-                            </div>
-                            <div className="jdg-hud-divider" />
-                            <button
-                                className="hud-scoreboard-btn"
-                                onClick={() => setShowJdgScoreboard(true)}
-                                title="View scoreboard"
-                            >
-                                ⊞
-                            </button>
-                        </div>
-                    )}
 
                     {!isJudgement && isPlayingPhase && (
                         <PartnerCardDisplay
@@ -765,12 +727,48 @@ const GameBoard = ({ userId, isAdmin }) => {
                     )}
 
                     <div className="circular-table-container">
-                        {isJudgement && trumpSuit && phase !== "trump-announce" && (
-                            <div className={`jdg-trump-table-badge ${isRedSuit(trumpSuit) ? "red" : "black"}`}>
-                                <span className="jdg-trump-table-suit">{suitSymbol(trumpSuit)}</span>
-                                <span className="jdg-trump-table-label">TRUMP</span>
+                        {/* Top-left: Judgement info HUD */}
+                        {isJudgement && (
+                            <div className="jdg-info-hud">
+                                <div className="jdg-hud-pill">
+                                    <span className={`jdg-hud-suit ${isRedSuit(trumpSuit || "S") ? "red" : "black"}`}>
+                                        {suitSymbol(trumpSuit || "S")}
+                                    </span>
+                                    <span className="jdg-hud-pill-label">Trump</span>
+                                </div>
+                                <div className="jdg-hud-divider" />
+                                <div className="jdg-hud-pill">
+                                    <span className="jdg-hud-pill-value">
+                                        {(seriesRoundIndex || 0) + 1}/{totalRoundsInSeries || 1}
+                                    </span>
+                                    <span className="jdg-hud-pill-label">Round</span>
+                                </div>
+                                <div className="jdg-hud-divider" />
+                                <div className="jdg-hud-pill">
+                                    <span className="jdg-hud-pill-value">{currentCardsPerRound || 0}</span>
+                                    <span className="jdg-hud-pill-label">Cards</span>
+                                </div>
+                                <div className="jdg-hud-divider" />
+                                <button
+                                    className="hud-scoreboard-btn"
+                                    onClick={() => setShowJdgScoreboard(true)}
+                                    title="View scoreboard"
+                                >
+                                    ⊞
+                                </button>
                             </div>
                         )}
+
+                        {/* Top-right: Quit button (both games, admin only) */}
+                        {isAdmin && (
+                            <button
+                                className="btn-danger btn-sm table-quit-btn"
+                                onClick={() => setShowQuitConfirm(true)}
+                            >
+                                Quit
+                            </button>
+                        )}
+
                         <CircularTable
                             players={buildPlayerList()}
                             centerContent={renderCenterContent}

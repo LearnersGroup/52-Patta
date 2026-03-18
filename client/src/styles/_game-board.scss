@@ -12,6 +12,14 @@
   justify-content: flex-end;
 }
 
+// Quit button anchored inside .circular-table-container (top-right)
+.table-quit-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+}
+
 .btn-sm {
   padding: 6px 14px;
   font-size: 0.68rem;
