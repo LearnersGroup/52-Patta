@@ -488,7 +488,7 @@ const GameBoard = ({ userId, isAdmin }) => {
             id: pid,
             name: getName(pid),
             isMe: pid === userId,
-            isLeader: pid === leader,
+            isLeader: !isJudgement && pid === leader,
             isDealer: pid === dealer,
             isPartner: revealedPartners?.includes(pid),
             isTurn: getIsTurn(pid),
