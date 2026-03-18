@@ -125,7 +125,13 @@ async function finishSeries(io, gameId, existingState) {
 
     setGameState(gameId, existingState);
 
-    await Game.findByIdAndUpdate(gameId, { state: "series-finished" });
+    // Reset ready flags now so players returning to lobby see ready=false immediately
+    await Game.findByIdAndUpdate(gameId, {
+        $set: {
+            state: "series-finished",
+            "players.$[].ready": false,
+        },
+    });
     await persistCheckpoint(gameId);
 
     await broadcastGameState(io, existingState);
@@ -137,13 +143,7 @@ async function finishSeries(io, gameId, existingState) {
             const currentState = getGameState(gameId);
             if (!currentState || currentState.phase !== "series-finished") return;
 
-            // Reset game to lobby and clear ready flags
-            await Game.findByIdAndUpdate(gameId, {
-                $set: {
-                    state: "lobby",
-                    "players.$[].ready": false,
-                },
-            });
+            await Game.findByIdAndUpdate(gameId, { $set: { state: "lobby" } });
 
             // Clear in-memory game state
             deleteGameState(gameId);

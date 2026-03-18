@@ -24,13 +24,8 @@ module.exports = wrapHandler("game-return-to-lobby", async (socket, io, data, ca
         return;
     }
 
-    // Reset to lobby and clear all ready flags so admin can start a new game
-    await Game.findByIdAndUpdate(gameState.gameId, {
-        $set: {
-            state: "lobby",
-            "players.$[].ready": false,
-        },
-    });
+    // Move DB to lobby (ready flags were already reset when series-finished was set)
+    await Game.findByIdAndUpdate(gameState.gameId, { $set: { state: "lobby" } });
 
     // Refresh lobby data for any clients already in lobby view
     io.to(gameState.roomname).emit("fetch-users-in-room");
