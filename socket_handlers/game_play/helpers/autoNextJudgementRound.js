@@ -38,6 +38,8 @@ async function autoNextJudgementRound(io, gameId) {
         await persistCheckpoint(gameId);
         await broadcastGameState(io, finalState);
         io.to(gameState.roomname).emit('game-phase-change', 'series-finished');
+        // Push fresh room data now so any client returning to lobby sees ready=false immediately
+        io.to(gameState.roomname).emit('fetch-users-in-room');
 
         setTimeout(async () => {
             try {

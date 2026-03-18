@@ -136,6 +136,8 @@ async function finishSeries(io, gameId, existingState) {
 
     await broadcastGameState(io, existingState);
     io.to(existingState.roomname).emit("game-phase-change", "series-finished");
+    // Push fresh room data now so any client returning to lobby sees ready=false immediately
+    io.to(existingState.roomname).emit("fetch-users-in-room");
 
     // After displaying the leaderboard, return to lobby
     setTimeout(async () => {
