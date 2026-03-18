@@ -37,9 +37,13 @@ async function autoNextJudgementRound(io, gameId) {
             try {
                 const cur = getGameState(gameId);
                 if (!cur || cur.phase !== 'series-finished') return;
-                await Game.findByIdAndUpdate(gameId, { state: 'lobby' });
+                await Game.findByIdAndUpdate(gameId, {
+                    state: 'lobby',
+                    $set: { 'players.$[].ready': false },
+                });
                 deleteGameState(gameId);
                 io.to(gameState.roomname).emit('game-series-complete', { finalRankings: rankings });
+                io.to(gameState.roomname).emit('fetch-users-in-room');
             } catch (err) {
                 console.error('[autoNextJudgementRound] series cleanup:', err.message);
             }

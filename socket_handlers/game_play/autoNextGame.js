@@ -137,8 +137,11 @@ async function finishSeries(io, gameId, existingState) {
             const currentState = getGameState(gameId);
             if (!currentState || currentState.phase !== "series-finished") return;
 
-            // Reset game to lobby
-            await Game.findByIdAndUpdate(gameId, { state: "lobby" });
+            // Reset game to lobby and clear ready flags
+            await Game.findByIdAndUpdate(gameId, {
+                state: "lobby",
+                $set: { "players.$[].ready": false },
+            });
 
             // Clear in-memory game state
             deleteGameState(gameId);
@@ -147,6 +150,9 @@ async function finishSeries(io, gameId, existingState) {
             io.to(existingState.roomname).emit("game-series-complete", {
                 finalRankings: rankings,
             });
+
+            // Refresh lobby player list on all clients
+            io.to(existingState.roomname).emit("fetch-users-in-room");
         } catch (error) {
             console.error("Series cleanup error:", error.message);
         }
