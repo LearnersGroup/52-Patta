@@ -106,7 +106,10 @@ app.use(cors({
     origin: allowedOrigins,
     credentials: true
 }));
-app.use(express.json({ extended: false, limit: '5mb' }));
+app.use(express.json({ extended: false, limit: '10kb' }));
+// Avatar uploads send a base64 data-URI which can be several hundred KB —
+// apply a higher limit only on the profile-update endpoint.
+app.use("/api/auth/profile", express.json({ extended: false, limit: '5mb' }));
 app.use(passport.initialize());
 
 // Rate limiting for auth endpoints
