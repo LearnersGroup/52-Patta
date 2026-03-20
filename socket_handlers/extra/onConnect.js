@@ -16,7 +16,7 @@ const { getValidPlays } = require("../../game_engine/tricks");
 module.exports = (socket, io) => async () => {
     try {
         const user = await User.findById(socket.user.id)
-            .populate("gameroom", ["roomname", "state", "code"]);
+            .populate("gameroom", ["roomname", "state"]);
 
         if (!user?.gameroom || !user.gameroom.state || user.gameroom.state === "lobby") {
             return; // Nothing to do — user is not in an active game
@@ -33,7 +33,6 @@ module.exports = (socket, io) => async () => {
         socket.emit("rejoin-available", {
             roomId:    gameId,
             roomname,
-            code:      user.gameroom.code,
             gamePhase: user.gameroom.state,
         });
 

@@ -32,15 +32,11 @@ const HomePage = () => {
 
     const handleRejoin = (info) => {
         if (!socket || !info) return;
-        const joinCode = info.code || "";
-        if (!joinCode) {
-            notify("Rejoin code missing. Please join via room code.", "error")(dispatch);
-            return;
-        }
-        socket.emit("user-join-room", { code: joinCode }, (err) => {
+        socket.emit("user-join-room", { roomname: info.roomname, id: info.roomId }, (err) => {
             if (err) {
                 console.error("Rejoin failed:", err);
                 notify("Failed to rejoin game", "error")(dispatch);
+                setRejoinInfo(null);
             }
         });
     };
@@ -66,8 +62,7 @@ const HomePage = () => {
             setRejoinInfo(data);
             // Auto-rejoin: trigger join immediately
             if (socket) {
-                if (!data?.code) return;
-                socket.emit("user-join-room", { code: data.code }, (err) => {
+                socket.emit("user-join-room", { roomname: data.roomname, id: data.roomId }, (err) => {
                     if (err) {
                         console.error("Auto-rejoin failed:", err);
                         // Banner remains visible as fallback
