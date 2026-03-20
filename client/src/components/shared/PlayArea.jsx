@@ -1,6 +1,55 @@
 import { memo, useCallback, useState, useEffect, useRef } from "react";
 import { useCardAnimation } from "./useCardAnimation";
 
+const RANK_ORDER = {
+    "2": 2,
+    "3": 3,
+    "4": 4,
+    "5": 5,
+    "6": 6,
+    "7": 7,
+    "8": 8,
+    "9": 9,
+    "10": 10,
+    J: 11,
+    Q: 12,
+    K: 13,
+    A: 14,
+};
+
+function findWinningIndex(plays = [], trumpSuit = null) {
+    if (!plays.length) return -1;
+
+    const ledSuit = plays[0]?.card?.suit;
+    if (!ledSuit) return -1;
+
+    const indexed = plays.map((play, index) => ({ play, index }));
+    const trumpPlays = indexed.filter(({ play }) => play.card?.suit === trumpSuit);
+    const ledSuitPlays = indexed.filter(({ play }) => play.card?.suit === ledSuit);
+    const contenderGroup = trumpPlays.length > 0 && trumpSuit !== ledSuit ? trumpPlays : ledSuitPlays;
+
+    if (!contenderGroup.length) return 0;
+
+    let winner = contenderGroup[0];
+    for (let i = 1; i < contenderGroup.length; i++) {
+        const current = contenderGroup[i];
+        const currCard = current.play.card;
+        const bestCard = winner.play.card;
+
+        const isDuplicate = currCard?.suit === bestCard?.suit && currCard?.rank === bestCard?.rank;
+        if (isDuplicate) {
+            winner = current;
+            continue;
+        }
+
+        if ((RANK_ORDER[currCard?.rank] || 0) > (RANK_ORDER[bestCard?.rank] || 0)) {
+            winner = current;
+        }
+    }
+
+    return winner.index;
+}
+
 /**
  * Central play area for card games.
  * Renders played cards in "thrown" (random pile) or "inspect" (neat arrangement) mode.
@@ -26,6 +75,7 @@ const PlayArea = memo(({
     tricksCount = 0,
     lastTrickWinner = null,
     lastTrickCards = null,
+    trumpSuit = null,
 }) => {
     // Key function for animation hook (only for current plays, not departing)
     const keyFn = useCallback(
@@ -135,6 +185,7 @@ const PlayArea = memo(({
     const effectivePlays = isDeparting ? departingState.plays : plays;
     const showEmpty = effectivePlays.length === 0;
     const winnerDir = isDeparting ? seatDirection(departingState.winner) : { x: 0, y: 0 };
+    const winningIndex = isDeparting ? -1 : findWinningIndex(plays, trumpSuit);
 
     return (
         <div
@@ -163,6 +214,7 @@ const PlayArea = memo(({
                 const isCurrentAnimating =
                     !isDeparting && key === animatingCardKey && !inspectMode;
                 const isSweeping = departingState?.phase === "sweep";
+                const isWinning = !isDeparting && effectivePlays.length > 0 && index === winningIndex;
 
                 // During departing hold/sweep: always use thrown positions
                 const pos =
@@ -176,7 +228,7 @@ const PlayArea = memo(({
                         key={key}
                         className={`play-area-card ${
                             isLastCardEntry || isCurrentAnimating ? "entering" : ""
-                        } ${isSweeping ? "departing" : ""}`}
+                        } ${isSweeping ? "departing" : ""} ${isWinning ? "winning" : ""}`}
                         style={{
                             "--thrown-x": `${pos.x}px`,
                             "--thrown-y": `${pos.y}px`,
@@ -199,9 +251,9 @@ const PlayArea = memo(({
                 );
             })}
 
-            {effectivePlays.length > 0 && !isDeparting && (
-                <div className="play-area-inspect-hint">
-                    {inspectMode ? "click to scatter" : "click to inspect"}
+            {!isDeparting && plays.length > 0 && (
+                <div className="play-area-winning-label">
+                    {getName(plays[winningIndex].playerId)} is leading
                 </div>
             )}
         </div>

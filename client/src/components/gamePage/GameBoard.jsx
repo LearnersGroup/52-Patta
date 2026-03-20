@@ -8,7 +8,7 @@ import PlayerList from "./PlayerList";
 import JudgementScoreboardModal from "./JudgementScoreboardModal";
 import PartnerCardDisplay from "./PartnerCardDisplay";
 import DealRevealOverlay from "./DealRevealOverlay";
-import { CircularTable, PlayArea } from "../shared";
+import { CircularTable, PlayArea, PlayerSeat } from "../shared";
 import { getCardComponent, cardKey, suitSymbol, isRedSuit } from "./utils/cardMapper";
 import ShufflingPanel from "./ShufflingPanel";
 import DealingOverlay from "./DealingOverlay";
@@ -494,6 +494,13 @@ const GameBoard = ({ userId, isAdmin }) => {
     const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase)
         || (isJudgement && (phase === "finished" || phase === "scoring" || phase === "series-finished") && !scorecardVisible);
     const isPlayingPhase = phase === "playing";
+    const showPlayerHand =
+        phase !== "finished" &&
+        phase !== "series-finished" &&
+        phase !== "shuffling" &&
+        phase !== "dealing" &&
+        !showDealReveal;
+    const showMySeatWidget = isTablePhase && showPlayerHand;
 
     // Center content for CircularTable based on phase
     const renderCenterContent = ({ seatPositionMap, tableSize }) => {
@@ -624,6 +631,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                     onToggleInspect={() => setInspectMode(!inspectMode)}
                     getCardSvg={getCardComponent}
                     cardKeyFn={cardKey}
+                    trumpSuit={activeTrumpSuit}
                     getName={getName}
                     seatPositionMap={seatPositionMap}
                     tableSize={tableSize}
@@ -692,14 +700,6 @@ const GameBoard = ({ userId, isAdmin }) => {
                             powerHouseSuit={powerHouseSuit}
                             getName={getName}
                         />
-                    )}
-
-                    {/* Minor 3: "Your turn" pulse strip for local player */}
-                    {isMyTurn && (
-                        <div className="my-turn-indicator">
-                            <span className="my-turn-dot" />
-                            Your turn
-                        </div>
                     )}
 
                     {/* Teammate reveal announcement — 2-second toast */}
@@ -823,16 +823,47 @@ const GameBoard = ({ userId, isAdmin }) => {
             )}
 
             {/* Player hand — hidden during shuffling/dealing and while reveal overlay is active */}
-            {phase !== "finished" &&
-             phase !== "series-finished" &&
-             phase !== "shuffling" &&
-             phase !== "dealing" &&
-             !showDealReveal && (
-                <PlayerHand
-                    cards={myHand}
-                    validPlays={validPlays}
-                    isMyTurn={isMyTurn && phase === "playing"}
-                />
+            {showPlayerHand && (
+                showMySeatWidget ? (
+                    <div className="player-hand-shell">
+                        <div
+                            className={`my-seat-widget${isMyTurn ? " active-turn" : ""}`}
+                            style={isMyTurn ? {
+                                // Bottom seat: angle = π/2 (90°)
+                                "--seat-angle-deg": 90,
+                                "--arrow-dx": "0px",
+                                "--arrow-dy": "-38px",
+                            } : undefined}
+                        >
+                            <PlayerSeat
+                                name="You"
+                                avatarInitial={getName(userId).charAt(0).toUpperCase()}
+                                avatar={playerAvatars[userId] || ""}
+                                isMe={true}
+                                isTurn={getIsTurn(userId)}
+                                isLeader={gameConfig.hasPartners && userId === leader}
+                                isDealer={userId === dealer}
+                                isPartner={false}
+                                cardCount={0}
+                                score={gameConfig.getSeatScore(userId, scoreCtx)}
+                                relation={null}
+                                scoreContent={getJudgementScoreContent(userId)}
+                                showCardFan={false}
+                            />
+                        </div>
+                        <PlayerHand
+                            cards={myHand}
+                            validPlays={validPlays}
+                            isMyTurn={isMyTurn && phase === "playing"}
+                        />
+                    </div>
+                ) : (
+                    <PlayerHand
+                        cards={myHand}
+                        validPlays={validPlays}
+                        isMyTurn={isMyTurn && phase === "playing"}
+                    />
+                )
             )}
 
             {/* Bidding controls below the hand */}
