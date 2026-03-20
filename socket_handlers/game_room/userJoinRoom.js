@@ -6,15 +6,21 @@ const { getValidPlays } = require("../../game_engine/tricks");
 const wrapHandler = require('../wrapHandler');
 
 module.exports = wrapHandler('user-join-room', async (socket, io, data, callback) => {
-    const { code } = data;
+    const { code, id, roomname: rawRoomname } = data || {};
 
-    if (!code || typeof code !== 'string') {
+    let game = null;
+    if (typeof code === 'string' && code.trim()) {
+        const normalizedCode = code.trim().toUpperCase();
+        game = await Game.findOne({ code: normalizedCode });
+    } else if (typeof id === 'string' && id.trim()) {
+        game = await Game.findById(id.trim());
+    } else if (typeof rawRoomname === 'string' && rawRoomname.trim()) {
+        game = await Game.findOne({ roomname: rawRoomname.trim() });
+    } else {
         callback("Room code is required");
         return;
     }
 
-    const normalizedCode = code.trim().toUpperCase();
-        let game = await Game.findOne({ code: normalizedCode });
         if (!game) {
             callback("Room does not exists");
             return;
