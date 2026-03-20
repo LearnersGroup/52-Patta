@@ -211,9 +211,10 @@ $m-border  : rgba(201, 162, 39, 0.45);
     z-index: 5;
   }
 
-  // Seats — 75% scale
-  .table-seat           { max-width: 68px; gap: 2px; }
-  .table-seat-avatar    { width: 27px; height: 27px; font-size: 0.58rem; }
+  // Seats
+  .table-seat           { max-width: 68px; gap: 0; }
+  .table-seat-avatar    { width: 42px; height: 42px; font-size: 0.58rem; }
+  .table-seat-avatar-wrap { margin-top: -10px; }
   .table-seat-name      { font-size: 0.47rem; max-width: 60px; }
   .table-seat-meta      { font-size: 0.42rem; }
   .table-seat-turn-dot  { width: 6px; height: 6px; }
@@ -231,13 +232,6 @@ $m-border  : rgba(201, 162, 39, 0.45);
 
   // Played cards (center table) — 20% smaller than desktop (60×84 → 48×67)
   .play-area-card { width: 48px !important; height: 67px !important; }
-
-  // My turn indicator — inside middle zone
-  .my-turn-indicator {
-    top: calc($m-stats-h + 8px);
-    font-size: 0.66rem;
-    padding: 4px 12px;
-  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // 4. BIDDING CONTROLS — docked above player hand

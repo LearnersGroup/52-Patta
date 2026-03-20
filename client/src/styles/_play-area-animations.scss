@@ -53,6 +53,36 @@
   }
 }
 
+// Gold outline on the currently winning card
+.play-area-card.winning {
+  z-index: 3;
+  border: 2px solid rgba(146, 111, 20, 0.95);
+  box-shadow:
+    0 0 10px rgba(146, 111, 20, 0.45),
+    0 0 18px rgba(146, 111, 20, 0.2),
+    0 2px 8px rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+  animation: winning-card-blink 2.2s ease-in-out infinite;
+}
+
+@keyframes winning-card-blink {
+  0%,
+  100% {
+    border-color: rgba(126, 94, 16, 0.92);
+    box-shadow:
+      0 0 6px rgba(126, 94, 16, 0.3),
+      0 0 12px rgba(126, 94, 16, 0.14),
+      0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    border-color: rgba(171, 131, 24, 0.98);
+    box-shadow:
+      0 0 14px rgba(171, 131, 24, 0.52),
+      0 0 26px rgba(171, 131, 24, 0.22),
+      0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+}
+
 .play-area-card-label {
   position: absolute;
   bottom: -14px;
@@ -134,20 +164,17 @@
   }
 }
 
-.play-area-inspect-hint {
+.play-area-winning-label {
   position: absolute;
   bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 0.5rem;
-  color: rgba(201, 162, 39, 0.4);
-  letter-spacing: 0.06em;
+  font-family: $font-heading;
+  font-size: 0.6rem;
+  color: $gold;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
-
-  .play-area:hover & {
-    opacity: 1;
-  }
 }
 

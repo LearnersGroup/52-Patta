@@ -47,7 +47,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 0;
   z-index: 2;
   pointer-events: auto;
   max-width: 90px;
@@ -104,8 +104,8 @@
 }
 
 .table-seat-avatar {
-  width: 36px;
-  height: 36px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: linear-gradient(135deg, $bg-panel-light, $bg-felt);
   border: 2px solid $border-gold;
@@ -200,6 +200,7 @@
   position: relative;
   height: 32px;
   width: 50px;
+  z-index: 1;
 }
 
 .card-back-item {
@@ -246,5 +247,16 @@
   padding: 0 4px;
   line-height: 1.4;
   z-index: 3;
+}
+
+@media (max-width: 430px) {
+  .table-seat-avatar {
+    width: 42px;
+    height: 42px;
+  }
+
+  .table-seat-avatar-wrap {
+    margin-top: -10px;
+  }
 }
 

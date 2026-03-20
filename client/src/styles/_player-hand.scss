@@ -1,4 +1,8 @@
 // ─── PLAYER HAND ────────────────────────────
+.player-hand-shell {
+  position: relative;
+}
+
 .player-hand-area {
   position: relative;
   z-index: 10;
@@ -7,6 +11,81 @@
     linear-gradient(0deg, $bg-deep 40%, transparent 100%);
   padding: 8px 0 16px;
   text-align: center;
+}
+
+.my-seat-widget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  position: absolute;
+  bottom: calc(100% + 60px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
+  pointer-events: none;
+
+  .table-seat-avatar-wrap {
+    margin-top: 0;
+  }
+
+  .table-seat-avatar {
+    width: 48px;
+    height: 48px;
+    border-color: $gold-light;
+  }
+
+  .table-seat-name {
+    color: $gold-light;
+    font-weight: 700;
+    font-size: 0.65rem;
+  }
+
+  .table-seat-meta {
+    font-size: 0.58rem;
+  }
+
+  .card-back-fan {
+    display: none;
+  }
+
+  // Active turn: same glow border + arrow treatment as other player seats
+  &.active-turn {
+    // Pulsing gold border around the whole widget
+    &::after {
+      content: '';
+      position: absolute;
+      inset: -6px;
+      border: 2px solid rgba(201, 162, 39, 0.6);
+      border-radius: 12px;
+      box-shadow: 0 0 14px rgba(201, 162, 39, 0.35), inset 0 0 8px rgba(201, 162, 39, 0.1);
+      animation: turn-glow-pulse 1.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    // Arrow pointing upward toward the table (bottom seat angle = 90°)
+    &::before {
+      content: '';
+      position: absolute;
+      left: calc(50% + var(--arrow-dx, 0px));
+      top: calc(50% + var(--arrow-dy, 0px));
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 12px solid $gold;
+      transform: translate(-50%, -50%) rotate(calc(var(--seat-angle-deg, 90) * 1deg - 90deg));
+      filter: drop-shadow(0 0 6px rgba(201, 162, 39, 0.7));
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    // Avatar gets the same gold glow as active opponent seats
+    .table-seat-avatar {
+      border-color: $gold;
+      box-shadow: 0 0 16px rgba(201, 162, 39, 0.5), 0 0 32px rgba(201, 162, 39, 0.25);
+    }
+  }
 }
 
 .hand-label {

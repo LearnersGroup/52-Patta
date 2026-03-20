@@ -23,6 +23,7 @@ const PlayerSeat = memo(({
     score = 0,
     relation = null, // "teammate" | "opponent" | null
     scoreContent = null,
+    showCardFan = true,
 }) => {
     const CardBack = getCardBackComponent();
 
@@ -48,7 +49,7 @@ const PlayerSeat = memo(({
     return (
         <>
             {/* Card back fan — tinted by relation once known */}
-            {cardCount > 0 && (
+            {showCardFan && cardCount > 0 && (
                 <div className={[
                     "card-back-fan",
                     relation === "opponent"           ? "card-back-fan--opponent"           : "",
@@ -81,8 +82,8 @@ const PlayerSeat = memo(({
                             src={avatar}
                             alt={`${name} avatar`}
                             className="table-seat-avatar-image"
-                            width={36}
-                            height={36}
+                            width={48}
+                            height={48}
                         />
                     ) : (
                         avatarInitial
