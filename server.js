@@ -88,7 +88,7 @@ if (require.main === module) {
 // Allowed origins for CORS
 const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',')
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005'];
+    : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:3004', 'http://localhost:3005', 'http://localhost:8081'];
 
 // Init Middleware
 app.use(helmet({
@@ -116,10 +116,8 @@ app.use(cors({
     origin: allowedOrigins,
     credentials: true
 }));
-app.use(express.json({ extended: false, limit: '10kb' }));
-// Avatar uploads send a base64 data-URI which can be several hundred KB —
-// apply a higher limit only on the profile-update endpoint.
-app.use("/api/auth/profile", express.json({ extended: false, limit: '5mb' }));
+// 2mb covers avatar base64 SVG payloads (~100-500KB); tight enough for everything else.
+app.use(express.json({ extended: false, limit: '2mb' }));
 app.use(passport.initialize());
 
 // Rate limiting for auth endpoints
