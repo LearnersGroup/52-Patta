@@ -14,7 +14,14 @@ const User = require("./models/User");
 const bcrypt = require("bcryptjs");
 const passport = require("./config/passport");
 const ws_auth_middleware = require("./middleware/ws_auth");
-const { userJoinRoom, userCreateRoom, userLeaveRoom, userToggleReady } = require("./socket_handlers/game_room/");
+const {
+    userJoinRoom,
+    userCreateRoom,
+    userLeaveRoom,
+    userToggleReady,
+    adminUpdateConfig,
+    adminKickPlayer,
+} = require("./socket_handlers/game_room/");
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
 const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame, shuffleAction, undoShuffle, dealCardsHandler, judgementBid, acknowledgeTrumpAnnounce, returnToLobby } = require("./socket_handlers/game_play/");
 
@@ -40,6 +47,8 @@ function setupSocketHandlers(io) {
         socket.on("user-create-room", userCreateRoom(socket, io));
         socket.on("user-leave-room", userLeaveRoom(socket, io));
         socket.on("user-toggle-ready", userToggleReady(socket, io));
+        socket.on("admin-update-config", adminUpdateConfig(socket, io));
+        socket.on("admin-kick-player", adminKickPlayer(socket, io));
 
         //game-play
         socket.on("game-start", startGame(socket, io));
