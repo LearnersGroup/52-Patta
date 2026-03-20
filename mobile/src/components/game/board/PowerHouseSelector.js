@@ -1,0 +1,422 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { WsSelectPartners, WsSelectPowerHouse } from '../../../api/wsEmitters';
+import { buttonStyles, colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
+import CardFace from '../CardFace';
+import { isRedSuit, suitSymbol } from '../utils/cardMapper';
+
+const SUITS = ['S', 'H', 'D', 'C'];
+const SUIT_NAMES = { S: 'Spades', H: 'Hearts', D: 'Diamonds', C: 'Clubs' };
+const RANK_ORDER_DESC = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+
+function getPartnerCount(configKey) {
+  if (!configKey) return 1;
+  const counts = {
+    '4P1D': 1,
+    '5P1D': 1,
+    '6P1D': 2,
+    '6P2D': 2,
+    '7P2D': 2,
+    '8P2D': 3,
+    '9P2D': 3,
+    '10P2D': 4,
+  };
+  return counts[configKey] || 1;
+}
+
+export default function PowerHouseSelector({
+  isLeader,
+  leader,
+  getName,
+  powerHouseSuit,
+  partnerCards = [],
+  myHand = [],
+  configKey,
+  partnerCardCount,
+}) {
+  const [selectedCards, setSelectedCards] = useState([]);
+  const [copyPicker, setCopyPicker] = useState(null);
+
+  const is2Deck = (configKey || '').includes('2D');
+  const targetCount = partnerCardCount || getPartnerCount(configKey);
+
+  useEffect(() => {
+    if (!isLeader) {
+      setSelectedCards([]);
+      setCopyPicker(null);
+      return;
+    }
+    if (!powerHouseSuit) {
+      setSelectedCards([]);
+      setCopyPicker(null);
+    }
+  }, [isLeader, powerHouseSuit]);
+
+  const selectedCount = selectedCards.length;
+
+  const availableBySuit = useMemo(() => {
+    const out = {};
+    for (const suit of SUITS) {
+      out[suit] = RANK_ORDER_DESC
+        .filter((rank) => {
+          const holdCount = myHand.filter((c) => c?.suit === suit && c?.rank === rank).length;
+          return is2Deck ? holdCount < 2 : holdCount === 0;
+        })
+        .map((rank) => ({ suit, rank }));
+    }
+    return out;
+  }, [myHand, is2Deck]);
+
+  const isCopySelected = (suit, rank, copyNum) =>
+    selectedCards.some((c) => c.suit === suit && c.rank === rank && c.whichCopy === copyNum);
+
+  const isSingleSelected = (suit, rank) =>
+    selectedCards.some((c) => c.suit === suit && c.rank === rank && c.whichCopy == null);
+
+  const toggleSingleCard = (card) => {
+    const already = isSingleSelected(card.suit, card.rank);
+    if (already) {
+      setSelectedCards((prev) => prev.filter((c) => !(c.suit === card.suit && c.rank === card.rank && c.whichCopy == null)));
+      return;
+    }
+    if (selectedCount >= targetCount) return;
+    setSelectedCards((prev) => [...prev, { ...card, whichCopy: null }]);
+  };
+
+  const toggleCopySelection = (card, copyNum) => {
+    const exists = isCopySelected(card.suit, card.rank, copyNum);
+    if (exists) {
+      setSelectedCards((prev) => prev.filter((c) => !(c.suit === card.suit && c.rank === card.rank && c.whichCopy === copyNum)));
+    } else if (selectedCount < targetCount) {
+      setSelectedCards((prev) => [...prev, { ...card, whichCopy: copyNum }]);
+    }
+    setCopyPicker(null);
+  };
+
+  const submitPartners = () => {
+    if (selectedCount !== targetCount) return;
+
+    const cards = selectedCards.map((c) => ({ suit: c.suit, rank: c.rank }));
+    const duplicateSpecs = selectedCards
+      .filter((c) => c.whichCopy != null)
+      .map((c) => ({
+        card: { suit: c.suit, rank: c.rank },
+        whichCopy: c.whichCopy === 1 ? '1st' : '2nd',
+      }));
+
+    WsSelectPartners(cards, duplicateSpecs);
+  };
+
+  if (!isLeader) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.title}>PowerHouse</Text>
+        <Text style={styles.subtitle}>
+          {!powerHouseSuit
+            ? `${getName?.(leader) || 'Leader'} is selecting trump suit...`
+            : `${getName?.(leader) || 'Leader'} is selecting partner cards...`}
+        </Text>
+        {powerHouseSuit ? (
+          <Text style={[styles.suitLarge, isRedSuit(powerHouseSuit) ? styles.red : styles.black]}>
+            {suitSymbol(powerHouseSuit)}
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
+
+  if (!powerHouseSuit) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.title}>Select PowerHouse Suit</Text>
+        <View style={styles.suitGrid}>
+          {SUITS.map((suit) => (
+            <Pressable key={suit} style={styles.suitBtn} onPress={() => WsSelectPowerHouse(suit)}>
+              <Text style={[styles.suitBtnSymbol, isRedSuit(suit) ? styles.red : styles.black]}>
+                {suitSymbol(suit)}
+              </Text>
+              <Text style={styles.suitBtnLabel}>{SUIT_NAMES[suit]}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.wrapTall}>
+      <Text style={styles.title}>Select Teammate Cards ({selectedCount}/{targetCount})</Text>
+      <Text style={styles.subtitle}>
+        PowerHouse: <Text style={[styles.inlineSuit, isRedSuit(powerHouseSuit) ? styles.red : styles.black]}>{suitSymbol(powerHouseSuit)}</Text>
+      </Text>
+
+      {partnerCards?.length > 0 ? (
+        <Text style={styles.note}>Partner cards already selected. Waiting to start play...</Text>
+      ) : (
+        <>
+          <ScrollView style={styles.pickList} contentContainerStyle={styles.pickListContent}>
+            {SUITS.map((suit) => {
+              const cards = availableBySuit[suit] || [];
+              if (!cards.length) return null;
+
+              return (
+                <View key={suit} style={styles.suitSection}>
+                  <Text style={[styles.suitHeader, isRedSuit(suit) ? styles.red : styles.black]}>
+                    {suitSymbol(suit)} {SUIT_NAMES[suit]}
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardRow}>
+                    {cards.map((card) => {
+                      const holdCount = myHand.filter((c) => c?.suit === card.suit && c?.rank === card.rank).length;
+                      const hasCopyPicker = is2Deck && holdCount === 0;
+                      const copy1 = isCopySelected(card.suit, card.rank, 1);
+                      const copy2 = isCopySelected(card.suit, card.rank, 2);
+                      const single = isSingleSelected(card.suit, card.rank);
+                      const selected = single || copy1 || copy2;
+                      const disabled = !selected && selectedCount >= targetCount;
+
+                      return (
+                        <View key={`${card.suit}${card.rank}`} style={styles.cardWrap}>
+                          <Pressable
+                            onPress={() => {
+                              if (disabled) return;
+                              if (hasCopyPicker) {
+                                setCopyPicker((prev) =>
+                                  prev && prev.suit === card.suit && prev.rank === card.rank ? null : { suit: card.suit, rank: card.rank }
+                                );
+                              } else {
+                                toggleSingleCard(card);
+                              }
+                            }}
+                            style={[styles.cardPress, selected && styles.cardSelected, disabled && styles.cardDisabled]}
+                          >
+                            <CardFace card={card} width={40} />
+                          </Pressable>
+
+                          {hasCopyPicker ? (
+                            <View style={styles.copyBadges}>
+                              <Text style={[styles.copyBadge, copy1 && styles.copyBadgeOn]}>1</Text>
+                              <Text style={[styles.copyBadge, copy2 && styles.copyBadgeOn]}>2</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              );
+            })}
+          </ScrollView>
+
+          {copyPicker ? (
+            <View style={styles.copyPickerPanel}>
+              <Text style={styles.copyPickerTitle}>
+                {copyPicker.rank}{suitSymbol(copyPicker.suit)} — choose copy
+              </Text>
+              <View style={styles.copyPickerBtns}>
+                <Pressable
+                  style={[styles.copyBtn, isCopySelected(copyPicker.suit, copyPicker.rank, 1) && styles.copyBtnOn]}
+                  onPress={() => toggleCopySelection(copyPicker, 1)}
+                >
+                  <Text style={styles.copyBtnText}>1st</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.copyBtn, isCopySelected(copyPicker.suit, copyPicker.rank, 2) && styles.copyBtnOn]}
+                  onPress={() => toggleCopySelection(copyPicker, 2)}
+                >
+                  <Text style={styles.copyBtnText}>2nd</Text>
+                </Pressable>
+                <Pressable style={styles.copyBtn} onPress={() => setCopyPicker(null)}>
+                  <Text style={styles.copyBtnText}>Close</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+
+          <Pressable
+            style={[styles.confirmBtn, selectedCount !== targetCount && styles.disabled]}
+            disabled={selectedCount !== targetCount}
+            onPress={submitPartners}
+          >
+            <Text style={styles.confirmBtnText}>Confirm Teammates</Text>
+          </Pressable>
+        </>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: {
+    ...panelStyle,
+    width: '100%',
+    maxWidth: 300,
+    padding: spacing.md,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  wrapTall: {
+    ...panelStyle,
+    width: '100%',
+    maxWidth: 320,
+    padding: spacing.md,
+    gap: spacing.sm,
+    maxHeight: 340,
+  },
+  title: {
+    ...typography.subtitle,
+    color: colors.cream,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontFamily: fonts.body,
+    color: colors.creamMuted,
+    fontSize: 12,
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  note: {
+    fontFamily: fonts.body,
+    color: colors.creamMuted,
+    fontSize: 12,
+  },
+  suitLarge: {
+    fontSize: 44,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  inlineSuit: {
+    fontWeight: '700',
+  },
+  red: {
+    color: colors.redSuit,
+  },
+  black: {
+    color: colors.cream,
+  },
+  suitGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    justifyContent: 'center',
+  },
+  suitBtn: {
+    width: 68,
+    backgroundColor: colors.bgInput,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: 10,
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 4,
+  },
+  suitBtnSymbol: {
+    fontSize: 30,
+    fontWeight: '700',
+    lineHeight: 34,
+  },
+  suitBtnLabel: {
+    ...typography.label,
+    color: colors.creamMuted,
+    fontSize: 9,
+  },
+  pickList: {
+    flexGrow: 0,
+    maxHeight: 230,
+  },
+  pickListContent: {
+    gap: spacing.xs,
+    paddingBottom: spacing.xs,
+  },
+  suitSection: {
+    gap: 4,
+  },
+  suitHeader: {
+    fontFamily: fonts.heading,
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  cardRow: {
+    gap: spacing.xs,
+    paddingBottom: 2,
+  },
+  cardWrap: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  cardPress: {
+    borderRadius: 8,
+    padding: 2,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  cardSelected: {
+    borderColor: colors.gold,
+  },
+  cardDisabled: {
+    opacity: 0.45,
+  },
+  copyBadges: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  copyBadge: {
+    width: 14,
+    height: 14,
+    textAlign: 'center',
+    lineHeight: 14,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    color: colors.creamMuted,
+    fontSize: 9,
+    overflow: 'hidden',
+  },
+  copyBadgeOn: {
+    color: colors.bgDeep,
+    backgroundColor: colors.gold,
+    borderColor: colors.gold,
+    fontWeight: '700',
+  },
+  copyPickerPanel: {
+    ...panelStyle,
+    borderRadius: 8,
+    padding: spacing.sm,
+    gap: spacing.xs,
+  },
+  copyPickerTitle: {
+    fontFamily: fonts.body,
+    color: colors.cream,
+    fontSize: 12,
+  },
+  copyPickerBtns: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  copyBtn: {
+    ...buttonStyles.base,
+    ...buttonStyles.secondary,
+    ...buttonStyles.small,
+  },
+  copyBtnOn: {
+    ...buttonStyles.primary,
+  },
+  copyBtnText: {
+    ...buttonStyles.secondaryText,
+    ...buttonStyles.smallText,
+  },
+  confirmBtn: {
+    ...buttonStyles.base,
+    ...buttonStyles.primary,
+    width: '100%',
+  },
+  confirmBtnText: {
+    ...buttonStyles.primaryText,
+  },
+  disabled: {
+    ...buttonStyles.disabled,
+  },
+});
