@@ -45,10 +45,16 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-wrap: wrap;
   padding: 14px 22px;
   background: rgba(201, 162, 39, 0.06);
   border: 1px solid $border-gold;
   border-radius: 10px;
+
+  &--expanded {
+    border-color: $gold;
+    box-shadow: 0 0 16px rgba(201, 162, 39, 0.1);
+  }
 
   .room-code-label {
     font-family: $font-heading;
@@ -78,6 +84,66 @@
     color: $gold;
 
     &:hover { background: rgba(201, 162, 39, 0.18); }
+  }
+}
+
+.room-code-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+
+  .room-code-value {
+    flex: 1;
+  }
+}
+
+.room-code-settings {
+  @include btn-base;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  font-size: 1.1rem;
+  background: rgba(201, 162, 39, 0.08);
+  border: 1px solid $border-gold;
+  color: $cream-muted;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(201, 162, 39, 0.18);
+    color: $gold;
+    border-color: $gold;
+  }
+
+  &--active {
+    background: rgba(201, 162, 39, 0.18);
+    color: $gold;
+    border-color: $gold;
+    transform: rotate(90deg);
+  }
+}
+
+.room-settings-panel {
+  width: 100%;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid $border-gold;
+
+  .create-form {
+    gap: 16px;
+  }
+
+  .room-settings-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+
+    .btn-secondary { flex: 1; }
+    .btn-primary { flex: 2; }
   }
 }
 
@@ -203,51 +269,75 @@
       }
     }
 
-    // Ready badge — top-right corner, overlapping avatar (reuses badge-on-avatar pattern)
-    .lobby-player-ready-badge {
+    // Kick button — top-right corner of avatar (replaces ready badge position)
+    .lobby-player-kick {
       position: absolute;
-      top: -2px;
-      right: -2px;
+      top: -4px;
+      right: -4px;
       width: 22px;
       height: 22px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.7rem;
+      font-size: 1rem;
       font-weight: 900;
       line-height: 1;
       z-index: 3;
-      background: rgba(30, 34, 44, 0.92);
-      border: 2px solid rgba(168, 159, 142, 0.3);
-      color: $cream-muted;
-      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      cursor: pointer;
+      background: rgba(204, 41, 54, 0.15);
+      border: 2px solid rgba(204, 41, 54, 0.4);
+      color: $red-suit;
+      transition: background 0.2s, border-color 0.2s, transform 0.15s;
+      padding: 0;
 
-      &--ready {
-        background: rgba(46, 204, 113, 0.2);
-        border-color: #4fde8c;
-        color: #4fde8c;
+      &:hover {
+        background: rgba(204, 41, 54, 0.35);
+        border-color: $red-suit;
+        transform: scale(1.15);
       }
     }
 
-    // Name badge — overlapping bottom of avatar
-    .lobby-player-name-badge {
+    // Name row — bottom of avatar, flex row with ready dot + name
+    .lobby-player-name-row {
       position: absolute;
       bottom: -10px;
       left: 50%;
       transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 5px;
       white-space: nowrap;
       background: rgba(10, 12, 18, 0.88);
       border: 1px solid rgba(201, 162, 39, 0.3);
       border-radius: 20px;
       padding: 2px 10px;
+      transition: border-color 0.2s ease;
+    }
+
+    // Ready dot — small circle indicator
+    .lobby-player-ready-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(168, 159, 142, 0.5);
+      flex-shrink: 0;
+      transition: background 0.2s;
+
+      &--ready {
+        background: #4fde8c;
+        box-shadow: 0 0 4px rgba(79, 222, 140, 0.5);
+      }
+    }
+
+    // Name text (inline within name row)
+    .lobby-player-name-badge {
       font-size: 0.76rem;
+      max-width: 90px;
       font-weight: 600;
       color: $cream;
-      max-width: 110px;
       overflow: hidden;
       text-overflow: ellipsis;
-      transition: border-color 0.2s ease;
     }
   }
 
@@ -257,7 +347,7 @@
       box-shadow: 0 0 0 1px #4fde8c;
     }
 
-    .lobby-player-name-badge {
+    .lobby-player-name-row {
       border-color: #4fde8c;
     }
   }
