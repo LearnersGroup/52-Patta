@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSelector } from 'react-redux';
 import { WsPlayCard, WsQuitGame } from '../../../api/wsEmitters';
 import { cardTokens, colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
@@ -21,6 +28,45 @@ import SeriesFinishedPanel from './SeriesFinishedPanel';
 import ShufflingPanel from './ShufflingPanel';
 import TeamScoreHUD from './TeamScoreHUD';
 import TrumpAnnouncePanel from './TrumpAnnouncePanel';
+
+const INTENDED_W = Math.round(cardTokens.sizes.play.width * 0.8);  // 20% smaller
+
+function IntendedCardSlot({ card, shouldBounce, onPress }) {
+  const bounce = useSharedValue(0);
+
+  useEffect(() => {
+    if (shouldBounce) {
+      bounce.value = withRepeat(
+        withTiming(1, { duration: 600, easing: Easing.inOut(Easing.quad) }),
+        -1,
+        true,
+      );
+    } else {
+      bounce.value = withTiming(0, { duration: 200 });
+    }
+  }, [shouldBounce, bounce]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: bounce.value * -8 }],
+  }));
+
+  return (
+    <Pressable style={styles.intendedSlot} onPress={onPress}>
+      <Animated.View style={[
+        styles.intendedCardWrap,
+        shouldBounce && styles.intendedPlayable,
+        animStyle,
+      ]}>
+        <CardFace
+          card={card}
+          width={INTENDED_W}
+          playable={shouldBounce}
+          selected
+        />
+      </Animated.View>
+    </Pressable>
+  );
+}
 
 function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase }) {
   return (
@@ -298,7 +344,18 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     />
                   );
                 }
-                return <DealingOverlay myHand={myHand || []} dealingConfig={dealingConfig} />;
+                const dIdx = seatOrder?.indexOf(dealer) ?? 0;
+                return (
+                  <DealingOverlay
+                    myHand={myHand || []}
+                    dealingConfig={dealingConfig}
+                    seatOrder={seatOrder || []}
+                    dealerIndex={dIdx >= 0 ? dIdx : 0}
+                    userId={userId}
+                    seatPositionMap={seatPositionMap}
+                    tableSize={tableSize}
+                  />
+                );
               }
 
               if (phase === 'powerhouse') {
@@ -366,26 +423,11 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
           {/* ── Intended card slot ── */}
           {intendedCard ? (
-            <Pressable style={styles.intendedSlot} onPress={handlePlayIntended}>
-              <View style={[
-                styles.intendedCardWrap,
-                isMyTurn && isCardInList(intendedCard, validPlays) && styles.intendedPlayable,
-              ]}>
-                <CardFace
-                  card={intendedCard}
-                  width={cardTokens.sizes.play.width}
-                  playable={isMyTurn && isCardInList(intendedCard, validPlays)}
-                  selected
-                />
-              </View>
-              {isMyTurn ? (
-                <Text style={styles.intendedLabel}>
-                  {isCardInList(intendedCard, validPlays) ? 'TAP TO PLAY' : 'ILLEGAL'}
-                </Text>
-              ) : (
-                <Text style={styles.intendedLabel}>NOT YOUR TURN</Text>
-              )}
-            </Pressable>
+            <IntendedCardSlot
+              card={intendedCard}
+              shouldBounce={isMyTurn && isCardInList(intendedCard, validPlays)}
+              onPress={handlePlayIntended}
+            />
           ) : null}
 
           <PlayerHand
@@ -500,30 +542,20 @@ const styles = StyleSheet.create({
   // ── Intended card slot ────────────────────────────────────────────────────
   intendedSlot: {
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   intendedCardWrap: {
-    borderRadius: cardTokens.borderRadius + 3,
+    borderRadius: cardTokens.borderRadius + 2,
     borderWidth: 2,
-    borderColor: 'rgba(201,162,39,0.4)',
-    padding: 2,
+    borderColor: 'rgba(201,162,39,0.3)',
   },
   intendedPlayable: {
     borderColor: cardTokens.playableBorder,
     shadowColor: cardTokens.playableBorder,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  intendedLabel: {
-    fontFamily: fonts.heading,
-    fontSize: 9,
-    fontWeight: '700',
-    color: colors.goldLight,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginTop: 4,
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 4,
   },
 
   // ── Scoreboard modal ──────────────────────────────────────────────────────

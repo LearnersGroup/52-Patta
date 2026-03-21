@@ -1,30 +1,18 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { colors, fonts, shadows, spacing, typography } from '../../../styles/theme';
+import { colors, fonts, typography } from '../../../styles/theme';
 import CardFace from '../CardFace';
 import { useCardAnimation } from '../hooks/useCardAnimation';
 
 const RANK_ORDER = {
-  '2': 2,
-  '3': 3,
-  '4': 4,
-  '5': 5,
-  '6': 6,
-  '7': 7,
-  '8': 8,
-  '9': 9,
-  '10': 10,
-  J: 11,
-  Q: 12,
-  K: 13,
-  A: 14,
+  '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8,
+  '9': 9, '10': 10, J: 11, Q: 12, K: 13, A: 14,
 };
 
 function findWinningIndex(plays = [], trumpSuit = null) {
@@ -64,16 +52,23 @@ function thrownPosition(play, index) {
   const key = `${play?.playerId || ''}_${play?.card?.suit || ''}${play?.card?.rank || ''}_${play?.card?.deckIndex ?? 0}_${index}`;
   const h = hashKey(key);
   return {
-    // Spread scaled down ~30 % to match the smaller card size
     x: ((h & 0xff) / 255) * 90 - 45,
     y: (((h >> 8) & 0xff) / 255) * 64 - 32,
     rotate: (((h >> 16) & 0xff) / 255) * 44 - 22,
   };
 }
 
+/** Position cards near their player's seat (inspect mode). */
+function inspectPosition(seatDir) {
+  return {
+    x: seatDir.x * 0.65,
+    y: seatDir.y * 0.65,
+    rotate: 0,
+  };
+}
+
 function AnimatedTrickCard({
   play,
-  label,
   target,
   seatDir,
   winnerDir,
@@ -83,7 +78,6 @@ function AnimatedTrickCard({
 }) {
   const flyProgress = useSharedValue(isEntering ? 0 : 1);
   const sweepProgress = useSharedValue(0);
-  const glowProgress = useSharedValue(isWinning ? 1 : 0);
 
   useEffect(() => {
     if (isEntering) {
@@ -108,14 +102,6 @@ function AnimatedTrickCard({
     }
   }, [isSweeping, sweepProgress]);
 
-  useEffect(() => {
-    if (isWinning && !isSweeping) {
-      glowProgress.value = withRepeat(withTiming(1.14, { duration: 900, easing: Easing.inOut(Easing.quad) }), -1, true);
-    } else {
-      glowProgress.value = withTiming(1, { duration: 180 });
-    }
-  }, [glowProgress, isSweeping, isWinning]);
-
   const animStyle = useAnimatedStyle(() => {
     const baseX = seatDir.x + (target.x - seatDir.x) * flyProgress.value;
     const baseY = seatDir.y + (target.y - seatDir.y) * flyProgress.value;
@@ -128,7 +114,7 @@ function AnimatedTrickCard({
         { translateX: x },
         { translateY: y },
         { rotateZ: `${rot}deg` },
-        { scale: glowProgress.value - (sweepProgress.value * 0.82) },
+        { scale: 1 - (sweepProgress.value * 0.82) },
       ],
       opacity: 1 - (sweepProgress.value * 0.94),
       zIndex: isWinning ? 4 : 2,
@@ -137,10 +123,9 @@ function AnimatedTrickCard({
 
   return (
     <Animated.View style={[styles.cardWrap, animStyle]}>
-      <View style={[isWinning && !isSweeping ? styles.cardWinning : null, isSweeping ? styles.cardSweeping : null]}>
+      <View style={isWinning && !isSweeping ? styles.cardWinning : null}>
         <CardFace card={play.card} width={42} />
       </View>
-      <Text style={styles.name} numberOfLines={1}>{label}</Text>
     </Animated.View>
   );
 }
@@ -154,7 +139,18 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
   const { animatingCardKey } = useCardAnimation(plays, keyFn, 520);
 
   const [departingState, setDepartingState] = useState(null);
+  const [inspectMode, setInspectMode] = useState(false);
   const prevTricksRef = useRef(0);
+
+  // Toggle inspect mode on tap
+  const toggleInspect = useCallback(() => {
+    setInspectMode((prev) => !prev);
+  }, []);
+
+  // Reset inspect mode when plays change
+  useEffect(() => {
+    setInspectMode(false);
+  }, [plays]);
 
   useEffect(() => {
     const trickCount = tricks?.length || 0;
@@ -183,9 +179,10 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
     if (!departingState) return undefined;
 
     if (departingState.phase === 'hold') {
+      // Wait 2 seconds so players can see the last card before sweeping
       const timer = setTimeout(() => {
         setDepartingState((prev) => prev ? { ...prev, phase: 'sweep' } : null);
-      }, 1300);
+      }, 2000);
       return () => clearTimeout(timer);
     }
 
@@ -221,7 +218,7 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
   const winnerDir = isDeparting ? seatDirection(departingState?.winner) : { x: 0, y: 0 };
 
   return (
-    <View style={styles.wrap}>
+    <Pressable style={styles.wrap} onPress={toggleInspect}>
       {effectivePlays.map((play, index) => {
         const cardKey = keyFn(play, index);
         const isWinning = !isDeparting && index === winningIndex;
@@ -230,14 +227,15 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
           (isDeparting && departingState?.lastCardAnimating && index === effectivePlays.length - 1)
           || (!isDeparting && cardKey === animatingCardKey);
 
-        const target = thrownPosition(play, index);
         const seatDir = seatDirection(play.playerId);
+        const target = inspectMode && !isDeparting
+          ? inspectPosition(seatDir)
+          : thrownPosition(play, index);
 
         return (
           <AnimatedTrickCard
             key={cardKey}
             play={play}
-            label={getName?.(play.playerId) || 'Player'}
             target={target}
             seatDir={seatDir}
             winnerDir={winnerDir}
@@ -251,7 +249,7 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
       {!isDeparting && plays.length > 0 && winningIndex >= 0 ? (
         <Text style={styles.winningLabel}>{getName?.(plays[winningIndex]?.playerId) || 'Player'} leading</Text>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -274,23 +272,12 @@ const styles = StyleSheet.create({
   cardWrap: {
     position: 'absolute',
     alignItems: 'center',
-    gap: spacing.xs,
   },
   cardWinning: {
     borderWidth: 2,
     borderColor: colors.gold,
     borderRadius: 5,
     padding: 1,
-    ...shadows.goldGlow,
-  },
-  cardSweeping: {
-    opacity: 0.9,
-  },
-  name: {
-    color: colors.cream,
-    fontFamily: fonts.body,
-    fontSize: 10,
-    maxWidth: 70,
   },
   winningLabel: {
     position: 'absolute',

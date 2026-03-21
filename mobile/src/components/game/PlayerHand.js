@@ -73,11 +73,16 @@ export default function PlayerHand({
   }, []);
 
   // JS-thread: compute index and update hover shared value
+  const prevHoverRef = useRef(-1);
   const updateHoverFromX = useCallback((absX) => {
     const x = absX + scrollOffsetRef.current - PAD_LEFT;
     const count = cardsRef.current?.length || 0;
     if (count === 0) return;
     const idx = Math.max(0, Math.min(Math.floor(x / CARD_STEP), count - 1));
+    if (idx !== prevHoverRef.current) {
+      prevHoverRef.current = idx;
+      hapticSelection(); // haptic tick as finger moves across cards
+    }
     hoveredIndex.value = idx;
   }, [hoveredIndex]);
 
@@ -89,6 +94,7 @@ export default function PlayerHand({
 
   const resetHover = useCallback(() => {
     hoveredIndex.value = -1;
+    prevHoverRef.current = -1;
   }, [hoveredIndex]);
 
   const selectFromTapX = useCallback((absX) => {

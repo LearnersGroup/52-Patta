@@ -1,54 +1,121 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
+import { colors, fonts, spacing, typography } from '../../../styles/theme';
 import CardBack from '../CardBack';
 
-function DealingCard({ delay = 0, driftX = 0, driftY = 0, width = 44 }) {
+/**
+ * A single flying card that animates from the center toward a player's seat.
+ */
+function FlyingCard({ angle, distance, durationMs }) {
   const progress = useSharedValue(0);
+  const dx = Math.cos(angle) * distance;
+  const dy = Math.sin(angle) * distance;
 
   useEffect(() => {
-    progress.value = withTiming(0, { duration: 1 });
-    progress.value = withRepeat(
-      withTiming(1, {
-        duration: 1400,
-        easing: Easing.inOut(Easing.quad),
-      }),
-      -1,
-      false
-    );
-  }, [progress]);
+    progress.value = 0;
+    progress.value = withTiming(1, {
+      duration: durationMs,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [progress, durationMs]);
 
   const animStyle = useAnimatedStyle(() => {
-    const p = (progress.value + delay) % 1;
+    const p = progress.value;
     return {
       transform: [
-        { translateX: p * driftX },
-        { translateY: p * driftY },
-        { rotateZ: `${(-6 + (p * 12))}deg` },
-        { scale: 0.92 + (0.1 * Math.sin(p * Math.PI)) },
+        { translateX: p * dx },
+        { translateY: p * dy },
+        { scale: 1 - p * 0.4 },
       ],
-      opacity: 0.35 + (0.65 * Math.sin(p * Math.PI)),
+      opacity: 1 - p * 0.8,
     };
   });
 
   return (
     <Animated.View style={[styles.flyCard, animStyle]}>
-      <CardBack width={width} />
+      <CardBack width={34} />
     </Animated.View>
   );
 }
 
-export default function DealingOverlay({ myHand = [], dealingConfig }) {
+/**
+ * DealingOverlay — shown during the "dealing" phase.
+ *
+ * Mimics the web app: spawns flying card-backs from a central deck toward
+ * each player's seat position in round-robin order from dealer's left.
+ */
+export default function DealingOverlay({
+  myHand = [],
+  dealingConfig,
+  seatOrder = [],
+  dealerIndex = 0,
+  userId = '',
+  seatPositionMap = {},
+  tableSize = 300,
+}) {
   const durationMs = dealingConfig?.animationDurationMs || 5000;
   const [elapsed, setElapsed] = useState(0);
+  const [flyingCards, setFlyingCards] = useState([]);
 
+  // Deal order: round-robin from dealer's left
+  const dealOrder = useMemo(() => {
+    const N = seatOrder.length;
+    if (N === 0) return [];
+    return Array.from({ length: N }, (_, i) =>
+      seatOrder[(dealerIndex + 1 + i) % N]
+    );
+  }, [seatOrder, dealerIndex]);
+
+  const dealOrderRef = useRef(dealOrder);
+  dealOrderRef.current = dealOrder;
+  const seatPosRef = useRef(seatPositionMap);
+  seatPosRef.current = seatPositionMap;
+  const userIdRef = useRef(userId);
+  userIdRef.current = userId;
+
+  // Distance cards travel toward seats
+  const travelDist = tableSize * 0.64;
+
+  // Spawn flying cards
+  useEffect(() => {
+    const N = seatOrder.length;
+    const C = myHand.length; // cards per player
+    if (N === 0 || C === 0) return;
+
+    const totalCards = N * C;
+    const intervalMs = Math.max(40, (durationMs * 0.85) / totalCards);
+    const flyMs = Math.min(420, intervalMs * 3.5);
+
+    let idx = 0;
+    const timer = setInterval(() => {
+      if (idx >= totalCards) { clearInterval(timer); return; }
+
+      const playerIdx = idx % N;
+      const targetId = dealOrderRef.current[playerIdx];
+      const isMe = targetId === userIdRef.current;
+      const angle = isMe
+        ? Math.PI / 2
+        : (seatPosRef.current[targetId]?.angle ?? 0);
+
+      const id = Date.now() + Math.random();
+      setFlyingCards((prev) => [...prev, { id, angle, flyMs }]);
+      setTimeout(() => {
+        setFlyingCards((prev) => prev.filter((c) => c.id !== id));
+      }, flyMs + 50);
+
+      idx++;
+    }, intervalMs);
+
+    return () => clearInterval(timer);
+  }, [myHand.length, seatOrder.length, durationMs]);
+
+  // Progress bar
   useEffect(() => {
     setElapsed(0);
     const started = Date.now();
@@ -57,7 +124,6 @@ export default function DealingOverlay({ myHand = [], dealingConfig }) {
       setElapsed(next);
       if (next >= durationMs) clearInterval(timer);
     }, 100);
-
     return () => clearInterval(timer);
   }, [durationMs, myHand.length]);
 
@@ -68,25 +134,31 @@ export default function DealingOverlay({ myHand = [], dealingConfig }) {
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.deckRow}>
-        <View style={[styles.stack, { transform: [{ translateX: -6 }, { translateY: -4 }] }]}>
-          <CardBack width={44} />
+      {/* Deck + flying cards */}
+      <View style={styles.deckArea}>
+        {/* Stacked deck */}
+        <View style={[styles.stack, { transform: [{ translateX: -4 }, { translateY: -3 }] }]}>
+          <CardBack width={34} />
         </View>
-        <View style={[styles.stack, { transform: [{ translateX: -3 }, { translateY: -2 }] }]}>
-          <CardBack width={44} />
+        <View style={[styles.stack, { transform: [{ translateX: -2 }, { translateY: -1.5 }] }]}>
+          <CardBack width={34} />
         </View>
         <View style={styles.stackTop}>
-          <CardBack width={44} />
+          <CardBack width={34} />
         </View>
 
-        <DealingCard delay={0.05} driftX={-62} driftY={-32} />
-        <DealingCard delay={0.28} driftX={64} driftY={-28} />
-        <DealingCard delay={0.46} driftX={58} driftY={40} />
-        <DealingCard delay={0.64} driftX={-54} driftY={44} />
+        {/* Flying cards */}
+        {flyingCards.map((card) => (
+          <FlyingCard
+            key={card.id}
+            angle={card.angle}
+            distance={travelDist}
+            durationMs={card.flyMs}
+          />
+        ))}
       </View>
 
-      <Text style={styles.title}>Dealing cards...</Text>
-      <Text style={styles.subtitle}>{myHand.length ? `${myHand.length} cards incoming` : 'Preparing your hand'}</Text>
+      <Text style={styles.title}>Dealing...</Text>
 
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
@@ -97,21 +169,19 @@ export default function DealingOverlay({ myHand = [], dealingConfig }) {
 
 const styles = StyleSheet.create({
   wrap: {
-    ...panelStyle,
-    width: '100%',
-    maxWidth: 270,
-    padding: spacing.md,
+    width: '80%',
     alignItems: 'center',
     gap: spacing.sm,
   },
-  deckRow: {
-    height: 70,
+  deckArea: {
+    width: 80,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stack: {
     position: 'absolute',
-    opacity: 0.9,
+    opacity: 0.85,
   },
   stackTop: {
     position: 'absolute',
@@ -122,23 +192,19 @@ const styles = StyleSheet.create({
   title: {
     ...typography.subtitle,
     color: colors.cream,
-    fontSize: 14,
-  },
-  subtitle: {
-    fontFamily: fonts.body,
-    color: colors.creamMuted,
-    fontSize: 11,
-    letterSpacing: 0.5,
+    fontSize: 13,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   progressTrack: {
-    width: '100%',
-    height: 8,
+    width: '60%',
+    height: 6,
     borderRadius: 999,
-    backgroundColor: colors.bgInput,
+    backgroundColor: 'rgba(0,0,0,0.35)',
     borderWidth: 1,
-    borderColor: colors.borderGold,
+    borderColor: 'rgba(201,162,39,0.3)',
     overflow: 'hidden',
-    marginTop: spacing.xs,
   },
   progressFill: {
     height: '100%',
