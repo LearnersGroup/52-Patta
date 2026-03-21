@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSelector } from 'react-redux';
-import { WsQuitGame } from '../../../api/wsEmitters';
-import { colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
+import { WsPlayCard, WsQuitGame } from '../../../api/wsEmitters';
+import { cardTokens, colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
+import CardFace from '../CardFace';
 import PlayerHand from '../PlayerHand';
-import { suitSymbol } from '../utils/cardMapper';
+import { cardKey, isCardInList, suitSymbol } from '../utils/cardMapper';
+import { hapticSuccess, hapticWarning } from '../../../utils/haptics';
 import BiddingPanel from './BiddingPanel';
 import CircularTable from './CircularTable';
 import DealRevealOverlay from './DealRevealOverlay';
@@ -14,41 +16,13 @@ import PartnerCardDisplay from './PartnerCardDisplay';
 import PlayArea from './PlayArea';
 import PlayerSeat from './PlayerSeat';
 import PowerHouseSelector from './PowerHouseSelector';
+import ScoreTable from './ScoreTable';
 import SeriesFinishedPanel from './SeriesFinishedPanel';
 import ShufflingPanel from './ShufflingPanel';
 import TeamScoreHUD from './TeamScoreHUD';
 import TrumpAnnouncePanel from './TrumpAnnouncePanel';
 
-const RND_CELL_W  = 46;   // wide enough for "Total" in Cinzel without wrapping
-const MIN_COL_W   = 76;   // minimum player column — wider than a typical name at 10 px
-
 function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase }) {
-  const { width: screenW } = useWindowDimensions();
-
-  // ── Sort players by total score, highest first ──────────────────────────
-  const players = useMemo(() => {
-    const base = seatOrder || [];
-    return [...base].sort((a, b) => (scores?.[b] || 0) - (scores?.[a] || 0));
-  }, [seatOrder, scores]);
-
-  // ── Column-width logic ───────────────────────────────────────────────────
-  // Modal inner width = min(400, screenW - 32)  (32 = backdrop padding * 2)
-  const modalInnerW   = Math.min(400, screenW - 32);
-  const availForCols  = modalInnerW - RND_CELL_W;
-  const naturalColW   = players.length > 0 ? availForCols / players.length : availForCols;
-  // If natural width is at least MIN_COL_W, divide evenly (no scroll needed).
-  // Otherwise clamp to MIN_COL_W and let the horizontal ScrollView handle overflow.
-  const colW          = Math.max(MIN_COL_W, naturalColW);
-  const needsHScroll  = colW * players.length > availForCols;
-
-  // Helper to render a single row of player cells
-  const renderPlayerCells = (cellFn) =>
-    players.map((pid) => (
-      <View key={pid} style={[styles.sbPlayerCell, { width: colW }]}>
-        {cellFn(pid)}
-      </View>
-    ));
-
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
@@ -62,91 +36,16 @@ function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameTyp
             </Pressable>
           </View>
 
-          {/* ── Judgement table ──────────────────────────────────────── */}
-          {gameType === 'judgement' ? (() => {
-            const tableContent = (
-              <View>
-                {/* Column headers */}
-                <View style={styles.sbRow}>
-                  <View style={styles.sbRndCell}>
-                    <Text style={styles.sbColHead}>#</Text>
-                  </View>
-                  {renderPlayerCells((pid) => (
-                    <Text style={styles.sbColHead} numberOfLines={1}>{getName(pid)}</Text>
-                  ))}
-                </View>
-
-                {/* Round rows */}
-                <ScrollView style={styles.sbScroll}>
-                  {(roundResults || []).map((rr, idx) => (
-                    <View
-                      key={`r-${rr?.roundNumber}`}
-                      style={[styles.sbRow, idx % 2 === 0 && styles.sbRowAlt]}
-                    >
-                      <View style={styles.sbRndCell}>
-                        <Text style={styles.sbRndNum}>{rr?.roundNumber}</Text>
-                      </View>
-                      {renderPlayerCells((pid) => {
-                        const won   = rr?.tricksWon?.[pid] ?? 0;
-                        const bid   = rr?.bids?.[pid]      ?? 0;
-                        const delta = rr?.deltas?.[pid]    ?? 0;
-                        const hit   = delta > 0;
-                        return (
-                          <>
-                            <Text style={styles.sbWonBid}>{won}/{bid}</Text>
-                            <Text style={[styles.sbDelta, hit ? styles.sbDeltaHit : styles.sbDeltaMiss]}>
-                              {hit ? `+${delta}` : '✗'}
-                            </Text>
-                          </>
-                        );
-                      })}
-                    </View>
-                  ))}
-
-                  {/* Live row */}
-                  {phase === 'playing' ? (
-                    <View style={[styles.sbRow, styles.sbRowLive]}>
-                      <View style={styles.sbRndCell}>
-                        <Text style={styles.sbLiveLabel}>Now</Text>
-                      </View>
-                      {renderPlayerCells((pid) => (
-                        <Text style={styles.sbWonBid}>
-                          {tricksWon?.[pid] || 0}/{bidding?.bids?.[pid] ?? '?'}
-                        </Text>
-                      ))}
-                    </View>
-                  ) : null}
-                </ScrollView>
-
-                {/* Totals footer */}
-                <View style={[styles.sbRow, styles.sbRowTotal]}>
-                  <View style={styles.sbRndCell}>
-                    <Text style={styles.sbTotalLabel} numberOfLines={1}>Total</Text>
-                  </View>
-                  {renderPlayerCells((pid) => (
-                    <Text style={styles.sbTotalValue}>{scores?.[pid] || 0}</Text>
-                  ))}
-                </View>
-              </View>
-            );
-
-            return needsHScroll ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {tableContent}
-              </ScrollView>
-            ) : tableContent;
-          })() : (
-
-            /* ── Non-judgement (Kaliteri) ──────────────────────────── */
-            <ScrollView style={styles.sbScroll}>
-              {players.map((pid, idx) => (
-                <View key={pid} style={[styles.sbKalRow, idx % 2 === 0 && styles.sbRowAlt]}>
-                  <Text style={styles.sbKalName} numberOfLines={1}>{getName(pid)}</Text>
-                  <Text style={styles.sbKalScore}>{scores?.[pid] || 0}</Text>
-                </View>
-              ))}
-            </ScrollView>
-          )}
+          <ScoreTable
+            seatOrder={seatOrder}
+            scores={scores}
+            getName={getName}
+            gameType={gameType}
+            roundResults={roundResults}
+            tricksWon={tricksWon}
+            bidding={bidding}
+            phase={phase}
+          />
 
         </View>
       </View>
@@ -197,6 +96,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [showDealReveal, setShowDealReveal] = useState(false);
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
+  const [intendedCard, setIntendedCard] = useState(null);
   const prevPhaseRef = useRef(phase);
 
   useEffect(() => {
@@ -296,6 +196,30 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const activeTrump = trumpSuit || powerHouseSuit;
   const isSeriesFinished = phase === 'series-finished';
   const showTable = !isSeriesFinished;
+
+  // Clear intended card when it's no longer in hand or phase changes away from playing
+  useEffect(() => {
+    if (!intendedCard) return;
+    if (phase !== 'playing') { setIntendedCard(null); return; }
+    if (!myHand?.some((c) => cardKey(c) === cardKey(intendedCard))) {
+      setIntendedCard(null);
+    }
+  }, [phase, myHand, intendedCard]);
+
+  const handleSelectCard = useCallback((card) => {
+    setIntendedCard(card);
+  }, []);
+
+  const handlePlayIntended = useCallback(() => {
+    if (!intendedCard || !isMyTurn) return;
+    if (isCardInList(intendedCard, validPlays)) {
+      WsPlayCard(intendedCard);
+      hapticSuccess();
+      setIntendedCard(null);
+    } else {
+      hapticWarning();
+    }
+  }, [intendedCard, isMyTurn, validPlays]);
 
   const roundText =
     gameType === 'judgement'
@@ -423,17 +347,54 @@ export default function GameBoard({ userId, isAdmin = false }) {
             seatOrder={seatOrder || []}
             getName={getName}
             userId={userId}
+            playerAvatars={playerAvatars || {}}
+            gameType={gameType}
+            roundResults={roundResults || []}
+            tricksWon={tricksWon || {}}
+            bidding={bidding || {}}
+            phase={phase}
           />
         ) : null}
       </View>
 
       {/* ── Hand overlay — absolutely pinned to bottom, sits over the table ── */}
-      {showTable && phase !== 'dealing' ? (
+      {showTable && phase !== 'dealing' && !showDealReveal ? (
         <View style={styles.handOverlay} pointerEvents="box-none">
-          {phase === 'bidding' && !showDealReveal && gameType !== 'judgement' ? (
+          {phase === 'bidding' && gameType !== 'judgement' ? (
             <BiddingPanel bidding={bidding} userId={userId} getName={getName} />
           ) : null}
-          <PlayerHand cards={myHand || []} validPlays={validPlays || []} isMyTurn={isMyTurn} />
+
+          {/* ── Intended card slot ── */}
+          {intendedCard ? (
+            <Pressable style={styles.intendedSlot} onPress={handlePlayIntended}>
+              <View style={[
+                styles.intendedCardWrap,
+                isMyTurn && isCardInList(intendedCard, validPlays) && styles.intendedPlayable,
+              ]}>
+                <CardFace
+                  card={intendedCard}
+                  width={cardTokens.sizes.play.width}
+                  playable={isMyTurn && isCardInList(intendedCard, validPlays)}
+                  selected
+                />
+              </View>
+              {isMyTurn ? (
+                <Text style={styles.intendedLabel}>
+                  {isCardInList(intendedCard, validPlays) ? 'TAP TO PLAY' : 'ILLEGAL'}
+                </Text>
+              ) : (
+                <Text style={styles.intendedLabel}>NOT YOUR TURN</Text>
+              )}
+            </Pressable>
+          ) : null}
+
+          <PlayerHand
+            cards={myHand || []}
+            validPlays={validPlays || []}
+            isMyTurn={isMyTurn}
+            onSelectCard={handleSelectCard}
+            intendedCard={intendedCard}
+          />
         </View>
       ) : null}
 
@@ -480,7 +441,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
       </Modal>
 
       <DealRevealOverlay
-
         visible={showDealReveal}
         cards={myHand || []}
         durationMs={cardRevealTimeMs || 10000}
@@ -502,6 +462,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    alignItems: 'center',
   },
   centerInfo: {
     alignItems: 'center',
@@ -536,6 +497,35 @@ const styles = StyleSheet.create({
     color: colors.redSuit,
     opacity: 0.09,
   },
+  // ── Intended card slot ────────────────────────────────────────────────────
+  intendedSlot: {
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  intendedCardWrap: {
+    borderRadius: cardTokens.borderRadius + 3,
+    borderWidth: 2,
+    borderColor: 'rgba(201,162,39,0.4)',
+    padding: 2,
+  },
+  intendedPlayable: {
+    borderColor: cardTokens.playableBorder,
+    shadowColor: cardTokens.playableBorder,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  intendedLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 9,
+    fontWeight: '700',
+    color: colors.goldLight,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+
   // ── Scoreboard modal ──────────────────────────────────────────────────────
   modalBackdrop: {
     flex: 1,
@@ -587,135 +577,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     lineHeight: 15,
-  },
-
-  // Table rows
-  sbScroll: {
-    maxHeight: 280,
-  },
-  sbRow: {
-    flexDirection: 'row',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(201,162,39,0.15)',
-  },
-  sbRowAlt: {
-    backgroundColor: 'rgba(255,255,255,0.025)',
-  },
-  sbRowLive: {
-    backgroundColor: 'rgba(201,162,39,0.06)',
-  },
-  sbRowTotal: {
-    borderTopWidth: 1,
-    borderTopColor: colors.borderGold,
-    backgroundColor: 'rgba(201,162,39,0.07)',
-  },
-
-  // Cells
-  sbRndCell: {
-    width: RND_CELL_W,
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: 'rgba(201,162,39,0.2)',
-  },
-  sbPlayerCell: {
-    flex: 1,                    // stretches to fill remaining row width
-    minWidth: 56,               // prevents crushing on narrow screens
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: StyleSheet.hairlineWidth,
-    borderRightColor: 'rgba(201,162,39,0.12)',
-  },
-
-  // Cell text
-  sbColHead: {
-    fontFamily: fonts.heading,
-    fontSize: 10,
-    fontWeight: '700',
-    color: colors.gold,
-    letterSpacing: 0.4,
-    textAlign: 'center',
-  },
-  sbRndNum: {
-    fontFamily: fonts.heading,
-    fontSize: 11,
-    color: colors.creamMuted,
-    textAlign: 'center',
-  },
-  sbWonBid: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.cream,
-    textAlign: 'center',
-    letterSpacing: 0.3,
-  },
-  sbDelta: {
-    fontFamily: fonts.heading,
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: 1,
-  },
-  sbDeltaHit: {
-    color: colors.readyLight,
-  },
-  sbDeltaMiss: {
-    color: colors.redSuit,
-  },
-  sbLiveLabel: {
-    fontFamily: fonts.heading,
-    fontSize: 9,
-    color: colors.goldLight,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  sbTotalLabel: {
-    fontFamily: fonts.heading,
-    fontSize: 9,
-    color: colors.goldLight,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  sbTotalValue: {
-    fontFamily: fonts.heading,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.cream,
-    textAlign: 'center',
-  },
-
-  // Kaliteri rows
-  sbKalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(201,162,39,0.15)',
-  },
-  sbKalName: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.cream,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  sbKalScore: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.gold,
-    minWidth: 40,
-    textAlign: 'right',
   },
 
   // ── Quit confirm modal ─────────────────────────────────────────────────────

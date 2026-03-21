@@ -1,11 +1,15 @@
 import { StyleSheet, View } from 'react-native';
+import { SvgXml } from 'react-native-svg';
 import { cardTokens } from '../../styles/theme';
 
 /**
- * CardBack – renders a face-down card matching the web client design.
- *
- * Uses a dark blue background with gold diamond accent and border,
- * approximating the web's linear-gradient(135deg, #1a2a3a, #0f1a24).
+ * Card back SVG from @letele/playing-cards (B1).
+ * Same asset the web client uses via `deck.B1`.
+ */
+const CARD_BACK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" height="336" preserveAspectRatio="none" viewBox="-120 -168 240 336" width="240"><defs><pattern id="cb_a" width="6" height="6" patternUnits="userSpaceOnUse"><path d="m3 0 3 3-3 3-3-3Z"/></pattern></defs><rect width="239" height="335" x="-119.5" y="-167.5" rx="12" ry="12" fill="#fff" stroke="#000"/><rect fill="url(#cb_a)" width="216" height="312" x="-108" y="-156" rx="12" ry="12"/></svg>`;
+
+/**
+ * CardBack – renders the library card back (B1) using SvgXml.
  *
  * Props
  * ─────
@@ -13,39 +17,10 @@ import { cardTokens } from '../../styles/theme';
  */
 export default function CardBack({ width = cardTokens.sizes.hand.width }) {
   const height = Math.round(width * cardTokens.ratio);
-  const scale = width / cardTokens.sizes.hand.width;
-
-  // Scale inner padding + diamond proportionally
-  const innerMargin = Math.max(3, Math.round(4 * scale));
-  const diamondSize = Math.max(10, Math.round(16 * scale));
-  const crossBarThick = Math.max(1, Math.round(1 * scale));
 
   return (
-    <View
-      style={[
-        styles.card,
-        cardTokens.backShadow,
-        { width, height },
-      ]}
-    >
-      {/* Inner panel – simulates the darker half of the gradient */}
-      <View style={[styles.inner, { margin: innerMargin, borderRadius: cardTokens.borderRadius - 2 }]}>
-        {/* Crosshatch lines */}
-        <View style={[styles.crossH, { height: crossBarThick }]} />
-        <View style={[styles.crossV, { width: crossBarThick }]} />
-
-        {/* Gold diamond center accent */}
-        <View
-          style={[
-            styles.diamond,
-            {
-              width: diamondSize,
-              height: diamondSize,
-              borderRadius: Math.max(1, Math.round(2 * scale)),
-            },
-          ]}
-        />
-      </View>
+    <View style={[styles.card, cardTokens.backShadow, { width, height }]}>
+      <SvgXml xml={CARD_BACK_SVG} width={width} height={height} />
     </View>
   );
 }
@@ -53,36 +28,6 @@ export default function CardBack({ width = cardTokens.sizes.hand.width }) {
 const styles = StyleSheet.create({
   card: {
     borderRadius: cardTokens.borderRadius,
-    borderWidth: 1,
-    borderColor: cardTokens.backBorder,
-    backgroundColor: cardTokens.backBgOuter,
     overflow: 'hidden',
-  },
-  inner: {
-    flex: 1,
-    backgroundColor: cardTokens.backBgInner,
-    borderWidth: 1,
-    borderColor: cardTokens.backBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-
-  // Crosshatch decoration
-  crossH: {
-    ...StyleSheet.absoluteFillObject,
-    top: '50%',
-    backgroundColor: cardTokens.backBorder,
-  },
-  crossV: {
-    ...StyleSheet.absoluteFillObject,
-    left: '50%',
-    backgroundColor: cardTokens.backBorder,
-  },
-
-  diamond: {
-    backgroundColor: cardTokens.backAccent,
-    transform: [{ rotate: '45deg' }],
-    opacity: 0.85,
   },
 });

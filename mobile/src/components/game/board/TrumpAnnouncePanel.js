@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -8,15 +8,15 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { WsProceedToShuffle } from '../../../api/wsEmitters';
-import { buttonStyles, colors, fonts, panelStyle, pillStyle, spacing, typography } from '../../../styles/theme';
+import { colors, fonts, pillStyle, typography } from '../../../styles/theme';
 import { isRedSuit, suitSymbol } from '../utils/cardMapper';
 
 export default function TrumpAnnouncePanel({ trumpSuit, trumpMode = 'random', isDealer = false }) {
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(3);
   const pulse = useSharedValue(1);
 
   useEffect(() => {
-    setCountdown(5);
+    setCountdown(3);
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -26,9 +26,15 @@ export default function TrumpAnnouncePanel({ trumpSuit, trumpMode = 'random', is
         return prev - 1;
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, [trumpSuit]);
+
+  // Auto-proceed to shuffle when countdown finishes (dealer only)
+  useEffect(() => {
+    if (countdown === 0 && isDealer) {
+      WsProceedToShuffle();
+    }
+  }, [countdown, isDealer]);
 
   useEffect(() => {
     pulse.value = withRepeat(
@@ -54,34 +60,28 @@ export default function TrumpAnnouncePanel({ trumpSuit, trumpMode = 'random', is
       <View style={styles.countdownPill}>
         <Text style={styles.countdownText}>Proceeding to shuffle in {countdown}s</Text>
       </View>
-
-      {isDealer ? (
-        <Pressable style={styles.btn} onPress={WsProceedToShuffle}>
-          <Text style={styles.btnText}>Proceed to Shuffle</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    ...panelStyle,
-    width: '100%',
-    maxWidth: 280,
-    padding: spacing.md,
+    width: '80%',
     alignItems: 'center',
-    gap: spacing.sm,
+    gap: 8,
   },
   title: {
     ...typography.subtitle,
     color: colors.cream,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   suit: {
-    fontSize: 44,
+    fontSize: 54,
     fontWeight: '700',
-    lineHeight: 50,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    lineHeight: 60,
+    textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 8,
   },
@@ -92,27 +92,22 @@ const styles = StyleSheet.create({
     color: colors.cream,
   },
   sub: {
-    ...typography.label,
+    fontFamily: fonts.body,
     color: colors.creamMuted,
     fontSize: 11,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   countdownPill: {
     ...pillStyle,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0,0,0,0.35)',
   },
   countdownText: {
     fontFamily: fonts.body,
     color: colors.goldLight,
     fontSize: 12,
     fontWeight: '700',
-  },
-  btn: {
-    ...buttonStyles.base,
-    ...buttonStyles.primary,
-    marginTop: spacing.xs,
-  },
-  btnText: {
-    ...buttonStyles.primaryText,
   },
 });

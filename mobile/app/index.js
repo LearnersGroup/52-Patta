@@ -35,7 +35,15 @@ export default function HomeScreen() {
   useEffect(() => {
     const onConnect    = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);
-    const onRejoin     = (data) => setRejoinInfo(data || null);
+    const onRejoin     = (data) => {
+      if (!data) return;
+      // Auto-navigate back into an active game without needing the user to tap
+      if (data.roomId) {
+        router.push(`/game-room/${data.roomId}`);
+      } else {
+        setRejoinInfo(data);
+      }
+    };
     const onRedirect   = (roomId, callback) => {
       setJoiningKey('');
       router.push(`/game-room/${roomId}`);
@@ -46,6 +54,13 @@ export default function HomeScreen() {
     socket.on('disconnect',           onDisconnect);
     socket.on('rejoin-available',     onRejoin);
     socket.on('redirect-to-game-room', onRedirect);
+
+    // Reconnect so the server's onConnect fires and sends rejoin-available
+    // if the user navigated away from an active game without properly leaving.
+    if (socket.connected) {
+      socket.disconnect();
+      socket.connect();
+    }
 
     return () => {
       socket.off('connect',              onConnect);

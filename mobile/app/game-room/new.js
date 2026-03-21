@@ -6,90 +6,175 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { socket } from '../../src/api/socket';
 import { useAuth } from '../../src/hooks/useAuth';
-import { colors, spacing, typography } from '../../src/styles/theme';
+import AppBackground from '../../src/components/shared/AppBackground';
+import {
+  buttonStyles,
+  colors,
+  fonts,
+  panelStyle,
+  spacing,
+  typography,
+} from '../../src/styles/theme';
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
 
 const isDeckCountValid = (playerCount, deckCount) => {
-  const removeTwos = (52 * deckCount) % playerCount;
-  return removeTwos <= 4 * deckCount;
+  return (52 * deckCount) % playerCount <= 4 * deckCount;
 };
 
-const NumberStepper = ({ label, value, min, max, step = 1, onChange, suffix = '' }) => {
-  const onDec = () => onChange(Math.max(min, value - step));
-  const onInc = () => onChange(Math.min(max, value + step));
+// Ported verbatim from web client's RoomConfigForm.jsx
+function computeKaliteriConfig(playerCount, deckCount) {
+  if (!isDeckCountValid(playerCount, deckCount)) return null;
+  const N         = playerCount;
+  const D         = deckCount;
+  const baseCards = 52 * D;
+  const removeTwos  = baseCards % N;
+  const totalCards  = baseCards - removeTwos;
+  const cardsPerPlayer = totalCards / N;
+  const partnerCards   = Math.floor(N / 2) - 1;
+  return { totalCards, cardsPerPlayer, rounds: cardsPerPlayer, partnerCards };
+}
 
+// ─── sub-components ───────────────────────────────────────────────────────────
+
+const NumberStepper = ({ value, min, max, step = 1, onChange, suffix = '' }) => {
+  const dec = () => onChange(Math.max(min, value - step));
+  const inc = () => onChange(Math.min(max, value + step));
   return (
-    <View style={styles.formGroup}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.stepper}>
-        <Pressable style={styles.stepperBtn} onPress={onDec} disabled={value <= min}>
-          <Text style={styles.stepperBtnText}>−</Text>
-        </Pressable>
-        <Text style={styles.stepperValue}>
-          {value}
-          {suffix}
-        </Text>
-        <Pressable style={styles.stepperBtn} onPress={onInc} disabled={value >= max}>
-          <Text style={styles.stepperBtnText}>+</Text>
-        </Pressable>
-      </View>
+    <View style={styles.stepper}>
+      <Pressable style={[styles.stepBtn, value <= min && styles.stepBtnOff]} onPress={dec} disabled={value <= min}>
+        <Text style={styles.stepBtnText}>−</Text>
+      </Pressable>
+      <Text style={styles.stepValue}>{value}{suffix}</Text>
+      <Pressable style={[styles.stepBtn, value >= max && styles.stepBtnOff]} onPress={inc} disabled={value >= max}>
+        <Text style={styles.stepBtnText}>+</Text>
+      </Pressable>
     </View>
   );
 };
 
+const ChipGroup = ({ options, value, onChange, disabled: disabledSet = [] }) => (
+  <View style={styles.chipRow}>
+    {options.map(opt => {
+      const off = disabledSet.includes(opt.value);
+      const on  = value === opt.value;
+      return (
+        <Pressable
+          key={opt.value}
+          style={[styles.chip, on && styles.chipActive, off && styles.chipOff]}
+          onPress={() => !off && onChange(opt.value)}
+          disabled={off}
+        >
+          <Text style={[styles.chipText, on && styles.chipTextActive]}>{opt.label}</Text>
+        </Pressable>
+      );
+    })}
+  </View>
+);
+
+// A single setting row: label on the left, control on the right
+const Row = ({ label, children }) => (
+  <View style={styles.settingRow}>
+    <Text style={styles.settingLabel}>{label}</Text>
+    <View style={styles.settingControl}>{children}</View>
+  </View>
+);
+
+// Horizontal dot-separated info pill
+const InfoRow = ({ items }) => (
+  <View style={styles.infoRow}>
+    {items.map((item, i) => (
+      <View key={i} style={styles.infoItem}>
+        {i > 0 && <Text style={styles.infoDot}>·</Text>}
+        <Text style={styles.infoText}>{item}</Text>
+      </View>
+    ))}
+  </View>
+);
+
+// ─── screen ───────────────────────────────────────────────────────────────────
+
 export default function NewGameRoomScreen() {
-  const router = useRouter();
+  const router  = useRouter();
   const { user } = useAuth();
-  const defaultRoomName = `${user?.user_name || 'Player'}'s Room`;
 
-  const [roomName, setRoomName] = useState(defaultRoomName);
-  const [gameType, setGameType] = useState('kaliteri');
+  const [gameType,    setGameType]    = useState('kaliteri');
   const [playerCount, setPlayerCount] = useState(4);
-  const [deckCount, setDeckCount] = useState(1);
+  const [deckCount,   setDeckCount]   = useState(1);
 
-  // Kaliteri config
-  const [bidThreshold, setBidThreshold] = useState(200);
-  const [gameCount, setGameCount] = useState(4);
-  const [bidWindow, setBidWindow] = useState(15);
-  const [inspectTime, setInspectTime] = useState(15);
+  // Kaliteri settings
+  const [bidThreshold,  setBidThreshold]  = useState(200);
+  const [gameCount,     setGameCount]     = useState(4);
+  const [bidWindow,     setBidWindow]     = useState(15);
+  const [inspectTime,   setInspectTime]   = useState(15);
 
-  // Judgement config
+  // Judgement settings
   const [maxCardsPerRound, setMaxCardsPerRound] = useState(7);
-  const [reverseOrder, setReverseOrder] = useState(true);
-  const [trumpMode, setTrumpMode] = useState('fixed');
-  const [scoreboardTime, setScoreboardTime] = useState(5);
-  const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
-  const [bidTime, setBidTime] = useState(15);
-  const [cardRevealTime, setCardRevealTime] = useState(10);
+  const [reverseOrder,     setReverseOrder]     = useState(true);
+  const [trumpMode,        setTrumpMode]        = useState('cyclic');
+  const [scoreboardTime,   setScoreboardTime]   = useState(5);
+  const [bidTimeEnabled,   setBidTimeEnabled]   = useState(false);
+  const [bidTime,          setBidTime]          = useState(15);
+  const [cardRevealTime,   setCardRevealTime]   = useState(10);
 
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState('');
+  const [error,    setError]    = useState('');
 
-  const minPlayers = gameType === 'judgement' ? 3 : 4;
-  const isOddPlayers = playerCount % 2 === 1;
+  const minPlayers      = gameType === 'judgement' ? 3 : 4;
+  const isOddPlayers    = playerCount % 2 === 1;
   const maxPossibleCards = useMemo(
     () => Math.max(1, Math.floor((52 * deckCount) / playerCount)),
-    [deckCount, playerCount]
+    [deckCount, playerCount],
   );
 
+  // ── derived info-row values ──────────────────────────────────────────────
+  const kaliteriInfo = useMemo(() => {
+    const cfg = computeKaliteriConfig(playerCount, deckCount);
+    if (!cfg) return ['Invalid configuration'];
+    const { totalCards, cardsPerPlayer, rounds, partnerCards } = cfg;
+    const isOdd = playerCount % 2 === 1;
+    // Odd player counts unlock an extra partner card at bid threshold → show n+1
+    const partnerLabel = isOdd
+      ? `${partnerCards}+1 partner cards @ ${bidThreshold} bid`
+      : `${partnerCards} partner card${partnerCards !== 1 ? 's' : ''}`;
+    return [
+      `${cardsPerPlayer} cards per player`,
+      partnerLabel,
+    ];
+  }, [playerCount, deckCount, bidThreshold]);
+
+  const judgementInfo = useMemo(() => {
+    const totalRounds = reverseOrder
+      ? 2 * maxCardsPerRound - 1
+      : maxCardsPerRound;
+    const seq = reverseOrder
+      ? `1 → ${maxCardsPerRound} → 1`
+      : `1 → ${maxCardsPerRound}`;
+    return [
+      `max ${maxPossibleCards} cards/player`,
+      `${totalRounds} rounds`,
+      `sequence: ${seq}`,
+    ];
+  }, [maxPossibleCards, maxCardsPerRound, reverseOrder]);
+
+  // ── socket / lifecycle ───────────────────────────────────────────────────
   useEffect(() => {
-    const onRedirectToGameRoom = (roomId, callback) => {
+    const onRedirect = (roomId, cb) => {
       setCreating(false);
       router.replace(`/game-room/${roomId}`);
-      if (typeof callback === 'function') callback({ status: 200 });
+      if (typeof cb === 'function') cb({ status: 200 });
     };
-
-    socket.on('redirect-to-game-room', onRedirectToGameRoom);
-    return () => socket.off('redirect-to-game-room', onRedirectToGameRoom);
+    socket.on('redirect-to-game-room', onRedirect);
+    return () => socket.off('redirect-to-game-room', onRedirect);
   }, [router]);
 
   useEffect(() => {
-    setPlayerCount((prev) => Math.max(minPlayers, prev));
+    setPlayerCount(prev => Math.max(minPlayers, prev));
   }, [minPlayers]);
 
   useEffect(() => {
@@ -97,394 +182,503 @@ export default function NewGameRoomScreen() {
       setDeckCount(playerCount <= 6 ? 1 : 2);
       return;
     }
-
-    if (!isDeckCountValid(playerCount, deckCount)) {
-      setDeckCount(2);
-    }
+    if (!isDeckCountValid(playerCount, deckCount)) setDeckCount(2);
   }, [deckCount, gameType, playerCount]);
 
   useEffect(() => {
-    setMaxCardsPerRound((prev) => Math.max(1, Math.min(prev, maxPossibleCards)));
+    setMaxCardsPerRound(prev => Math.max(1, Math.min(prev, maxPossibleCards)));
   }, [maxPossibleCards]);
 
-  if (!user) {
-    return <Redirect href="/login" />;
-  }
+  if (!user)                  return <Redirect href="/login" />;
+  if (user?.needs_onboarding) return <Redirect href="/create-user" />;
 
-  if (user?.needs_onboarding) {
-    return <Redirect href="/create-user" />;
-  }
-
+  // ── handlers ────────────────────────────────────────────────────────────
   const toggleGameType = (value) => {
     setGameType(value);
-    if (value === 'judgement' && playerCount < 3) {
-      setPlayerCount(3);
-    }
-    if (value === 'kaliteri' && playerCount < 4) {
-      setPlayerCount(4);
-    }
+    if (value === 'judgement' && playerCount < 3) setPlayerCount(3);
+    if (value === 'kaliteri'  && playerCount < 4) setPlayerCount(4);
   };
 
   const onCreateRoom = () => {
-    const trimmedRoomName = roomName.trim() || defaultRoomName;
-    if (!trimmedRoomName) {
-      setError('Room name is required');
-      return;
-    }
-
-    const payload = {
-      roomname: trimmedRoomName,
+    const roomname = `${user?.user_name || 'Player'}'s Room`;
+    const payload  = {
+      roomname,
       player_count: playerCount,
-      game_type: gameType,
-      deck_count: deckCount,
+      game_type:    gameType,
+      deck_count:   deckCount,
     };
 
     if (gameType === 'kaliteri') {
-      payload.game_count = gameCount;
-      payload.bid_window = bidWindow;
+      payload.game_count   = gameCount;
+      payload.bid_window   = bidWindow;
       payload.inspect_time = inspectTime;
-      if (isOddPlayers) {
-        payload.bid_threshold = bidThreshold;
-      }
+      if (isOddPlayers) payload.bid_threshold = bidThreshold;
     } else {
       payload.max_cards_per_round = maxCardsPerRound;
-      payload.reverse_order = reverseOrder;
-      payload.trump_mode = trumpMode;
-      payload.scoreboard_time = scoreboardTime;
-      payload.card_reveal_time = cardRevealTime;
-      if (bidTimeEnabled) {
-        payload.judgement_bid_time = bidTime;
-      }
+      payload.reverse_order       = reverseOrder;
+      payload.trump_mode          = trumpMode;
+      payload.scoreboard_time     = scoreboardTime;
+      payload.card_reveal_time    = cardRevealTime;
+      if (bidTimeEnabled) payload.judgement_bid_time = bidTime;
     }
 
     setError('');
     setCreating(true);
     socket.emit('user-create-room', payload, (err) => {
-      if (err) {
-        setCreating(false);
-        setError(String(err));
-      }
+      if (err) { setCreating(false); setError(String(err)); }
     });
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>Create Game Room</Text>
-      <Text style={styles.text}>Set up room rules before inviting players.</Text>
+  // ── disabled deck values ─────────────────────────────────────────────────
+  const disabledDecks = gameType === 'judgement'
+    ? (playerCount <= 6 ? [2] : [1])
+    : (!isDeckCountValid(playerCount, 1) ? [1] : []);
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Room Name</Text>
-        <TextInput
-          value={roomName}
-          onChangeText={setRoomName}
-          placeholder={defaultRoomName}
-          placeholderTextColor={colors.creamMuted}
-          style={styles.input}
-          maxLength={50}
-        />
+  // ── render ───────────────────────────────────────────────────────────────
+  return (
+    <AppBackground>
+      {/* ── header ── */}
+      <View style={styles.header}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backIcon}>←</Text>
+        </Pressable>
+        <Text style={styles.headerTitle}>Create Room</Text>
+        <View style={styles.backButton} />
       </View>
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Game Type</Text>
-        <View style={styles.row}>
+      <ScrollView contentContainerStyle={styles.content}>
+
+        {/* ── game type cards ── */}
+        <Text style={styles.sectionLabel}>Game Type</Text>
+        <View style={styles.gameTypeRow}>
+
+          {/* Kaliteri card */}
           <Pressable
-            style={[styles.chip, gameType === 'kaliteri' && styles.chipActive]}
+            style={[styles.gameTypeCard, gameType === 'kaliteri' && styles.gameTypeCardActive]}
             onPress={() => toggleGameType('kaliteri')}
           >
-            <Text style={styles.chipText}>Kaliteri</Text>
+            <Text style={styles.gameTypeSuits}>
+              <Text style={styles.suitBlack}>♠ </Text>
+              <Text style={styles.suitBlack}>♠ </Text>
+              <Text style={styles.suitBlack}>♠</Text>
+            </Text>
+            <Text style={[styles.gameTypeName, gameType === 'kaliteri' && styles.gameTypeNameActive]}>
+              Kaliteri
+            </Text>
           </Pressable>
+
+          {/* Judgement card */}
           <Pressable
-            style={[styles.chip, gameType === 'judgement' && styles.chipActive]}
+            style={[styles.gameTypeCard, gameType === 'judgement' && styles.gameTypeCardActive]}
             onPress={() => toggleGameType('judgement')}
           >
-            <Text style={styles.chipText}>Judgement</Text>
+            <Text style={styles.gameTypeSuits}>
+              <Text style={styles.suitBlack}>♠</Text>
+              <Text style={styles.suitRed}> ♦</Text>
+              <Text style={styles.suitBlack}> ♣</Text>
+              <Text style={styles.suitRed}> ♥</Text>
+            </Text>
+            <Text style={[styles.gameTypeName, gameType === 'judgement' && styles.gameTypeNameActive]}>
+              Judgement
+            </Text>
           </Pressable>
+
         </View>
-      </View>
 
-      <NumberStepper
-        label="Players"
-        value={playerCount}
-        min={minPlayers}
-        max={13}
-        onChange={setPlayerCount}
-      />
+        {/* ── info row ── */}
+        <InfoRow items={gameType === 'kaliteri' ? kaliteriInfo : judgementInfo} />
 
-      <View style={styles.formGroup}>
-        <Text style={styles.label}>Decks</Text>
-        <View style={styles.row}>
-          <Pressable
-            style={[styles.chip, deckCount === 1 && styles.chipActive]}
-            onPress={() => setDeckCount(1)}
-            disabled={gameType === 'judgement' ? playerCount >= 7 : !isDeckCountValid(playerCount, 1)}
-          >
-            <Text style={styles.chipText}>1 Deck</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.chip, deckCount === 2 && styles.chipActive]}
-            onPress={() => setDeckCount(2)}
-            disabled={gameType === 'judgement' && playerCount <= 6}
-          >
-            <Text style={styles.chipText}>2 Decks</Text>
-          </Pressable>
+        {/* ── players & decks panel ── */}
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>Players & Decks</Text>
+          <View style={styles.pdRow}>
+
+            {/* Players */}
+            <View style={styles.pdHalf}>
+              <NumberStepper
+                value={playerCount}
+                min={minPlayers}
+                max={13}
+                onChange={setPlayerCount}
+              />
+            </View>
+
+            <View style={styles.pdDivider} />
+
+            {/* Decks */}
+            <View style={styles.pdHalf}>
+              <ChipGroup
+                options={[{ label: '1 Deck', value: 1 }, { label: '2 Decks', value: 2 }]}
+                value={deckCount}
+                onChange={setDeckCount}
+                disabled={disabledDecks}
+              />
+            </View>
+
+          </View>
         </View>
-      </View>
 
-      {gameType === 'kaliteri' ? (
-        <>
-          {isOddPlayers ? (
-            <NumberStepper
-              label="Bid Threshold"
-              value={bidThreshold}
-              min={155}
-              max={500}
-              step={5}
-              onChange={setBidThreshold}
-            />
-          ) : null}
-          <NumberStepper
-            label="Number of Games"
-            value={gameCount}
-            min={1}
-            max={20}
-            onChange={setGameCount}
-          />
-          <NumberStepper
-            label="Bidding Window"
-            value={bidWindow}
-            min={5}
-            max={60}
-            step={5}
-            onChange={setBidWindow}
-            suffix="s"
-          />
-          <NumberStepper
-            label="Card Inspect Time"
-            value={inspectTime}
-            min={5}
-            max={30}
-            step={5}
-            onChange={setInspectTime}
-            suffix="s"
-          />
-        </>
-      ) : (
-        <>
-          <NumberStepper
-            label="Max Cards Per Round"
-            value={maxCardsPerRound}
-            min={1}
-            max={maxPossibleCards}
-            onChange={setMaxCardsPerRound}
-          />
+        {/* ── game settings panel ── */}
+        <View style={styles.panel}>
+          <Text style={styles.panelTitle}>
+            {gameType === 'kaliteri' ? 'Kaliteri Settings' : 'Judgement Settings'}
+          </Text>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Round Order</Text>
-            <View style={styles.row}>
-              <Pressable
-                style={[styles.chip, !reverseOrder && styles.chipActive]}
-                onPress={() => setReverseOrder(false)}
-              >
-                <Text style={styles.chipText}>Ascending</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.chip, reverseOrder && styles.chipActive]}
-                onPress={() => setReverseOrder(true)}
-              >
-                <Text style={styles.chipText}>Up & Down</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Trump Mode</Text>
-            <View style={styles.row}>
-              <Pressable
-                style={[styles.chip, trumpMode === 'fixed' && styles.chipActive]}
-                onPress={() => setTrumpMode('fixed')}
-              >
-                <Text style={styles.chipText}>Fixed</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.chip, trumpMode === 'random' && styles.chipActive]}
-                onPress={() => setTrumpMode('random')}
-              >
-                <Text style={styles.chipText}>Random</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <NumberStepper
-            label="Scoreboard Time"
-            value={scoreboardTime}
-            min={3}
-            max={30}
-            onChange={setScoreboardTime}
-            suffix="s"
-          />
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Judgement Bid Timer</Text>
-            <View style={styles.row}>
-              <Pressable
-                style={[styles.chip, !bidTimeEnabled && styles.chipActive]}
-                onPress={() => setBidTimeEnabled(false)}
-              >
-                <Text style={styles.chipText}>No Limit</Text>
-              </Pressable>
-              <Pressable
-                style={[styles.chip, bidTimeEnabled && styles.chipActive]}
-                onPress={() => setBidTimeEnabled(true)}
-              >
-                <Text style={styles.chipText}>Time Limit</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {bidTimeEnabled ? (
-            <NumberStepper
-              label="Bid Time"
-              value={bidTime}
-              min={5}
-              max={60}
-              step={5}
-              onChange={setBidTime}
-              suffix="s"
-            />
-          ) : null}
-
-          <NumberStepper
-            label="Card Reveal Time"
-            value={cardRevealTime}
-            min={3}
-            max={30}
-            onChange={setCardRevealTime}
-            suffix="s"
-          />
-        </>
-      )}
-
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-
-      <View style={styles.actionsRow}>
-        <TouchableOpacity style={[styles.button, styles.backButton]} onPress={() => router.back()}>
-          <Text style={styles.buttonText}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={onCreateRoom} disabled={creating}>
-          {creating ? (
-            <ActivityIndicator color={colors.bgDeep} />
+          {gameType === 'kaliteri' ? (
+            <>
+              {isOddPlayers && (
+                <Row label="Bid Threshold">
+                  <NumberStepper value={bidThreshold} min={155} max={500} step={5} onChange={setBidThreshold} />
+                </Row>
+              )}
+              <Row label="Number of Games">
+                <NumberStepper value={gameCount} min={1} max={20} onChange={setGameCount} />
+              </Row>
+              <Row label="Bidding Window">
+                <NumberStepper value={bidWindow} min={5} max={60} step={5} onChange={setBidWindow} suffix="s" />
+              </Row>
+              <Row label="Card Inspect Time">
+                <NumberStepper value={inspectTime} min={5} max={30} step={5} onChange={setInspectTime} suffix="s" />
+              </Row>
+            </>
           ) : (
-            <Text style={styles.buttonText}>Create Room</Text>
+            <>
+              <Row label="Max Cards / Round">
+                <NumberStepper value={maxCardsPerRound} min={1} max={maxPossibleCards} onChange={setMaxCardsPerRound} />
+              </Row>
+              <Row label="Round Order">
+                <ChipGroup
+                  options={[{ label: 'Up & Down', value: true }, { label: 'Ascending', value: false }]}
+                  value={reverseOrder}
+                  onChange={setReverseOrder}
+                />
+              </Row>
+              <Row label="Powerhouse Selection">
+                <ChipGroup
+                  options={[{ label: 'Cyclic', value: 'cyclic' }, { label: 'Random', value: 'random' }]}
+                  value={trumpMode}
+                  onChange={setTrumpMode}
+                />
+              </Row>
+              <Row label="Scoreboard Time">
+                <NumberStepper value={scoreboardTime} min={3} max={30} onChange={setScoreboardTime} suffix="s" />
+              </Row>
+              <Row label="Bid Timer">
+                <ChipGroup
+                  options={[{ label: 'No Limit', value: false }, { label: 'Timed', value: true }]}
+                  value={bidTimeEnabled}
+                  onChange={setBidTimeEnabled}
+                />
+              </Row>
+              {bidTimeEnabled && (
+                <Row label="Bid Time">
+                  <NumberStepper value={bidTime} min={5} max={60} step={5} onChange={setBidTime} suffix="s" />
+                </Row>
+              )}
+              <Row label="Card Inspect Time">
+                <NumberStepper value={cardRevealTime} min={3} max={30} onChange={setCardRevealTime} suffix="s" />
+              </Row>
+            </>
           )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        </View>
+
+        {error ? (
+          <View style={styles.errorBox}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {/* ── actions ── */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[buttonStyles.base, buttonStyles.secondary, styles.actionBtn]}
+            onPress={() => router.back()}
+          >
+            <Text style={buttonStyles.secondaryText}>Back</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[buttonStyles.base, buttonStyles.primary, styles.actionBtn, creating && buttonStyles.disabled]}
+            onPress={onCreateRoom}
+            disabled={creating}
+          >
+            {creating
+              ? <ActivityIndicator color={colors.buttonText} />
+              : <Text style={buttonStyles.primaryText}>Create Room</Text>}
+          </TouchableOpacity>
+        </View>
+
+      </ScrollView>
+    </AppBackground>
   );
 }
 
+// ─── styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: colors.bgDeep,
-  },
-  content: {
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  heading: {
-    ...typography.heading,
-    color: colors.cream,
-  },
-  text: {
-    ...typography.body,
-    color: colors.creamMuted,
-  },
-  formGroup: {
-    gap: spacing.xs,
-  },
-  label: {
-    color: colors.gold,
-    fontWeight: '700',
-  },
-  input: {
-    backgroundColor: colors.bgInput,
-    borderWidth: 1,
-    borderColor: colors.borderGold,
-    borderRadius: 10,
+
+  // Header — matches profile / avatar-editor
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    color: colors.cream,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderGold,
   },
-  row: {
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  backIcon: {
+    fontSize: 24,
+    color: colors.gold,
+    lineHeight: 28,
+  },
+  headerTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    color: colors.gold,
+    letterSpacing: 2,
+    textShadowColor: 'rgba(201,162,39,0.35)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+
+  // Scroll content
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
+  },
+
+  // Section label above game type cards
+  sectionLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    color: colors.gold,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+  },
+
+  // ── Game type cards ──────────────────────────────────────────────────────
+  gameTypeRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  gameTypeCard: {
+    flex: 1,
+    minHeight: 96,
+    ...panelStyle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+  },
+  gameTypeCardActive: {
+    borderColor: colors.gold,
+    backgroundColor: 'rgba(201,162,39,0.12)',
+    shadowColor: 'rgba(201,162,39,0.35)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 10,
+  },
+  gameTypeSuits: {
+    fontSize: 22,
+    letterSpacing: 2,
+  },
+  suitBlack: {
+    color: colors.gold,
+  },
+  suitRed: {
+    color: colors.redSuit,
+  },
+  gameTypeName: {
+    fontFamily: fonts.headingMedium,
+    fontSize: 13,
+    color: colors.creamMuted,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
+  },
+  gameTypeNameActive: {
+    color: colors.gold,
+  },
+
+  // ── Info row ─────────────────────────────────────────────────────────────
+  infoRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(201,162,39,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(201,162,39,0.12)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.md,
+    gap: 4,
+  },
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  infoDot: {
+    color: 'rgba(201,162,39,0.35)',
+    fontSize: 14,
+    fontFamily: fonts.body,
+  },
+  infoText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.creamMuted,
+    letterSpacing: 0.4,
+  },
+
+  // ── Panels ───────────────────────────────────────────────────────────────
+  panel: {
+    ...panelStyle,
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  panelTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    color: colors.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 1.8,
+  },
+
+  // ── Players & Decks dual row ──────────────────────────────────────────────
+  pdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pdHalf: {
+    flex: 1,
+    gap: spacing.xs,
+    alignItems: 'center',
+  },
+  pdDivider: {
+    width: 1,
+    height: 52,
+    backgroundColor: colors.borderGold,
+    marginHorizontal: spacing.sm,
+  },
+  pdLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 10,
+    color: colors.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
+
+  // ── Setting rows (game-specific settings) ───────────────────────────────
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: spacing.sm,
+    minHeight: 36,
+  },
+  settingLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    color: colors.creamMuted,
+    letterSpacing: 1,
+    flex: 1,
+  },
+  settingControl: {
+    alignItems: 'flex-end',
+  },
+
+  // ── NumberStepper ─────────────────────────────────────────────────────────
+  stepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  stepBtn: {
+    width: 32,
+    height: 30,
+    borderRadius: 7,
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    backgroundColor: colors.bgInput,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepBtnOff: {
+    opacity: 0.3,
+  },
+  stepBtnText: {
+    color: colors.goldLight,
+    fontSize: 18,
+    lineHeight: 18,
+    fontFamily: fonts.bodyBold,
+  },
+  stepValue: {
+    minWidth: 48,
+    color: colors.cream,
+    textAlign: 'center',
+    fontFamily: fonts.bodyBold,
+    fontSize: 15,
+  },
+
+  // ── ChipGroup ─────────────────────────────────────────────────────────────
+  chipRow: {
+    flexDirection: 'row',
+    gap: 6,
   },
   chip: {
     borderWidth: 1,
     borderColor: colors.borderGold,
     borderRadius: 999,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    opacity: 0.95,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 5,
   },
   chipActive: {
-    borderColor: colors.borderGoldBright,
-    backgroundColor: colors.greenGlow,
+    borderColor: colors.gold,
+    backgroundColor: 'rgba(201,162,39,0.14)',
+  },
+  chipOff: {
+    opacity: 0.3,
   },
   chipText: {
-    color: colors.cream,
-    fontWeight: '600',
+    fontFamily: fonts.body,
+    color: colors.creamMuted,
+    fontSize: 12,
   },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+  chipTextActive: {
+    color: colors.gold,
+    fontFamily: fonts.bodyBold,
   },
-  stepperBtn: {
-    width: 40,
-    height: 34,
-    borderRadius: 8,
+
+  // ── Error ────────────────────────────────────────────────────────────────
+  errorBox: {
+    backgroundColor: colors.dangerBg,
     borderWidth: 1,
-    borderColor: colors.borderGold,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: colors.dangerBorder,
+    borderRadius: 7,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
-  stepperBtnText: {
-    color: colors.goldLight,
-    fontSize: 20,
-    lineHeight: 20,
-    fontWeight: '700',
+  errorText: {
+    fontFamily: fonts.body,
+    color: colors.redSuit,
+    fontSize: 13,
   },
-  stepperValue: {
-    minWidth: 72,
-    color: colors.cream,
-    textAlign: 'center',
-    fontWeight: '700',
-  },
+
+  // ── Actions ───────────────────────────────────────────────────────────────
   actionsRow: {
     flexDirection: 'row',
     gap: spacing.sm,
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
-  button: {
-    backgroundColor: colors.gold,
-    borderRadius: 10,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+  actionBtn: {
     flex: 1,
-  },
-  backButton: {
-    backgroundColor: colors.bgPanelLight,
-    borderWidth: 1,
-    borderColor: colors.borderGold,
-  },
-  buttonText: {
-    color: colors.bgDeep,
-    fontWeight: '700',
-  },
-  error: {
-    color: colors.redSuit,
+    paddingVertical: 13,
   },
 });

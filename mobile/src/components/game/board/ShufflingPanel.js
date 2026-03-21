@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { WsDeal, WsShuffleAction, WsUndoShuffle } from '../../../api/wsEmitters';
-import { buttonStyles, colors, fonts, panelStyle, pillStyle, spacing, typography } from '../../../styles/theme';
+import { buttonStyles, colors, fonts, pillStyle, spacing, typography } from '../../../styles/theme';
 
 const MAX_SHUFFLE_OPS = 5;
 
@@ -100,23 +100,26 @@ export default function ShufflingPanel({
 
 const styles = StyleSheet.create({
   wrap: {
-    ...panelStyle,
-    width: '100%',
-    maxWidth: 280,
-    padding: spacing.md,
-    gap: spacing.sm,
+    width: '80%',
     alignItems: 'center',
+    gap: spacing.sm,
   },
   title: {
     ...typography.subtitle,
     color: colors.cream,
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   subtitle: {
-    ...typography.label,
+    fontFamily: fonts.body,
     color: colors.creamMuted,
     textAlign: 'center',
     fontSize: 11,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   buttonsRow: {
     gap: spacing.xs,
@@ -126,6 +129,7 @@ const styles = StyleSheet.create({
     ...buttonStyles.base,
     ...buttonStyles.secondary,
     paddingVertical: 8,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   actionBtnText: {
     ...buttonStyles.secondaryText,
@@ -139,14 +143,18 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   queueTitle: {
-    ...typography.label,
+    fontFamily: fonts.body,
     color: colors.goldLight,
     fontSize: 11,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   undoBtn: {
     ...buttonStyles.base,
     ...buttonStyles.secondary,
     ...buttonStyles.small,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   undoBtnText: {
     ...buttonStyles.secondaryText,
@@ -160,7 +168,7 @@ const styles = StyleSheet.create({
   },
   chip: {
     ...pillStyle,
-    backgroundColor: colors.bgPanelLight,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   chipText: {
     fontFamily: fonts.body,
@@ -172,6 +180,9 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     color: colors.creamMuted,
     fontSize: 11,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   dealBtn: {
     ...buttonStyles.base,

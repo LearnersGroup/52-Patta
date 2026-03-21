@@ -1,5 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { v4 as uuidv4 } from "uuid";
+
+let _counter = 0;
+const uid = () => `${Date.now()}-${++_counter}`;
 
 const initialState = {
     alerts: [],
@@ -24,7 +26,7 @@ export const { setAlert, removeAlert } = alertSlice.actions;
 
 export function notify(msg, alertType, timeout = 5000) {
     return async (dispatch) => {
-        const id = uuidv4();
+        const id = uid();
         dispatch(setAlert({msg, alertType, id}));
         setTimeout(() => dispatch(removeAlert(id)), timeout);
     };

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   WsAdminKickPlayer,
   WsAdminUpdateConfig,
@@ -13,12 +13,9 @@ import {
   dividerStyle,
   fonts,
   panelStyle,
-  pillStyle,
-  shadows,
   spacing,
   typography,
 } from '../../../styles/theme';
-import LobbyChat from './LobbyChat';
 import LobbyConfigEditor from './LobbyConfigEditor';
 import LobbyPlayerList from './LobbyPlayerList';
 
@@ -26,23 +23,35 @@ function getPlayerId(player) {
   return player?.playerId?._id?.toString?.() || player?.playerId?.toString?.() || '';
 }
 
+// Dot-separated info pill (same as create-room screen)
+const InfoRow = ({ items }) => (
+  <View style={styles.infoRow}>
+    {items.map((item, i) => (
+      <View key={i} style={styles.infoItem}>
+        {i > 0 && <Text style={styles.infoDot}>·</Text>}
+        <Text style={styles.infoText}>{item}</Text>
+      </View>
+    ))}
+  </View>
+);
+
 export default function LobbyView({
   roomId,
   roomData,
   userId,
   currentUserName = '',
-  chatMessages = [],
   onLeaveSuccess,
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState('');
 
-  const players = roomData?.players || [];
+  const players        = roomData?.players || [];
   const requiredPlayers = roomData?.player_count || 4;
-  const gameType = roomData?.game_type || 'kaliteri';
-  const adminId = (roomData?.admin?._id || roomData?.admin)?.toString?.();
-  const adminName = roomData?.admin?.name || '';
-  const isAdmin = (userId && adminId === userId) || (!!currentUserName && adminName === currentUserName);
+  const gameType       = roomData?.game_type || 'kaliteri';
+  const deckCount      = roomData?.deck_count || 1;
+  const adminId        = (roomData?.admin?._id || roomData?.admin)?.toString?.();
+  const adminName      = roomData?.admin?.name || '';
+  const isAdmin        = (userId && adminId === userId) || (!!currentUserName && adminName === currentUserName);
 
   const allReady = useMemo(() => {
     return players.length >= requiredPlayers && players.every((p) => !!p.ready);
@@ -56,18 +65,29 @@ export default function LobbyView({
       return false;
     });
   }, [players, userId, currentUserName]);
+
   const iAmReady = !!me?.ready;
 
+  // ── computed info row ──────────────────────────────────────────────────────
+  const gameInfo = useMemo(() => {
+    const totalCards   = 52 * deckCount - ((52 * deckCount) % requiredPlayers);
+    const cardsPerPlayer = totalCards / requiredPlayers;
+    const items = [
+      `${players.length}/${requiredPlayers} players`,
+      `${deckCount} deck${deckCount !== 1 ? 's' : ''}`,
+      `${cardsPerPlayer} cards/player`,
+    ];
+    return items;
+  }, [players.length, requiredPlayers, deckCount]);
+
+  // ── handlers ──────────────────────────────────────────────────────────────
   const shareCode = async () => {
     const code = roomData?.code;
     if (!code) return;
     try {
-      await Share.share({
-        message: `Join my 52 Patta room. Code: ${code}`,
-      });
-    } catch {
-      // no-op
-    }
+      const { Share } = require('react-native');
+      await Share.share({ message: `Join my 52 Patta room. Code: ${code}` });
+    } catch { /* no-op */ }
   };
 
   const toggleReady = () => {
@@ -85,72 +105,57 @@ export default function LobbyView({
   const leaveRoom = () => {
     setPendingAction('leave');
     WsUserLeaveRoom();
-    setTimeout(() => {
-      setPendingAction('');
-      onLeaveSuccess?.();
-    }, 250);
+    setTimeout(() => { setPendingAction(''); onLeaveSuccess?.(); }, 250);
   };
 
-  const kickPlayer = (playerId) => {
-    if (!playerId) return;
-    WsAdminKickPlayer(playerId);
-  };
+  const kickPlayer = (playerId) => { if (playerId) WsAdminKickPlayer(playerId); };
 
-  const saveConfig = (payload) => {
-    WsAdminUpdateConfig(payload);
-    setSettingsOpen(false);
-  };
+  const saveConfig = (payload) => { WsAdminUpdateConfig(payload); setSettingsOpen(false); };
 
+  // ── render ─────────────────────────────────────────────────────────────────
   return (
     <View style={styles.wrap}>
-      <View style={styles.headerCard}>
-        <View style={styles.headerInfo}>
-          <Text style={styles.roomLabel}>Game Room</Text>
-          <Text style={styles.roomId}>{roomId}</Text>
-          <View style={styles.gameTypePill}>
-            <Text style={styles.gameTypeText}>{gameType === 'judgement' ? 'Judgement' : 'Kaliteri'}</Text>
-          </View>
-        </View>
 
-        <View style={styles.headerActions}>
+      {/* ── Header card: game type name + start button + info row ── */}
+      <View style={styles.headerCard}>
+        <View style={styles.headerRow}>
+          <Text style={styles.gameTitle}>
+            {gameType === 'judgement' ? 'Judgement' : 'Kaliteri'}
+          </Text>
           {isAdmin ? (
             <Pressable
-              style={[buttonStyles.base, buttonStyles.primary, buttonStyles.small, (!allReady || pendingAction === 'start') && buttonStyles.disabled]}
+              style={[
+                buttonStyles.base, buttonStyles.primary, buttonStyles.small,
+                (!allReady || pendingAction === 'start') && buttonStyles.disabled,
+              ]}
               disabled={!allReady || pendingAction === 'start'}
               onPress={startGame}
             >
               <Text style={[buttonStyles.primaryText, buttonStyles.smallText]}>Start</Text>
             </Pressable>
           ) : null}
-
-          <Pressable
-            style={[buttonStyles.base, iAmReady ? buttonStyles.readyActive : buttonStyles.ready, buttonStyles.small, pendingAction === 'ready' && buttonStyles.disabled]}
-            onPress={toggleReady}
-          >
-            <Text style={[buttonStyles.readyText, buttonStyles.smallText]}>{iAmReady ? 'Not Ready' : 'Ready'}</Text>
-          </Pressable>
-
-          <Pressable
-            style={[buttonStyles.base, buttonStyles.danger, buttonStyles.small, pendingAction === 'leave' && buttonStyles.disabled]}
-            onPress={leaveRoom}
-          >
-            <Text style={[buttonStyles.dangerText, buttonStyles.smallText]}>Leave</Text>
-          </Pressable>
         </View>
+        <InfoRow items={gameInfo} />
       </View>
 
+      {/* ── Code card: label + code inline with icons ── */}
       <View style={styles.codeCard}>
         <Text style={styles.codeLabel}>Room Code</Text>
-        <Text style={styles.codeValue}>{roomData?.code || '------'}</Text>
-        <View style={styles.codeActions}>
-          <Pressable style={[buttonStyles.base, buttonStyles.secondary, buttonStyles.small]} onPress={shareCode}>
-            <Text style={[buttonStyles.secondaryText, buttonStyles.smallText]}>Share</Text>
-          </Pressable>
-          {isAdmin ? (
-            <Pressable style={[buttonStyles.base, buttonStyles.outline, buttonStyles.small]} onPress={() => setSettingsOpen((v) => !v)}>
-              <Text style={[buttonStyles.outlineText, buttonStyles.smallText]}>{settingsOpen ? 'Close' : 'Settings'}</Text>
+        <View style={styles.codeRow}>
+          <Text style={styles.codeValue}>{roomData?.code || '------'}</Text>
+          <View style={styles.codeIcons}>
+            <Pressable style={styles.iconBtn} onPress={shareCode}>
+              <Text style={styles.iconText}>⬆</Text>
             </Pressable>
-          ) : null}
+            {isAdmin ? (
+              <Pressable
+                style={[styles.iconBtn, settingsOpen && styles.iconBtnActive]}
+                onPress={() => setSettingsOpen((v) => !v)}
+              >
+                <Text style={[styles.iconText, settingsOpen && styles.iconTextActive]}>⚙</Text>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
 
         {settingsOpen ? (
@@ -165,6 +170,30 @@ export default function LobbyView({
         ) : null}
       </View>
 
+      {/* ── Ready & Leave actions ── */}
+      <View style={styles.actionsCard}>
+        <Pressable
+          style={[styles.leaveBtn, pendingAction === 'leave' && buttonStyles.disabled]}
+          onPress={leaveRoom}
+        >
+          <Text style={styles.leaveBtnText}>Leave</Text>
+        </Pressable>
+
+        <Pressable
+          style={[
+            styles.readyBtn,
+            iAmReady ? styles.readyBtnActive : styles.readyBtnIdle,
+            pendingAction === 'ready' && buttonStyles.disabled,
+          ]}
+          onPress={toggleReady}
+        >
+          <Text style={[styles.readyBtnText, iAmReady && styles.readyBtnTextActive]}>
+            {iAmReady ? 'Not Ready' : 'Ready'}
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* ── Players ── */}
       <View style={styles.playersCard}>
         <Text style={styles.sectionTitle}>
           Players ({players.length}/{requiredPlayers})
@@ -172,9 +201,6 @@ export default function LobbyView({
         <LobbyPlayerList players={players} isAdmin={isAdmin} userId={userId} onKick={kickPlayer} />
       </View>
 
-      <View style={styles.chatCard}>
-        <LobbyChat messages={chatMessages} />
-      </View>
     </View>
   );
 }
@@ -183,47 +209,59 @@ const styles = StyleSheet.create({
   wrap: {
     gap: spacing.md,
   },
-  // Header card
+
+  // ── Header card ────────────────────────────────────────────────────────────
   headerCard: {
     ...panelStyle,
     padding: spacing.md,
+    gap: spacing.sm,
+  },
+  headerRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: spacing.sm,
   },
-  headerInfo: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  roomLabel: {
-    ...typography.label,
+  gameTitle: {
     fontFamily: fonts.heading,
+    fontSize: 20,
     color: colors.gold,
-    letterSpacing: 1.8,
+    letterSpacing: 2,
+    textShadowColor: 'rgba(201,162,39,0.3)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 6,
   },
-  roomId: {
-    fontFamily: fonts.heading,
-    color: colors.cream,
-    fontSize: 16,
-    fontWeight: '700',
+
+  // Info row (reused from create-room)
+  infoRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    backgroundColor: 'rgba(201,162,39,0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(201,162,39,0.12)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: spacing.sm,
+    gap: 4,
   },
-  gameTypePill: {
-    ...pillStyle,
-    alignSelf: 'flex-start',
-    marginTop: 2,
+  infoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
-  gameTypeText: {
-    ...typography.captionSmall,
+  infoDot: {
+    color: 'rgba(201,162,39,0.4)',
     fontFamily: fonts.body,
+    fontSize: 14,
+  },
+  infoText: {
+    fontFamily: fonts.body,
+    fontSize: 12,
     color: colors.creamMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 0.3,
   },
-  headerActions: {
-    alignItems: 'flex-end',
-    gap: spacing.sm,
-  },
-  // Code card
+
+  // ── Code card ──────────────────────────────────────────────────────────────
   codeCard: {
     ...panelStyle,
     padding: spacing.md,
@@ -235,22 +273,85 @@ const styles = StyleSheet.create({
     color: colors.gold,
     letterSpacing: 1.8,
   },
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   codeValue: {
-    ...typography.mono,
     fontFamily: 'monospace',
     color: colors.cream,
     fontSize: 24,
     fontWeight: '700',
     letterSpacing: 6,
   },
-  codeActions: {
+  codeIcons: {
     flexDirection: 'row',
     gap: spacing.sm,
+  },
+  iconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    backgroundColor: colors.bgInput,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBtnActive: {
+    borderColor: colors.gold,
+    backgroundColor: 'rgba(201,162,39,0.14)',
+  },
+  iconText: {
+    fontSize: 18,
+    color: colors.gold,
+  },
+  iconTextActive: {
+    color: colors.goldLight,
   },
   divider: {
     ...dividerStyle,
   },
-  // Players card
+
+  // ── Actions card (Ready + Leave) ───────────────────────────────────────────
+  actionsCard: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  readyBtn: {
+    ...buttonStyles.base,
+    flex: 1,
+    height: 46,
+    paddingVertical: 0,
+  },
+  readyBtnIdle: {
+    ...buttonStyles.ready,
+  },
+  readyBtnActive: {
+    ...buttonStyles.readyActive,
+  },
+  readyBtnText: {
+    ...buttonStyles.readyText,
+  },
+  readyBtnTextActive: {
+    color: colors.readyLight,
+  },
+  leaveBtn: {
+    ...buttonStyles.base,
+    flex: 1,
+    height: 46,
+    paddingVertical: 0,
+    backgroundColor: colors.dangerBg,
+    borderWidth: 1,
+    borderColor: colors.dangerBorder,
+  },
+  leaveBtnText: {
+    ...buttonStyles.dangerText,
+    color: colors.redSuit,
+  },
+
+  // ── Players card ──────────────────────────────────────────────────────────
   playersCard: {
     ...panelStyle,
     padding: spacing.md,
@@ -261,10 +362,5 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     color: colors.gold,
     fontSize: 13,
-  },
-  // Chat card
-  chatCard: {
-    ...panelStyle,
-    padding: spacing.md,
   },
 });

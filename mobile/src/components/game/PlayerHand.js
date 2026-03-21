@@ -1,158 +1,206 @@
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { WsPlayCard } from '../../api/wsEmitters';
-import { toggleHandSort } from '../../redux/slices/game';
-import {
-  buttonStyles,
-  cardTokens,
-  colors,
-  spacing,
-  typography,
-} from '../../styles/theme';
-import { hapticSelection, hapticSuccess, hapticWarning } from '../../utils/haptics';
+import { useCallback, useMemo, useRef } from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { useSelector } from 'react-redux';
+import { cardTokens } from '../../styles/theme';
+import { hapticSelection } from '../../utils/haptics';
 import CardFace from './CardFace';
 import { cardKey, isCardInList, sortCardsBySuit } from './utils/cardMapper';
 
-export default function PlayerHand({ cards = [], validPlays = [], isMyTurn = false }) {
-  const dispatch = useDispatch();
+const CARD_W = cardTokens.sizes.hand.width;   // 56
+const CARD_H = cardTokens.sizes.hand.height;   // 78
+const OVERLAP = 18;                             // negative margin between cards
+const CARD_STEP = CARD_W - OVERLAP;             // 38 — visible width per card
+const PAD_LEFT = 4;
+const RISE_PX = Math.round(CARD_H * 0.7);      // rise 70% of card height
+const SPRING_CFG = { damping: 20, stiffness: 300, mass: 0.5 };
+
+/**
+ * PlayerHand — gesture-enabled card fan.
+ *
+ * Touch & drag over the hand to preview cards (nearest card rises).
+ * Tap a card to select it as the "intended card" (communicated via onSelectCard).
+ * No card is played directly from this component.
+ */
+export default function PlayerHand({
+  cards = [],
+  validPlays = [],
+  isMyTurn = false,
+  onSelectCard,
+  intendedCard = null,
+}) {
   const handSorted = useSelector((state) => state.game.handSorted);
-  const [selectedCardKey, setSelectedCardKey] = useState(null);
+  const displayCards = useMemo(
+    () => (handSorted ? sortCardsBySuit(cards) : cards),
+    [cards, handSorted],
+  );
 
-  const displayCards = useMemo(() => {
-    return handSorted ? sortCardsBySuit(cards) : cards;
-  }, [cards, handSorted]);
+  const cardsRef = useRef(displayCards);
+  cardsRef.current = displayCards;
 
-  const onCardPress = (card) => {
-    hapticSelection();
-    const key = cardKey(card);
+  const onSelectCardRef = useRef(onSelectCard);
+  onSelectCardRef.current = onSelectCard;
 
-    if (!isMyTurn) {
-      setSelectedCardKey(key);
-      hapticWarning();
-      return;
+  // Shared value: index of the card currently being hovered (-1 = none)
+  const hoveredIndex = useSharedValue(-1);
+  const scrollOffsetRef = useRef(0);
+  const scrollRef = useRef(null);
+
+  // JS-thread helper: compute card index from touch x
+  const getCardIndexFromX = useCallback((absX) => {
+    'worklet';
+    // This runs on JS thread via runOnJS — but we can also make a simple version
+    const x = absX - PAD_LEFT; // scroll offset handled separately
+    const count = cardsRef.current?.length || 0;
+    if (count === 0) return -1;
+    const idx = Math.floor(x / CARD_STEP);
+    return Math.max(0, Math.min(idx, count - 1));
+  }, []);
+
+  // JS-thread: handle card selection
+  const selectCardAtIndex = useCallback((idx) => {
+    const cards = cardsRef.current;
+    if (idx >= 0 && idx < cards.length) {
+      hapticSelection();
+      onSelectCardRef.current?.(cards[idx]);
     }
+  }, []);
 
-    const playable = isCardInList(card, validPlays);
-    setSelectedCardKey(key);
+  // JS-thread: compute index and update hover shared value
+  const updateHoverFromX = useCallback((absX) => {
+    const x = absX + scrollOffsetRef.current - PAD_LEFT;
+    const count = cardsRef.current?.length || 0;
+    if (count === 0) return;
+    const idx = Math.max(0, Math.min(Math.floor(x / CARD_STEP), count - 1));
+    hoveredIndex.value = idx;
+  }, [hoveredIndex]);
 
-    if (playable) {
-      WsPlayCard(card);
-      hapticSuccess();
-    } else {
-      hapticWarning();
-    }
-  };
+  const selectHoveredAndReset = useCallback(() => {
+    const idx = hoveredIndex.value;
+    hoveredIndex.value = -1;
+    selectCardAtIndex(idx);
+  }, [hoveredIndex, selectCardAtIndex]);
+
+  const resetHover = useCallback(() => {
+    hoveredIndex.value = -1;
+  }, [hoveredIndex]);
+
+  const selectFromTapX = useCallback((absX) => {
+    const x = absX + scrollOffsetRef.current - PAD_LEFT;
+    const count = cardsRef.current?.length || 0;
+    if (count === 0) return;
+    const idx = Math.max(0, Math.min(Math.floor(x / CARD_STEP), count - 1));
+    selectCardAtIndex(idx);
+  }, [selectCardAtIndex]);
+
+  // ── Gesture: long press + pan to preview cards ──────────────────────────
+  const pan = Gesture.Pan()
+    .activateAfterLongPress(150)
+    .onStart((e) => {
+      runOnJS(updateHoverFromX)(e.x);
+    })
+    .onUpdate((e) => {
+      runOnJS(updateHoverFromX)(e.x);
+    })
+    .onEnd(() => {
+      runOnJS(selectHoveredAndReset)();
+    })
+    .onFinalize(() => {
+      runOnJS(resetHover)();
+    });
+
+  // ── Gesture: tap to select a card ───────────────────────────────────────
+  const tap = Gesture.Tap()
+    .onEnd((e) => {
+      runOnJS(selectFromTapX)(e.x);
+    });
+
+  const composed = Gesture.Race(pan, tap);
 
   if (!displayCards.length) return null;
 
+  const intendedKey = intendedCard ? cardKey(intendedCard) : null;
+
   return (
-    <View style={styles.container}>
-      {/* Gradient-ish tint at the bottom via bgDeep overlay */}
-      <View style={styles.gradientTint} />
-
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Your Hand</Text>
-        <Pressable
-          style={[
-            buttonStyles.base,
-            buttonStyles.secondary,
-            buttonStyles.small,
-            styles.sortButton,
-          ]}
-          onPress={() => dispatch(toggleHandSort())}
+    <GestureDetector gesture={composed}>
+      <Animated.View>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.x; }}
+          contentContainerStyle={styles.listContent}
         >
-          <Text style={[buttonStyles.secondaryText, buttonStyles.smallText]}>
-            {handSorted ? 'Natural Order' : 'Sort by Suit'}
-          </Text>
-        </Pressable>
-      </View>
+          {displayCards.map((card, i) => {
+            const key = cardKey(card);
+            const playable = !isMyTurn || isCardInList(card, validPlays);
+            const isIntended = key === intendedKey;
 
-      <FlatList
-        horizontal
-        data={displayCards}
-        keyExtractor={cardKey}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => {
-          const key = cardKey(item);
-          const playable = !isMyTurn || isCardInList(item, validPlays);
-          const selected = selectedCardKey === key;
-
-          return (
-            <Pressable
-              style={({ pressed }) => [
-                styles.cardPressable,
-                selected && styles.cardPressableSelected,
-                pressed && styles.cardPressablePressed,
-              ]}
-              onPress={() => onCardPress(item)}
-            >
-              <CardFace
-                card={item}
-                width={cardTokens.sizes.hand.width}
-                disabled={!playable}
-                selected={selected}
-                playable={playable && isMyTurn}
+            return (
+              <AnimatedCard
+                key={key}
+                index={i}
+                card={card}
+                playable={playable}
+                isMyTurn={isMyTurn}
+                isIntended={isIntended}
+                hoveredIndex={hoveredIndex}
               />
-            </Pressable>
-          );
-        }}
+            );
+          })}
+        </ScrollView>
+      </Animated.View>
+    </GestureDetector>
+  );
+}
+
+/**
+ * AnimatedCard — individual card in the fan that rises when hovered.
+ */
+function AnimatedCard({ index, card, playable, isMyTurn, isIntended, hoveredIndex }) {
+  const animStyle = useAnimatedStyle(() => {
+    const isHovered = hoveredIndex.value === index;
+    return {
+      transform: [
+        { translateY: withSpring(isHovered ? -RISE_PX : 0, SPRING_CFG) },
+      ],
+      zIndex: isHovered ? 10 : 0,
+    };
+  });
+
+  return (
+    <Animated.View style={[styles.cardWrap, isIntended && styles.cardWrapIntended, animStyle]}>
+      <CardFace
+        card={card}
+        width={CARD_W}
+        disabled={!playable}
+        selected={isIntended}
+        playable={playable && isMyTurn}
       />
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    borderWidth: 1,
-    borderColor: colors.borderGold,
-    borderRadius: 14,
-    backgroundColor: colors.bgPanel,
-    padding: spacing.sm,
-    gap: spacing.sm,
-    overflow: 'hidden',
-  },
-
-  // Approximates linear-gradient(0deg, #080f0a 40%, transparent)
-  gradientTint: {
-    ...StyleSheet.absoluteFillObject,
-    top: '50%',
-    backgroundColor: colors.bgDeep,
-    opacity: 0.6,
-  },
-
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    zIndex: 1,
-  },
-  title: {
-    color: colors.cream,
-    fontWeight: '700',
-    fontSize: typography.body.fontSize,
-  },
-  sortButton: {
-    borderRadius: 7,
-  },
-
   listContent: {
-    paddingRight: spacing.sm,
-    paddingLeft: spacing.xs,
-    zIndex: 1,
+    paddingLeft: PAD_LEFT,
+    paddingRight: PAD_LEFT + OVERLAP,  // compensate last card's negative marginRight
+    paddingVertical: 6,
+    paddingTop: RISE_PX + 6,  // room for cards to rise without clipping
   },
-
-  // Overlapping cards with negative margin
-  cardPressable: {
-    marginRight: -18,
-    paddingBottom: spacing.xs,
+  cardWrap: {
+    marginRight: -OVERLAP,
   },
-  cardPressableSelected: {
-    transform: [{ translateY: -8 }],
+  cardWrapIntended: {
+    transform: [{ translateY: -10 }],
     zIndex: 2,
-  },
-  cardPressablePressed: {
-    opacity: 0.85,
+    marginRight: -4,
   },
 });
