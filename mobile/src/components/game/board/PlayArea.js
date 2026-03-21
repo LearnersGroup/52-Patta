@@ -64,8 +64,9 @@ function thrownPosition(play, index) {
   const key = `${play?.playerId || ''}_${play?.card?.suit || ''}${play?.card?.rank || ''}_${play?.card?.deckIndex ?? 0}_${index}`;
   const h = hashKey(key);
   return {
-    x: ((h & 0xff) / 255) * 128 - 64,
-    y: (((h >> 8) & 0xff) / 255) * 92 - 46,
+    // Spread scaled down ~30 % to match the smaller card size
+    x: ((h & 0xff) / 255) * 90 - 45,
+    y: (((h >> 8) & 0xff) / 255) * 64 - 32,
     rotate: (((h >> 16) & 0xff) / 255) * 44 - 22,
   };
 }
@@ -137,7 +138,7 @@ function AnimatedTrickCard({
   return (
     <Animated.View style={[styles.cardWrap, animStyle]}>
       <View style={[isWinning && !isSweeping ? styles.cardWinning : null, isSweeping ? styles.cardSweeping : null]}>
-        <CardFace card={play.card} width={60} />
+        <CardFace card={play.card} width={42} />
       </View>
       <Text style={styles.name} numberOfLines={1}>{label}</Text>
     </Animated.View>

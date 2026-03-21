@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SvgUri } from 'react-native-svg';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -7,17 +8,20 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { colors, fonts, shadows, spacing, typography } from '../../../styles/theme';
+import { colors, fonts, shadows } from '../../../styles/theme';
 
+/**
+ * jdgStatus shape (Judgement only, null otherwise):
+ *   { label: string, type: 'waiting' | 'placed' | 'on-target' | 'over' | 'under' }
+ */
 export default function PlayerSeat({
   name,
   avatar,
   avatarInitial,
-  cardCount = 0,
   isTurn = false,
   isDealer = false,
   team = null,
-  tricksWon = null,
+  jdgStatus = null,
 }) {
   const glowOpacity = useSharedValue(0);
 
@@ -33,137 +37,157 @@ export default function PlayerSeat({
     }
   }, [isTurn, glowOpacity]);
 
-  const pulseStyle = useAnimatedStyle(() => ({
-    shadowColor: 'rgba(201, 162, 39, 0.6)',
+  // Pulsing glow on the avatar ring when it's this player's turn
+  const ringStyle = useAnimatedStyle(() => ({
+    shadowColor: isTurn ? colors.gold : 'transparent',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: glowOpacity.value * 0.7,
-    shadowRadius: 10 + glowOpacity.value * 4,
-    elevation: glowOpacity.value > 0.1 ? 6 : 0,
+    shadowOpacity: glowOpacity.value * 0.8,
+    shadowRadius: 8 + glowOpacity.value * 4,
+    elevation: glowOpacity.value > 0.1 ? 5 : 0,
+    borderColor: isTurn
+      ? `rgba(201, 162, 39, ${0.5 + glowOpacity.value * 0.5})`
+      : team === 'bid'
+      ? colors.gold
+      : team === 'oppose'
+      ? colors.redSuit
+      : colors.borderGold,
   }));
 
+  // Optional judgement tricks-won badge
+  const showBadge = typeof tricksWon === 'number';
+
   return (
-    <Animated.View
-      style={[
-        styles.wrap,
-        team === 'bid' && styles.bidTeam,
-        team === 'oppose' && styles.opposeTeam,
-        isTurn && styles.turn,
-        isTurn && pulseStyle,
-      ]}
-    >
-      <View style={styles.avatarWrap}>
-        {avatar ? (
-          <Image source={{ uri: avatar }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarFallback}>
-            <Text style={styles.avatarFallbackText}>{avatarInitial || '?'}</Text>
-          </View>
-        )}
+    <View style={styles.wrap}>
+      <Animated.View style={[styles.avatarRing, ringStyle]}>
+        <View style={styles.avatarInner}>
+          {avatar ? (
+            <SvgUri uri={avatar} width="100%" height="100%" />
+          ) : (
+            <Text style={styles.avatarInitial}>{avatarInitial || '?'}</Text>
+          )}
+        </View>
+
+        {/* Dealer badge — top-right corner of the ring */}
         {isDealer ? (
           <View style={styles.dealerBadge}>
-            <Text style={styles.badgeText}>D</Text>
+            <Text style={styles.dealerBadgeText}>D</Text>
           </View>
         ) : null}
-      </View>
 
-      <Text numberOfLines={1} style={styles.name}>
-        {name || 'Player'}
-      </Text>
+        {/* Tricks-won badge — bottom-right corner */}
+        {showBadge ? (
+          <View style={styles.tricksBadge}>
+            <Text style={styles.tricksBadgeText}>{tricksWon}</Text>
+          </View>
+        ) : null}
+      </Animated.View>
 
-      <View style={styles.metaRow}>
-        <Text style={styles.metaText}>{cardCount} cards</Text>
-        {typeof tricksWon === 'number' ? <Text style={styles.metaText}>{'\u2022'} {tricksWon} won</Text> : null}
-      </View>
-    </Animated.View>
+      <Text numberOfLines={1} style={styles.name}>{name || 'Player'}</Text>
+
+      {jdgStatus ? (
+        <View style={[styles.jdgChip, styles[`jdgChip_${jdgStatus.type}`]]}>
+          <Text style={[styles.jdgChipText, styles[`jdgChipText_${jdgStatus.type}`]]}>
+            {jdgStatus.label}
+          </Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
+const AVATAR = 51;          // 44 × 1.15 ≈ 51
+const RING   = AVATAR + 7;  // ~3-4px padding each side  (= 58)
+
 const styles = StyleSheet.create({
   wrap: {
-    width: 90,
-    borderWidth: 1,
-    borderColor: colors.borderGold,
-    borderRadius: 12,
-    backgroundColor: colors.bgPanel,
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    gap: 2,
+    gap: 3,
+    width: 68,
+  },
+
+  avatarRing: {
+    width: RING,
+    height: RING,
+    borderRadius: RING / 2,
+    borderWidth: 2,
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
     ...shadows.shallow,
   },
-  turn: {
-    borderColor: colors.gold,
-    borderWidth: 2,
-  },
-  bidTeam: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.gold,
-    backgroundColor: 'rgba(201, 162, 39, 0.08)',
-  },
-  opposeTeam: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.redSuit,
-    backgroundColor: 'rgba(204, 41, 54, 0.08)',
-  },
-  avatarWrap: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: colors.gold,
-  },
-  avatarFallback: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  avatarInner: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
+    overflow: 'hidden',
     backgroundColor: colors.bgPanelLight,
-    borderWidth: 2,
-    borderColor: colors.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarFallbackText: {
+  avatarInitial: {
     color: colors.cream,
     fontFamily: fonts.heading,
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 17,
   },
+
   dealerBadge: {
     position: 'absolute',
-    right: -4,
-    top: -4,
+    right: -2,
+    top: -2,
+    width: 17,
+    height: 17,
     borderRadius: 9,
-    width: 18,
-    height: 18,
+    backgroundColor: colors.gold,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.gold,
     ...shadows.shallow,
   },
-  badgeText: {
+  dealerBadgeText: {
     color: colors.bgDeep,
     fontFamily: fonts.heading,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
   },
+
   name: {
-    color: colors.creamMuted,
+    color: colors.cream,
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '600',
-    maxWidth: 82,
+    maxWidth: 66,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+
+  // ── Judgement bid/tricks status chip ──────────────────────────────────────
+  jdgChip: {
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  metaText: {
-    ...typography.captionSmall,
-    color: colors.creamMuted,
-    fontFamily: fonts.body,
+  jdgChipText: {
+    fontFamily: fonts.heading,
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
+  // type variants
+  jdgChip_waiting:    { borderColor: 'rgba(168,159,142,0.35)' },
+  jdgChip_placed:     { borderColor: colors.borderGold },
+  jdgChip_on_target:  { borderColor: 'rgba(46,204,113,0.5)', backgroundColor: 'rgba(46,204,113,0.1)' },
+  jdgChip_over:       { borderColor: 'rgba(204,41,54,0.5)',  backgroundColor: 'rgba(204,41,54,0.1)' },
+  jdgChip_under:      { borderColor: 'rgba(168,159,142,0.35)' },
+
+  jdgChipText_waiting:   { color: colors.creamMuted },
+  jdgChipText_placed:    { color: colors.goldLight },
+  jdgChipText_on_target: { color: colors.readyLight },
+  jdgChipText_over:      { color: colors.redSuit },
+  jdgChipText_under:     { color: colors.creamMuted },
 });

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSelector } from 'react-redux';
-import { WsNextRound, WsQuitGame } from '../../../api/wsEmitters';
-import { colors, fonts, panelStyle, shadows, spacing, typography } from '../../../styles/theme';
+import { WsQuitGame } from '../../../api/wsEmitters';
+import { colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
 import PlayerHand from '../PlayerHand';
 import { suitSymbol } from '../utils/cardMapper';
 import BiddingPanel from './BiddingPanel';
@@ -11,8 +10,6 @@ import CircularTable from './CircularTable';
 import DealRevealOverlay from './DealRevealOverlay';
 import DealingOverlay from './DealingOverlay';
 import JudgementBiddingPanel from './JudgementBiddingPanel';
-import JudgementScoreBoard from './JudgementScoreBoard';
-import KaliteriScoreBoard from './KaliteriScoreBoard';
 import PartnerCardDisplay from './PartnerCardDisplay';
 import PlayArea from './PlayArea';
 import PlayerSeat from './PlayerSeat';
@@ -22,72 +19,135 @@ import ShufflingPanel from './ShufflingPanel';
 import TeamScoreHUD from './TeamScoreHUD';
 import TrumpAnnouncePanel from './TrumpAnnouncePanel';
 
-function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase, trumpSuit }) {
+const RND_CELL_W  = 46;   // wide enough for "Total" in Cinzel without wrapping
+const MIN_COL_W   = 76;   // minimum player column — wider than a typical name at 10 px
+
+function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase }) {
+  const { width: screenW } = useWindowDimensions();
+
+  // ── Sort players by total score, highest first ──────────────────────────
+  const players = useMemo(() => {
+    const base = seatOrder || [];
+    return [...base].sort((a, b) => (scores?.[b] || 0) - (scores?.[a] || 0));
+  }, [seatOrder, scores]);
+
+  // ── Column-width logic ───────────────────────────────────────────────────
+  // Modal inner width = min(400, screenW - 32)  (32 = backdrop padding * 2)
+  const modalInnerW   = Math.min(400, screenW - 32);
+  const availForCols  = modalInnerW - RND_CELL_W;
+  const naturalColW   = players.length > 0 ? availForCols / players.length : availForCols;
+  // If natural width is at least MIN_COL_W, divide evenly (no scroll needed).
+  // Otherwise clamp to MIN_COL_W and let the horizontal ScrollView handle overflow.
+  const colW          = Math.max(MIN_COL_W, naturalColW);
+  const needsHScroll  = colW * players.length > availForCols;
+
+  // Helper to render a single row of player cells
+  const renderPlayerCells = (cellFn) =>
+    players.map((pid) => (
+      <View key={pid} style={[styles.sbPlayerCell, { width: colW }]}>
+        {cellFn(pid)}
+      </View>
+    ));
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Scoreboard</Text>
-          {gameType === 'judgement' ? (
-            <>
-              {trumpSuit ? <Text style={styles.modalSub}>Trump {suitSymbol(trumpSuit)}</Text> : null}
-              <ScrollView horizontal>
-                <View>
-                  <View style={styles.jdgRowHead}>
-                    <Text style={[styles.jdgCellHead, styles.jdgRoundCol]}>Rnd</Text>
-                    {(seatOrder || []).map((pid) => (
-                      <Text key={`h-${pid}`} style={[styles.jdgCellHead, styles.jdgPlayerCol]}>{getName(pid)}</Text>
-                    ))}
+
+          {/* ── Header ───────────────────────────────────────────────── */}
+          <View style={styles.sbHeader}>
+            <Text style={styles.sbTitle}>Scoreboard</Text>
+            <Pressable style={styles.sbClose} onPress={onClose} hitSlop={10}>
+              <Text style={styles.sbCloseText}>✕</Text>
+            </Pressable>
+          </View>
+
+          {/* ── Judgement table ──────────────────────────────────────── */}
+          {gameType === 'judgement' ? (() => {
+            const tableContent = (
+              <View>
+                {/* Column headers */}
+                <View style={styles.sbRow}>
+                  <View style={styles.sbRndCell}>
+                    <Text style={styles.sbColHead}>#</Text>
                   </View>
+                  {renderPlayerCells((pid) => (
+                    <Text style={styles.sbColHead} numberOfLines={1}>{getName(pid)}</Text>
+                  ))}
+                </View>
 
-                  <ScrollView style={styles.modalScroll}>
-                    {(roundResults || []).map((rr) => (
-                      <View key={`r-${rr?.roundNumber}`} style={styles.jdgRow}>
-                        <Text style={[styles.jdgCell, styles.jdgRoundCol]}>{rr?.roundNumber}</Text>
-                        {(seatOrder || []).map((pid) => (
-                          <View key={`c-${rr?.roundNumber}-${pid}`} style={[styles.jdgCell, styles.jdgPlayerCol]}>
-                            <Text style={styles.jdgWonBid}>{rr?.tricksWon?.[pid] ?? 0}/{rr?.bids?.[pid] ?? 0}</Text>
-                            <Text style={styles.jdgDelta}>{(rr?.deltas?.[pid] ?? 0) > 0 ? `+${rr?.deltas?.[pid]}` : '✗'}</Text>
-                          </View>
-                        ))}
+                {/* Round rows */}
+                <ScrollView style={styles.sbScroll}>
+                  {(roundResults || []).map((rr, idx) => (
+                    <View
+                      key={`r-${rr?.roundNumber}`}
+                      style={[styles.sbRow, idx % 2 === 0 && styles.sbRowAlt]}
+                    >
+                      <View style={styles.sbRndCell}>
+                        <Text style={styles.sbRndNum}>{rr?.roundNumber}</Text>
                       </View>
-                    ))}
+                      {renderPlayerCells((pid) => {
+                        const won   = rr?.tricksWon?.[pid] ?? 0;
+                        const bid   = rr?.bids?.[pid]      ?? 0;
+                        const delta = rr?.deltas?.[pid]    ?? 0;
+                        const hit   = delta > 0;
+                        return (
+                          <>
+                            <Text style={styles.sbWonBid}>{won}/{bid}</Text>
+                            <Text style={[styles.sbDelta, hit ? styles.sbDeltaHit : styles.sbDeltaMiss]}>
+                              {hit ? `+${delta}` : '✗'}
+                            </Text>
+                          </>
+                        );
+                      })}
+                    </View>
+                  ))}
 
-                    {phase === 'playing' ? (
-                      <View style={styles.jdgRow}>
-                        <Text style={[styles.jdgCell, styles.jdgRoundCol]}>Live</Text>
-                        {(seatOrder || []).map((pid) => (
-                          <View key={`live-${pid}`} style={[styles.jdgCell, styles.jdgPlayerCol]}>
-                            <Text style={styles.jdgWonBid}>{tricksWon?.[pid] || 0}/{bidding?.bids?.[pid] ?? '?'}</Text>
-                          </View>
-                        ))}
+                  {/* Live row */}
+                  {phase === 'playing' ? (
+                    <View style={[styles.sbRow, styles.sbRowLive]}>
+                      <View style={styles.sbRndCell}>
+                        <Text style={styles.sbLiveLabel}>Now</Text>
                       </View>
-                    ) : null}
-
-                    <View style={styles.jdgRowHead}>
-                      <Text style={[styles.jdgCellHead, styles.jdgRoundCol]}>Total</Text>
-                      {(seatOrder || []).map((pid) => (
-                        <Text key={`t-${pid}`} style={[styles.jdgCellHead, styles.jdgPlayerCol]}>{scores?.[pid] || 0}</Text>
+                      {renderPlayerCells((pid) => (
+                        <Text style={styles.sbWonBid}>
+                          {tricksWon?.[pid] || 0}/{bidding?.bids?.[pid] ?? '?'}
+                        </Text>
                       ))}
                     </View>
-                  </ScrollView>
+                  ) : null}
+                </ScrollView>
+
+                {/* Totals footer */}
+                <View style={[styles.sbRow, styles.sbRowTotal]}>
+                  <View style={styles.sbRndCell}>
+                    <Text style={styles.sbTotalLabel} numberOfLines={1}>Total</Text>
+                  </View>
+                  {renderPlayerCells((pid) => (
+                    <Text style={styles.sbTotalValue}>{scores?.[pid] || 0}</Text>
+                  ))}
                 </View>
+              </View>
+            );
+
+            return needsHScroll ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {tableContent}
               </ScrollView>
-            </>
-          ) : (
-            <ScrollView style={styles.modalScroll}>
-              {(seatOrder || []).map((pid) => (
-                <View style={styles.modalRow} key={pid}>
-                  <Text style={styles.modalName}>{getName(pid)}</Text>
-                  <Text style={styles.modalValue}>{scores?.[pid] || 0}</Text>
+            ) : tableContent;
+          })() : (
+
+            /* ── Non-judgement (Kaliteri) ──────────────────────────── */
+            <ScrollView style={styles.sbScroll}>
+              {players.map((pid, idx) => (
+                <View key={pid} style={[styles.sbKalRow, idx % 2 === 0 && styles.sbRowAlt]}>
+                  <Text style={styles.sbKalName} numberOfLines={1}>{getName(pid)}</Text>
+                  <Text style={styles.sbKalScore}>{scores?.[pid] || 0}</Text>
                 </View>
               ))}
             </ScrollView>
           )}
 
-          <Pressable style={styles.modalBtn} onPress={onClose}>
-            <Text style={styles.modalBtnText}>Close</Text>
-          </Pressable>
         </View>
       </View>
     </Modal>
@@ -113,7 +173,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const teams = useSelector((state) => state.game.teams);
   const tricks = useSelector((state) => state.game.tricks);
   const scores = useSelector((state) => state.game.scores);
-  const scoringResult = useSelector((state) => state.game.scoringResult);
   const nextRoundReady = useSelector((state) => state.game.nextRoundReady);
   const finalRankings = useSelector((state) => state.game.finalRankings);
   const partnerCards = useSelector((state) => state.game.partnerCards);
@@ -139,18 +198,9 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const [showDealReveal, setShowDealReveal] = useState(false);
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
   const prevPhaseRef = useRef(phase);
-  const phaseFade = useSharedValue(1);
 
   useEffect(() => {
     const prev = prevPhaseRef.current;
-
-    if (prev !== phase) {
-      phaseFade.value = 0.86;
-      phaseFade.value = withTiming(1, {
-        duration: 240,
-        easing: Easing.out(Easing.cubic),
-      });
-    }
 
     if (prev === 'dealing' && phase === 'bidding' && Array.isArray(myHand) && myHand.length > 0) {
       setShowDealReveal(true);
@@ -162,11 +212,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
     prevPhaseRef.current = phase;
   }, [phase, myHand]);
-
-  const fadeStyle = useAnimatedStyle(() => ({
-    opacity: phaseFade.value,
-    transform: [{ scale: 0.99 + (0.01 * phaseFade.value) }],
-  }));
 
   useEffect(() => {
     if (phase !== 'bidding' || gameType !== 'judgement' || !bidTimeMs) {
@@ -210,6 +255,25 @@ export default function GameBoard({ userId, isAdmin = false }) {
       const isMe = pid === userId;
       const team = teams?.bid?.includes(pid) ? 'bid' : teams?.oppose?.includes(pid) ? 'oppose' : null;
 
+      // Judgement bid/tricks status chip
+      let jdgStatus = null;
+      if (gameType === 'judgement') {
+        if (phase === 'bidding') {
+          const bid = bidding?.bids?.[pid];
+          jdgStatus = bid === undefined
+            ? { label: '?? bid', type: 'waiting' }
+            : { label: `${bid} bid`,  type: 'placed' };
+        } else if (phase === 'playing') {
+          const bid = bidding?.bids?.[pid] ?? '?';
+          const won = tricksWon?.[pid] || 0;
+          const type =
+            typeof bid !== 'number' ? 'under' :
+            won === bid             ? 'on_target' :
+            won >  bid              ? 'over' : 'under';
+          jdgStatus = { label: `${won}/${bid}`, type };
+        }
+      }
+
       return {
         id: pid,
         isMe,
@@ -218,43 +282,36 @@ export default function GameBoard({ userId, isAdmin = false }) {
             name={isMe ? 'You' : getName(pid)}
             avatar={playerAvatars?.[pid] || ''}
             avatarInitial={getName(pid).charAt(0).toUpperCase()}
-            cardCount={isMe ? (myHand?.length || 0) : (handSizes?.[pid] || 0)}
             isTurn={currentTurn === pid}
             isDealer={dealer === pid}
-            team={phase === 'playing' || phase === 'finished' || phase === 'series-finished' ? team : null}
-            tricksWon={gameType === 'judgement' ? tricksWon?.[pid] : null}
+            team={phase === 'playing' || phase === 'series-finished' ? team : null}
+            jdgStatus={jdgStatus}
           />
         ),
       };
     });
-  }, [seatOrder, playerNames, userId, teams, playerAvatars, myHand, handSizes, currentTurn, dealer, phase, gameType, tricksWon]);
+  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon]);
 
   const isMyTurn = phase === 'playing' && Array.isArray(validPlays) && validPlays.length > 0;
   const activeTrump = trumpSuit || powerHouseSuit;
-  const isScorePhase = phase === 'finished' || phase === 'scoring';
   const isSeriesFinished = phase === 'series-finished';
-  const showTable = !isScorePhase && !isSeriesFinished;
+  const showTable = !isSeriesFinished;
 
   const roundText =
     gameType === 'judgement'
       ? `Round ${Number(seriesRoundIndex || 0) + 1}/${totalRoundsInSeries || 1} • Cards ${currentCardsPerRound || 0}`
       : `Round ${currentRound || 0}`;
 
-  const phaseLabel = phase || 'lobby';
-
   return (
     <View style={styles.wrap}>
+      {/* ── Top row ─────────────────────────────────────────────────── */}
       {!isSeriesFinished ? (
         <TeamScoreHUD
-          gameType={gameType}
-          phase={phaseLabel}
-          teams={teams}
-          tricks={tricks}
-          leader={leader}
-          scores={scores}
           roundText={roundText}
           trumpText={activeTrump ? `Trump ${suitSymbol(activeTrump)}` : null}
           onShowScoreboard={() => setShowScoreboard(true)}
+          isAdmin={isAdmin}
+          onQuit={() => setShowQuitConfirm(true)}
         />
       ) : null}
 
@@ -262,8 +319,9 @@ export default function GameBoard({ userId, isAdmin = false }) {
         <PartnerCardDisplay partnerCards={partnerCards || []} powerHouseSuit={powerHouseSuit} getName={getName} />
       ) : null}
 
-      {showTable ? (
-        <Animated.View style={[styles.tableCard, fadeStyle]}>
+      {/* ── Table area — flex: 1 so it fills remaining space ────────── */}
+      <View style={styles.tableArea}>
+        {showTable ? (
           <CircularTable
             players={tablePlayers}
             centerContent={({ seatPositionMap, tableSize }) => {
@@ -278,11 +336,19 @@ export default function GameBoard({ userId, isAdmin = false }) {
               }
 
               if (phase === 'bidding') {
-                const bidder = gameType === 'judgement'
-                  ? bidding?.bidOrder?.[bidding?.currentBidderIndex]
-                  : bidding?.currentBidder;
+                if (gameType === 'judgement') {
+                  return (
+                    <JudgementBiddingPanel
+                      bidding={bidding}
+                      userId={userId}
+                      cardsInRound={currentCardsPerRound || 0}
+                      getName={getName}
+                      bidCountdownSec={judgementBidCountdown}
+                    />
+                  );
+                }
+                const bidder = bidding?.currentBidder;
                 const currentBid = bidding?.currentBid;
-
                 return (
                   <View style={styles.centerInfo}>
                     <Text style={styles.centerTitle}>Bidding</Text>
@@ -308,7 +374,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     />
                   );
                 }
-
                 return <DealingOverlay myHand={myHand || []} dealingConfig={dealingConfig} />;
               }
 
@@ -328,88 +393,47 @@ export default function GameBoard({ userId, isAdmin = false }) {
               }
 
               return (
-                <PlayArea
-                  plays={currentTrick?.plays || []}
-                  tricks={tricks || []}
-                  seatPositionMap={seatPositionMap}
-                  tableSize={tableSize}
-                  getName={getName}
-                  trumpSuit={activeTrump}
-                />
+                <View style={styles.centerPlayWrap}>
+                  {activeTrump ? (
+                    <Text style={[
+                      styles.trumpWatermark,
+                      (activeTrump === 'H' || activeTrump === 'D') && styles.trumpWatermarkRed,
+                    ]}>
+                      {suitSymbol(activeTrump)}
+                    </Text>
+                  ) : null}
+                  <PlayArea
+                    plays={currentTrick?.plays || []}
+                    tricks={tricks || []}
+                    seatPositionMap={seatPositionMap}
+                    tableSize={tableSize}
+                    getName={getName}
+                    trumpSuit={activeTrump}
+                  />
+                </View>
               );
             }}
           />
-        </Animated.View>
-      ) : null}
+        ) : null}
 
-      {showTable && phase !== 'dealing' ? <PlayerHand cards={myHand || []} validPlays={validPlays || []} isMyTurn={isMyTurn} /> : null}
+        {isSeriesFinished ? (
+          <SeriesFinishedPanel
+            finalRankings={finalRankings || []}
+            scores={scores || {}}
+            seatOrder={seatOrder || []}
+            getName={getName}
+            userId={userId}
+          />
+        ) : null}
+      </View>
 
-      {showTable && phase === 'bidding' && !showDealReveal && gameType === 'judgement' ? (
-        <JudgementBiddingPanel
-          bidding={bidding}
-          userId={userId}
-          cardsInRound={currentCardsPerRound || 0}
-          getName={getName}
-          bidCountdownSec={judgementBidCountdown}
-        />
-      ) : null}
-
-      {showTable && phase === 'bidding' && !showDealReveal && gameType !== 'judgement' ? (
-        <BiddingPanel bidding={bidding} userId={userId} getName={getName} />
-      ) : null}
-
-      {isScorePhase && gameType === 'judgement' ? (
-        <JudgementScoreBoard
-          seatOrder={seatOrder || []}
-          roundResults={roundResults || []}
-          scores={scores || {}}
-          getName={getName}
-          trumpCard={trumpCard}
-          trumpSuit={trumpSuit}
-          nextRoundReady={nextRoundReady}
-          userId={userId}
-          scoreboardTimeMs={scoreboardTimeMs || 5000}
-          seriesRoundIndex={seriesRoundIndex || 0}
-          totalRoundsInSeries={totalRoundsInSeries || 1}
-          phase={phase}
-          tricksWon={tricksWon || {}}
-          bidding={bidding || {}}
-        />
-      ) : null}
-
-      {isScorePhase && gameType !== 'judgement' ? (
-        <KaliteriScoreBoard
-          scores={scores || {}}
-          teams={teams || { bid: [], oppose: [] }}
-          tricks={tricks || []}
-          scoringResult={scoringResult}
-          seatOrder={seatOrder || []}
-          getName={getName}
-          nextRoundReady={nextRoundReady}
-          userId={userId}
-          currentGameNumber={currentGameNumber || 1}
-          totalGames={totalGames || 1}
-          onNextRound={WsNextRound}
-        />
-      ) : null}
-
-      {isSeriesFinished ? (
-        <SeriesFinishedPanel
-          finalRankings={finalRankings || []}
-          scores={scores || {}}
-          seatOrder={seatOrder || []}
-          getName={getName}
-          userId={userId}
-        />
-      ) : null}
-
-      {showTable ? (
-        <View style={styles.footerActions}>
-          {isAdmin ? (
-            <Pressable style={styles.dangerBtn} onPress={() => setShowQuitConfirm(true)}>
-              <Text style={styles.dangerBtnText}>Quit Game</Text>
-            </Pressable>
+      {/* ── Hand overlay — absolutely pinned to bottom, sits over the table ── */}
+      {showTable && phase !== 'dealing' ? (
+        <View style={styles.handOverlay} pointerEvents="box-none">
+          {phase === 'bidding' && !showDealReveal && gameType !== 'judgement' ? (
+            <BiddingPanel bidding={bidding} userId={userId} getName={getName} />
           ) : null}
+          <PlayerHand cards={myHand || []} validPlays={validPlays || []} isMyTurn={isMyTurn} />
         </View>
       ) : null}
 
@@ -434,7 +458,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
         onRequestClose={() => setShowQuitConfirm(false)}
       >
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <View style={styles.quitCard}>
             <Text style={styles.modalTitle}>Quit game?</Text>
             <Text style={styles.modalBody}>This will end the active game for everyone in the room.</Text>
             <View style={styles.modalActions}>
@@ -456,6 +480,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
       </Modal>
 
       <DealRevealOverlay
+
         visible={showDealReveal}
         cards={myHand || []}
         durationMs={cardRevealTimeMs || 10000}
@@ -467,12 +492,16 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
 const styles = StyleSheet.create({
   wrap: {
-    gap: spacing.md,
+    flex: 1,
   },
-  tableCard: {
-    ...panelStyle,
-    paddingVertical: spacing.md,
-    overflow: 'hidden',
+  tableArea: {
+    flex: 1,
+  },
+  handOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
   centerInfo: {
     alignItems: 'center',
@@ -489,158 +518,222 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     textAlign: 'center',
   },
-  footerActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
+  centerPlayWrap: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  secondaryBtn: {
-    borderWidth: 1,
-    borderColor: colors.borderGold,
-    borderRadius: 8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 7,
-    ...shadows.shallow,
+  trumpWatermark: {
+    position: 'absolute',
+    fontSize: 88,
+    color: colors.cream,
+    opacity: 0.07,
+    includeFontPadding: false,
   },
-  secondaryBtnText: {
-    color: colors.goldLight,
-    fontFamily: fonts.heading,
-    fontWeight: '700',
-    fontSize: 12,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  dangerBtn: {
-    borderWidth: 1,
-    borderColor: colors.redSuit,
-    borderRadius: 8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 7,
-    ...shadows.shallow,
-  },
-  dangerBtnText: {
+  trumpWatermarkRed: {
     color: colors.redSuit,
-    fontFamily: fonts.heading,
-    fontWeight: '700',
-    fontSize: 12,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
+    opacity: 0.09,
   },
+  // ── Scoreboard modal ──────────────────────────────────────────────────────
   modalBackdrop: {
     flex: 1,
     backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
+    padding: spacing.md,
   },
   modalCard: {
     ...panelStyle,
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 400,
+    padding: 0,
+    overflow: 'hidden',
+    maxHeight: '85%',
+  },
+
+  // Header
+  sbHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.borderGold,
+    gap: spacing.xs,
+  },
+  sbTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.cream,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    flex: 1,
+  },
+  sbClose: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(201,162,39,0.12)',
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sbCloseText: {
+    color: colors.goldLight,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 15,
+  },
+
+  // Table rows
+  sbScroll: {
+    maxHeight: 280,
+  },
+  sbRow: {
+    flexDirection: 'row',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(201,162,39,0.15)',
+  },
+  sbRowAlt: {
+    backgroundColor: 'rgba(255,255,255,0.025)',
+  },
+  sbRowLive: {
+    backgroundColor: 'rgba(201,162,39,0.06)',
+  },
+  sbRowTotal: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderGold,
+    backgroundColor: 'rgba(201,162,39,0.07)',
+  },
+
+  // Cells
+  sbRndCell: {
+    width: RND_CELL_W,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: 'rgba(201,162,39,0.2)',
+  },
+  sbPlayerCell: {
+    flex: 1,                    // stretches to fill remaining row width
+    minWidth: 56,               // prevents crushing on narrow screens
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: 'rgba(201,162,39,0.12)',
+  },
+
+  // Cell text
+  sbColHead: {
+    fontFamily: fonts.heading,
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.gold,
+    letterSpacing: 0.4,
+    textAlign: 'center',
+  },
+  sbRndNum: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    color: colors.creamMuted,
+    textAlign: 'center',
+  },
+  sbWonBid: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.cream,
+    textAlign: 'center',
+    letterSpacing: 0.3,
+  },
+  sbDelta: {
+    fontFamily: fonts.heading,
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 1,
+  },
+  sbDeltaHit: {
+    color: colors.readyLight,
+  },
+  sbDeltaMiss: {
+    color: colors.redSuit,
+  },
+  sbLiveLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 9,
+    color: colors.goldLight,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  sbTotalLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 9,
+    color: colors.goldLight,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  sbTotalValue: {
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.cream,
+    textAlign: 'center',
+  },
+
+  // Kaliteri rows
+  sbKalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.md,
+    paddingVertical: 11,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(201,162,39,0.15)',
+  },
+  sbKalName: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.cream,
+    flex: 1,
+    marginRight: spacing.sm,
+  },
+  sbKalScore: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.gold,
+    minWidth: 40,
+    textAlign: 'right',
+  },
+
+  // ── Quit confirm modal ─────────────────────────────────────────────────────
+  quitCard: {
+    ...panelStyle,
+    width: '100%',
+    maxWidth: 340,
     padding: spacing.md,
     gap: spacing.sm,
-  },
-  modalTitle: {
-    ...typography.title,
-    color: colors.cream,
-  },
-  modalSub: {
-    color: colors.goldLight,
-    fontFamily: fonts.heading,
-    fontWeight: '700',
-    fontSize: 12,
-    letterSpacing: 1,
   },
   modalBody: {
     ...typography.caption,
     color: colors.creamMuted,
     fontFamily: fonts.body,
   },
-  modalScroll: {
-    maxHeight: 260,
-  },
-  modalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderGold,
-  },
-  modalName: {
+  modalTitle: {
+    ...typography.title,
     color: colors.cream,
-    fontFamily: fonts.body,
-    fontWeight: '600',
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  modalValue: {
-    color: colors.gold,
-    fontFamily: fonts.heading,
-    fontWeight: '700',
-    fontSize: 16,
-  },
-  jdgRowHead: {
-    flexDirection: 'row',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderGold,
-  },
-  jdgRow: {
-    flexDirection: 'row',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderGold,
-  },
-  jdgRoundCol: {
-    width: 48,
-  },
-  jdgPlayerCol: {
-    width: 72,
-    textAlign: 'center',
-  },
-  jdgCellHead: {
-    color: colors.goldLight,
-    fontFamily: fonts.heading,
-    fontWeight: '700',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    letterSpacing: 0.5,
-  },
-  jdgCell: {
-    color: colors.cream,
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  jdgWonBid: {
-    color: colors.cream,
-    fontFamily: fonts.body,
-    fontSize: 11,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  jdgDelta: {
-    color: colors.goldLight,
-    fontFamily: fonts.heading,
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  modalBtn: {
-    alignSelf: 'flex-end',
-    borderWidth: 1,
-    borderColor: colors.borderGold,
-    borderRadius: 8,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-  },
-  modalBtnText: {
-    color: colors.goldLight,
-    fontFamily: fonts.heading,
-    fontWeight: '700',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    fontSize: 12,
   },
   modalActions: {
     flexDirection: 'row',
