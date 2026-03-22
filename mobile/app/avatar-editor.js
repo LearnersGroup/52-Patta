@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { router } from 'expo-router';
@@ -15,6 +16,8 @@ import {
   buttonStyles,
   colors,
   fonts,
+  inputFocusStyle,
+  inputStyle,
   panelStyle,
   shadows,
   spacing,
@@ -22,26 +25,36 @@ import {
 } from '../src/styles/theme';
 
 export default function AvatarEditorScreen() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, updateUserName } = useAuth();
 
+  const [name, setName] = useState('');
   const [pendingAvatar, setPendingAvatar] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [focusedField, setFocusedField] = useState(null);
+
+  useEffect(() => {
+    setName(profile?.name || '');
+  }, [profile]);
 
   const handleAvatarChange = useCallback((dataUri) => {
     setPendingAvatar(dataUri);
   }, []);
 
   const handleSave = async () => {
-    if (!pendingAvatar) return;
     setSaving(true);
     setError('');
     try {
-      await update_profile({ avatar: pendingAvatar });
+      const payload = {};
+      if (pendingAvatar) payload.avatar = pendingAvatar;
+      if (name.trim() && name.trim() !== profile?.name) payload.name = name.trim();
+      if (!Object.keys(payload).length) { router.back(); return; }
+      await update_profile(payload);
+      if (payload.name) updateUserName?.(payload.name);
       await refreshProfile();
       router.back();
     } catch (err) {
-      setError(err?.response?.data?.errors?.[0]?.msg || 'Failed to save avatar');
+      setError(err?.response?.data?.errors?.[0]?.msg || 'Failed to save');
     } finally {
       setSaving(false);
     }
@@ -58,12 +71,25 @@ export default function AvatarEditorScreen() {
         <View style={styles.backButton} />
       </View>
 
-      {/* Card container */}
+      {/* Username field */}
+      <View style={styles.nameSection}>
+        <Text style={styles.label}>Display Name</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Display name"
+          placeholderTextColor={colors.creamMuted}
+          style={[styles.input, focusedField === 'name' && styles.inputFocus]}
+          maxLength={50}
+          onFocus={() => setFocusedField('name')}
+          onBlur={() => setFocusedField(null)}
+        />
+      </View>
+
+      {/* Avatar creator */}
       <View style={styles.card}>
-        {/* Corner decorations */}
         <Text style={styles.cornerTL}>♠ ♥</Text>
         <Text style={styles.cornerBR}>♦ ♣</Text>
-
         <AvatarCreator
           initialAvatar={profile?.avatar || null}
           onAvatarChange={handleAvatarChange}
@@ -79,16 +105,13 @@ export default function AvatarEditorScreen() {
 
       {/* Save button */}
       <Pressable
-        style={[
-          styles.saveBtn,
-          (!pendingAvatar || saving) && buttonStyles.disabled,
-        ]}
+        style={[styles.saveBtn, saving && buttonStyles.disabled]}
         onPress={handleSave}
-        disabled={!pendingAvatar || saving}
+        disabled={saving}
       >
         {saving
           ? <ActivityIndicator color={colors.buttonText} />
-          : <Text style={styles.saveBtnText}>Save Avatar</Text>}
+          : <Text style={styles.saveBtnText}>Save</Text>}
       </Pressable>
     </AppBackground>
   );
@@ -101,28 +124,21 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
 
-  // Header row — matches profile screen
+  // Header row
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 0,   // page already has paddingHorizontal
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderGold,
     marginBottom: spacing.md,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 40, height: 40,
+    alignItems: 'center', justifyContent: 'center',
   },
-  backIcon: {
-    fontSize: 24,
-    color: colors.gold,
-    lineHeight: 28,
-  },
+  backIcon: { fontSize: 24, color: colors.gold, lineHeight: 28 },
   title: {
     fontFamily: fonts.heading,
     fontSize: 18,
@@ -133,7 +149,20 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
 
-  // Card
+  // Username
+  nameSection: {
+    gap: 5,
+    marginBottom: spacing.md,
+  },
+  label: {
+    ...typography.label,
+    fontFamily: fonts.heading,
+    color: colors.gold,
+  },
+  input: { ...inputStyle, fontFamily: fonts.body },
+  inputFocus: { ...inputFocusStyle },
+
+  // Avatar card
   card: {
     ...panelStyle,
     ...shadows.deep,
@@ -144,23 +173,15 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   cornerTL: {
-    position: 'absolute',
-    top: 10,
-    left: 12,
-    color: colors.gold,
-    opacity: 0.12,
-    fontSize: 13,
-    letterSpacing: 4,
+    position: 'absolute', top: 10, left: 12,
+    color: colors.gold, opacity: 0.12,
+    fontSize: 13, letterSpacing: 4,
     fontFamily: fonts.heading,
   },
   cornerBR: {
-    position: 'absolute',
-    bottom: 10,
-    right: 12,
-    color: colors.gold,
-    opacity: 0.12,
-    fontSize: 13,
-    letterSpacing: 4,
+    position: 'absolute', bottom: 10, right: 12,
+    color: colors.gold, opacity: 0.12,
+    fontSize: 13, letterSpacing: 4,
     fontFamily: fonts.heading,
   },
 
@@ -173,11 +194,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     marginBottom: spacing.sm,
   },
-  errorText: {
-    color: '#ff9090',
-    fontSize: 13,
-    fontFamily: fonts.body,
-  },
+  errorText: { color: '#ff9090', fontSize: 13, fontFamily: fonts.body },
 
   // Save button
   saveBtn: {
