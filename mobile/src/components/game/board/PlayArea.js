@@ -287,9 +287,13 @@ const styles = StyleSheet.create({
   },
   cardWinning: {
     borderWidth: 2,
-    borderColor: colors.gold,
+    borderColor: 'rgba(146, 111, 20, 0.95)',
     borderRadius: 5,
-    padding: 1,
+    shadowColor: 'rgba(146, 111, 20, 1)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.65,
+    shadowRadius: 9,
+    elevation: 6,
   },
   winningLabel: {
     position: 'absolute',
