@@ -14,17 +14,31 @@ import PlayerHand from '../PlayerHand';
 import { sortCardsBySuit } from '../utils/cardMapper';
 
 const FLIP_MS = 350;
-const HOLD_MS = 500;
 const MOVE_MS = 350;
 const FADE_MS = 400;
+
+/**
+ * Shuffle an array using Fisher-Yates (returns new array).
+ */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 /**
  * DealRevealOverlay
  *
  * After dealing, presents each card face-down in the centre of the screen.
- * The player taps to flip, and the card animates down into a growing hand
- * at the bottom.  After the last card settles the player taps once more to
- * dismiss the backdrop.
+ * Cards are revealed in random order. The player taps to flip, taps again
+ * to move the card to hand and show the next. After the last card settles
+ * the player taps once more to dismiss the backdrop.
+ *
+ * Shows a "next card" back underneath the current card (when not the last).
+ * The settled hand at the bottom is always sorted.
  *
  * If `durationMs` elapses before all cards are revealed, the overlay
  * auto-reveals all remaining cards and dismisses immediately.
@@ -33,23 +47,24 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
   const { width: screenW, height: screenH } = useWindowDimensions();
   const sortedCards = useMemo(() => sortCardsBySuit(cards || []), [cards]);
 
+  // Random reveal order — computed once when overlay opens
+  const [revealOrder, setRevealOrder] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [settledCards, setSettledCards] = useState([]);
-  // idle → flipped → moving → (next idle… ) → complete → done
+  // idle → flipped → moving → (next idle…) → complete → done
   const phaseRef = useRef('idle');
   const [renderTick, setRenderTick] = useState(0);
-  const holdTimerRef = useRef(null);
   const timeoutRef = useRef(null);
 
   // ── Card dimensions ─────────────────────────────────────────────────────
   const bigW = Math.round(screenW * 0.50);
   const bigH = Math.round(bigW * cardTokens.ratio);
-  const smallW = cardTokens.sizes.hand.width;
-  const smallH = cardTokens.sizes.hand.height;
 
   // ── Positions ───────────────────────────────────────────────────────────
   const cardLeft = (screenW - bigW) / 2;
   const startTop = Math.round(screenH * 0.25);
+  const smallW = cardTokens.sizes.hand.width;
+  const smallH = cardTokens.sizes.hand.height;
   const endTop = screenH - 20 - smallH / 2 - bigH / 2;
 
   // ── Shared animation values ─────────────────────────────────────────────
@@ -57,24 +72,24 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
   const move = useSharedValue(0);
   const backdropOp = useSharedValue(0);
 
-  // ── Stable callback refs ────────────────────────────────────────────────
+  // ── Stable callback refs ──────────────────────────────────────────────
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const doClose = useCallback(() => onCloseRef.current?.(), []);
 
-  const sortedCardsRef = useRef(sortedCards);
-  sortedCardsRef.current = sortedCards;
+  const revealOrderRef = useRef(revealOrder);
+  revealOrderRef.current = revealOrder;
 
   // ── Settle: card reached hand position ──────────────────────────────────
   const doSettle = useCallback(() => {
     setCurrentIndex((prevIdx) => {
-      const card = sortedCardsRef.current[prevIdx];
+      const card = revealOrderRef.current[prevIdx];
       if (card) {
         setSettledCards((prev) => sortCardsBySuit([...prev, card]));
       }
 
       const nextIdx = prevIdx + 1;
-      if (nextIdx >= sortedCardsRef.current.length) {
+      if (nextIdx >= revealOrderRef.current.length) {
         // Last card settled — wait for user tap before fading
         phaseRef.current = 'complete';
         setRenderTick((n) => n + 1);
@@ -88,7 +103,7 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
     });
   }, [flip, move]);
 
-  // ── Dismiss: fade backdrop and close ────────────────────────────────────
+  // ── Dismiss: fade backdrop and close ──────────────────────────────────
   const doDismiss = useCallback(() => {
     if (phaseRef.current === 'done') return;
     phaseRef.current = 'done';
@@ -99,10 +114,9 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
     });
   }, [backdropOp, doClose]);
 
-  // ── Move: shrink + slide card to hand ───────────────────────────────────
+  // ── Move: shrink + slide card to hand ─────────────────────────────────
   const doMove = useCallback(() => {
     if (phaseRef.current !== 'flipped') return;
-    clearTimeout(holdTimerRef.current);
     phaseRef.current = 'moving';
     setRenderTick((n) => n + 1);
     move.value = withTiming(
@@ -112,24 +126,27 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
     );
   }, [doSettle, move]);
 
-  // ── Auto-reveal on timeout ──────────────────────────────────────────────
+  // ── Auto-reveal on timeout ────────────────────────────────────────────
   const autoRevealAll = useCallback(() => {
     if (phaseRef.current === 'done') return;
-    clearTimeout(holdTimerRef.current);
+    clearTimeout(timeoutRef.current);
     // Reveal all remaining cards at once
-    setSettledCards(sortCardsBySuit([...sortedCardsRef.current]));
-    setCurrentIndex(sortedCardsRef.current.length);
+    setSettledCards(sortCardsBySuit([...sortedCards]));
+    setCurrentIndex(sortedCards.length);
     // Immediately dismiss
     phaseRef.current = 'done';
     setRenderTick((n) => n + 1);
     backdropOp.value = withTiming(0, { duration: FADE_MS }, (fin) => {
       if (fin) runOnJS(doClose)();
     });
-  }, [backdropOp, doClose]);
+  }, [backdropOp, doClose, sortedCards]);
 
-  // ── Reset on open ───────────────────────────────────────────────────────
+  // ── Reset on open ─────────────────────────────────────────────────────
   useEffect(() => {
     if (visible && sortedCards.length > 0) {
+      const randomized = shuffle(sortedCards);
+      setRevealOrder(randomized);
+      revealOrderRef.current = randomized;
       setCurrentIndex(0);
       setSettledCards([]);
       phaseRef.current = 'idle';
@@ -147,25 +164,23 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
     return () => clearTimeout(timeoutRef.current);
   }, [visible]);
 
-  // ── Cleanup hold timer ──────────────────────────────────────────────────
-  useEffect(() => () => clearTimeout(holdTimerRef.current), []);
-
-  // ── Tap handler ─────────────────────────────────────────────────────────
+  // ── Tap handler ───────────────────────────────────────────────────────
   const handleTap = useCallback(() => {
     const phase = phaseRef.current;
     if (phase === 'idle') {
+      // Flip the current card face-up
       phaseRef.current = 'flipped';
       setRenderTick((n) => n + 1);
       flip.value = withTiming(1, { duration: FLIP_MS, easing: Easing.inOut(Easing.ease) });
-      holdTimerRef.current = setTimeout(doMove, HOLD_MS);
     } else if (phase === 'flipped') {
+      // Move card to hand — next card will appear automatically
       doMove();
     } else if (phase === 'complete') {
       doDismiss();
     }
   }, [doMove, doDismiss, flip]);
 
-  // ── Animated styles ─────────────────────────────────────────────────────
+  // ── Animated styles ───────────────────────────────────────────────────
   const backdropStyle = useAnimatedStyle(() => ({
     opacity: backdropOp.value,
   }));
@@ -181,6 +196,7 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
       width: bigW,
       height: bigH,
       transform: [{ scale }],
+      zIndex: 2,
     };
   });
 
@@ -194,10 +210,11 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
     transform: [{ scaleX: Math.max(0, flip.value * 2 - 1) }],
   }));
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────
   if (!visible || sortedCards.length === 0) return null;
 
-  const currentCard = currentIndex < sortedCards.length ? sortedCards[currentIndex] : null;
+  const currentCard = currentIndex < revealOrder.length ? revealOrder[currentIndex] : null;
+  const isLastCard = currentIndex >= revealOrder.length - 1;
   const phase = phaseRef.current;
   const showCard = (phase === 'idle' || phase === 'flipped' || phase === 'moving') && currentCard;
 
@@ -208,6 +225,13 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
 
       {/* Tap area */}
       <Pressable style={StyleSheet.absoluteFill} onPress={handleTap}>
+        {/* Next card back — peek underneath current card */}
+        {showCard && !isLastCard ? (
+          <View style={[styles.nextBackCard, { left: cardLeft, top: startTop, width: bigW, height: bigH }]}>
+            <CardBack width={bigW} />
+          </View>
+        ) : null}
+
         {/* Big card — flip + move animation */}
         {showCard ? (
           <>
@@ -224,8 +248,10 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
             <View style={[styles.progressWrap, { top: startTop + bigH + 20 }]}>
               <Text style={styles.progressText}>
                 {phase === 'idle'
-                  ? `Tap to reveal  ·  ${currentIndex + 1}/${sortedCards.length}`
-                  : `${currentIndex + 1} / ${sortedCards.length}`}
+                  ? `Tap to reveal  ·  ${currentIndex + 1}/${revealOrder.length}`
+                  : phase === 'flipped'
+                    ? `Tap to continue  ·  ${currentIndex + 1}/${revealOrder.length}`
+                    : `${currentIndex + 1} / ${revealOrder.length}`}
               </Text>
             </View>
           </>
@@ -250,6 +276,11 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
 const styles = StyleSheet.create({
   backdrop: {
     backgroundColor: 'rgba(0,0,0,0.85)',
+  },
+  nextBackCard: {
+    position: 'absolute',
+    zIndex: 1,
+    opacity: 0.5,
   },
   progressWrap: {
     position: 'absolute',

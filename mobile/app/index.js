@@ -97,8 +97,8 @@ export default function HomeScreen() {
       </View>
     );
   }
-  if (!user)                  return <Redirect href="/login" />;
-  if (user?.needs_onboarding) return <Redirect href="/create-user" />;
+  if (!user)                                         return <Redirect href="/login" />;
+  if (user?.needs_onboarding || !user?.user_name)   return <Redirect href="/create-user" />;
 
   const avatarUri  = profile?.avatar || null;
   const playerName = user?.user_name || 'Player';

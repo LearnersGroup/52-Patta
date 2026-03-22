@@ -28,15 +28,32 @@ const PHASE_LABELS = {
 export function registerGameListeners() {
     let previousPhase = null;
 
-    const onGameStateUpdate = (data) => {
-        store.dispatch(updateGameState(data));
+    // Phases where we want a short pause so the last card animation is visible
+    const DELAYED_PHASES = new Set(["scoring", "series-finished", "finished"]);
 
+    const onGameStateUpdate = (data) => {
         const nextPhase = data?.phase || null;
-        if (nextPhase && previousPhase && nextPhase !== previousPhase) {
-            const label = PHASE_LABELS[nextPhase] || `Phase: ${nextPhase}`;
-            store.dispatch(notify(label, "info", 2200));
+        const isDelayed = nextPhase && previousPhase === "playing" && DELAYED_PHASES.has(nextPhase);
+
+        const apply = () => {
+            store.dispatch(updateGameState(data));
+            if (nextPhase && previousPhase && nextPhase !== previousPhase) {
+                const label = PHASE_LABELS[nextPhase] || `Phase: ${nextPhase}`;
+                store.dispatch(notify(label, "info", 2200));
+            }
+            previousPhase = nextPhase;
+        };
+
+        if (isDelayed) {
+            previousPhase = nextPhase;
+            setTimeout(() => {
+                store.dispatch(updateGameState(data));
+                const label = PHASE_LABELS[nextPhase] || `Phase: ${nextPhase}`;
+                store.dispatch(notify(label, "info", 2200));
+            }, 2000);
+        } else {
+            apply();
         }
-        previousPhase = nextPhase;
     };
 
     const onGameError = (error) => {

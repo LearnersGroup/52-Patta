@@ -1,6 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SvgUri } from 'react-native-svg';
-import { WsReturnToLobby } from '../../../api/wsEmitters';
 import { buttonStyles, colors, fonts, panelStyle, shadows, spacing, typography } from '../../../styles/theme';
 import ScoreTable from './ScoreTable';
 
@@ -27,6 +26,7 @@ export default function SeriesFinishedPanel({
   tricksWon = {},
   bidding = {},
   phase,
+  onReturnToLobby,
 }) {
   const rankings = (finalRankings || []).length
     ? finalRankings
@@ -134,7 +134,7 @@ export default function SeriesFinishedPanel({
           </View>
         ) : null}
 
-        <Pressable style={styles.lobbyBtn} onPress={WsReturnToLobby}>
+        <Pressable style={styles.lobbyBtn} onPress={onReturnToLobby}>
           <Text style={styles.lobbyBtnText}>Return to Lobby</Text>
         </Pressable>
       </View>

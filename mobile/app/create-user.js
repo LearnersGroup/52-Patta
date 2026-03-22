@@ -92,9 +92,11 @@ export default function CreateUserScreen() {
   }, [name, nameTouched, seed]);
 
   const needsOnboarding = useMemo(() => {
+    // Keep user on this page if they have no username yet, regardless of the flag
+    if (!user?.user_name) return true;
     if (profile) return !!profile.needsOnboarding;
     return !!user?.needs_onboarding;
-  }, [profile, user?.needs_onboarding]);
+  }, [profile, user?.needs_onboarding, user?.user_name]);
 
   if (!user) {
     return <Redirect href="/login" />;

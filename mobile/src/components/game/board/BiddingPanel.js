@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { WsPassBid, WsPlaceBid } from '../../../api/wsEmitters';
-import { buttonStyles, colors, fonts, panelStyle, pillStyle, shadows, spacing, typography } from '../../../styles/theme';
+import { buttonStyles, colors, fonts, pillStyle, spacing, typography } from '../../../styles/theme';
 
 function toSeconds(targetMs) {
   if (!targetMs) return null;
@@ -115,14 +115,16 @@ export default function BiddingPanel({ bidding, userId, getName }) {
 
 const styles = StyleSheet.create({
   wrap: {
-    ...panelStyle,
-    padding: spacing.md,
+    width: '80%',
     gap: spacing.xs,
     alignItems: 'center',
   },
   title: {
     ...typography.subtitle,
     color: colors.cream,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   bidLabel: {
     ...typography.label,
@@ -135,7 +137,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 36,
     color: colors.gold,
-    textShadowColor: 'rgba(201, 162, 39, 0.4)',
+    textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 8,
   },
@@ -147,7 +149,7 @@ const styles = StyleSheet.create({
   timerPill: {
     ...pillStyle,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     paddingVertical: 4,
     paddingHorizontal: 12,
     marginVertical: spacing.xs,
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 999,
-    backgroundColor: 'rgba(201, 162, 39, 0.1)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     borderWidth: 1,
     borderColor: colors.gold,
     alignItems: 'center',
@@ -220,11 +222,17 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     color: colors.creamMuted,
     fontSize: 12,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   noteSmall: {
     fontFamily: fonts.body,
     color: colors.creamMuted,
     fontSize: 11,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   disabled: {
     ...buttonStyles.disabled,

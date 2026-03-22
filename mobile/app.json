@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "52 Patta Mobile",
+    "name": "52 Patta",
     "slug": "52-patta-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,9 +12,14 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "in.patta52.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "in.patta52.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -27,8 +32,12 @@
     },
     "scheme": "patta52",
     "extra": {
-      "apiBaseUrl": "http://localhost:4000/api",
-      "wsUrl": "http://localhost:4000"
+      "apiBaseUrl": "https://52patta.in/api",
+      "wsUrl": "https://52patta.in",
+      "router": {},
+      "eas": {
+        "projectId": "b7cc5dcf-32b3-4db4-ac8d-38b6c8efd0d8"
+      }
     },
     "plugins": [
       "expo-router",
