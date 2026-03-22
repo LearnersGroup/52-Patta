@@ -1,13 +1,30 @@
 # Changelog — 52 Patta Mobile
 
-## 1.0.1 (2026-03-22)
+## 1.0.1 (build 4) — 2026-03-22
+
+### Added
+- Register page: matches login page styling exactly — AppBackground, title area,
+  Google/Facebook buttons with proper logos and shadows; removed Name field
+- create-user (onboarding): full-screen layout with header, editable username +
+  Random button, flex avatar creator, Continue button pinned to bottom
+- avatar-editor: editable display name field above avatar creator; saves both
+  name and avatar together
 
 ### Fixed
-- App icon: replaced placeholder with 52 Patta card suits logo on dark green felt background
+- Missing profile avatar on home screen after first registration — `completeOnboarding`
+  now awaits `refreshProfile()` before navigating so avatar is ready immediately
+- Unplayable (illegal) cards now dimmed with dark overlay instead of opacity change,
+  matching web app style
+- PowerHouseSelector and BiddingPanel (kaliteri) removed box containers; content
+  floats directly on the play table
+- Card play delay: intended card slot now fires on `onPressIn` instead of `onPress`
+  (removes ~100ms Pressable disambiguation delay)
+
+### Changed
+- Team score HUD layout: left column (controls row + team score row) + right column
+  (partner cards spanning full height of both rows)
+- App icon updated to 52 Patta card suits logo on dark green felt background
 - Splash screen background updated to match app theme (`#0f2a16`)
-- Winning card gold border now sits flush on the card (removed gap); added gold glow shadow matching web app
-- Series finished panel now waits 1.5s after last trick sweep before appearing
-- Judgement: round scoreboard shown for 5s between rounds with "Starting next round in X…" countdown
 
 ## 1.0.0 (2026-03-22)
 Initial TestFlight release.
