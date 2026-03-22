@@ -2,7 +2,6 @@ require('dotenv').config()
 const express = require("express");
 var cors = require("cors");
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
 const Sentry = require("@sentry/node");
 const connectDB = require("./config/db");
 const logger = require("./config/logger");
@@ -120,31 +119,6 @@ app.use(cors({
 app.use(express.json({ extended: false, limit: '2mb' }));
 app.use(passport.initialize());
 
-// Rate limiting for auth endpoints
-const disableRateLimiting = String(process.env.DISABLE_RATE_LIMITING || "").toLowerCase() === "true";
-
-const authLimiter = disableRateLimiting
-    ? (req, res, next) => next()
-    : rateLimit({
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 60, // limit each IP to 60 requests per window
-        message: { errors: [{ msg: "Too many requests, please try again later" }] }
-    });
-app.use("/api/auth", authLimiter);
-app.use("/api/users", authLimiter);
-app.use("/api/oauth", authLimiter);
-
-// Rate limiting for game API endpoints
-const apiLimiter = disableRateLimiting
-    ? (req, res, next) => next()
-    : rateLimit({
-        windowMs: 1 * 60 * 1000, // 1 minute
-        max: 180,
-        message: { errors: [{ msg: "Too many requests, please try again later" }] }
-    });
-app.use("/api/games", apiLimiter);
-app.use("/api/game-rooms", apiLimiter);
-app.use("/api/mygame", apiLimiter);
 
 //define routes
 app.use("/api/users", require("./routes/api/users")); //create user
