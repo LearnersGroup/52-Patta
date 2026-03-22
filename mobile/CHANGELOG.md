@@ -1,6 +1,13 @@
 # Changelog — 52 Patta Mobile
 
-## Unreleased
+## 1.0.2 (build 3) — 2026-03-22
+
+### Added
+- "Games" section on home page with horizontal-scroll game cards (Kaliteri, Judgement); tapping a card opens a dedicated rules screen
+- Full rules screens (`/rules/kaliteri`, `/rules/judgement`) with phased breakdown: Introduction, Shuffling & Dealing, Bidding, PowerHouse & Partner Selection, Playing Tricks, Scoring
+
+### Fixed
+- Intended card play area now sits higher to avoid overlapping the player avatar; shows a persistent dashed outline + arrow indicator even when no card is selected
 
 ### Removed
 - Lobby chat feature removed (`LobbyChat` component + `WsUserSendMsgRoom` socket emitter)
