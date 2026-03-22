@@ -127,7 +127,7 @@ const authLimiter = disableRateLimiting
     ? (req, res, next) => next()
     : rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 20, // limit each IP to 20 requests per window
+        max: 60, // limit each IP to 60 requests per window
         message: { errors: [{ msg: "Too many requests, please try again later" }] }
     });
 app.use("/api/auth", authLimiter);
@@ -139,7 +139,7 @@ const apiLimiter = disableRateLimiting
     ? (req, res, next) => next()
     : rateLimit({
         windowMs: 1 * 60 * 1000, // 1 minute
-        max: 60,
+        max: 180,
         message: { errors: [{ msg: "Too many requests, please try again later" }] }
     });
 app.use("/api/games", apiLimiter);
