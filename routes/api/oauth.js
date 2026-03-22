@@ -10,6 +10,8 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 function handleOAuthCallback(req, res, provider) {
     const user = req.user;
+    // If a mobile redirect_uri was stashed in state, use it instead of CLIENT_URL
+    const mobileRedirect = req._oauthRedirectUri;
 
     const payload = {
         user: {
@@ -24,11 +26,17 @@ function handleOAuthCallback(req, res, provider) {
         { expiresIn: '24h' },
         (err, token) => {
             if (err) {
-                return res.redirect(`${CLIENT_URL}/login?error=token_failed`);
+                const base = mobileRedirect || CLIENT_URL;
+                return res.redirect(`${base}/login?error=token_failed`);
             }
             const userName = encodeURIComponent(user.name);
             const needsOnboarding = user.needsOnboarding ? '1' : '0';
-            res.redirect(`${CLIENT_URL}/oauth-callback?token=${token}&user_name=${userName}&needs_onboarding=${needsOnboarding}`);
+            const params = `token=${token}&user_name=${userName}&needs_onboarding=${needsOnboarding}`;
+            if (mobileRedirect) {
+                // Deep link back to mobile app: patta52://oauth-callback?token=...
+                return res.redirect(`${mobileRedirect}?${params}`);
+            }
+            res.redirect(`${CLIENT_URL}/oauth-callback?${params}`);
         }
     );
 }
@@ -53,14 +61,22 @@ router.get('/google', (req, res, next) => {
         });
     }
 
-    passport.authenticate('google', { scope: ['profile', 'email'], session: false })(req, res, next);
+    // If mobile client passes redirect_uri, encode it in state so callback can use it
+    const mobileRedirect = req.query.redirect_uri;
+    const state = mobileRedirect ? `mobile:${mobileRedirect}` : undefined;
+    passport.authenticate('google', { scope: ['profile', 'email'], session: false, state })(req, res, next);
 });
 
 // @route   GET /api/oauth/google/callback
 // @desc    Google OAuth callback
 router.get('/google/callback', (req, res, next) => {
     const state = decodeURIComponent(req.query.state || '');
-    if (state.startsWith('link:')) {
+
+    // Extract mobile redirect URI from state if present
+    let mobileRedirect = null;
+    if (state.startsWith('mobile:')) {
+        mobileRedirect = state.slice(7); // e.g. patta52://oauth-callback
+    } else if (state.startsWith('link:')) {
         const userId = linkNonce.consume(state.slice(5));
         if (!userId) {
             return res.redirect(`${CLIENT_URL}/profile?error=link_expired`);
@@ -70,20 +86,22 @@ router.get('/google/callback', (req, res, next) => {
 
     passport.authenticate('google', { session: false }, (err, user, info) => {
         if (err) return next(err);
+        const errorBase = mobileRedirect || CLIENT_URL;
         if (!user) {
             if (info && info.message === 'email_exists_different_provider') {
                 const ep = encodeURIComponent(info.existingProvider || '');
-                return res.redirect(`${CLIENT_URL}/login?error=email_exists_different_provider&existing_provider=${ep}`);
+                return res.redirect(`${errorBase}/login?error=email_exists_different_provider&existing_provider=${ep}`);
             }
 
             if (req.linkingUserId) {
                 return res.redirect(`${CLIENT_URL}/profile?error=oauth_failed`);
             }
 
-            return res.redirect(`${CLIENT_URL}/login?error=oauth_failed`);
+            return res.redirect(`${errorBase}/login?error=oauth_failed`);
         }
 
         req.user = user;
+        req._oauthRedirectUri = mobileRedirect; // Pass to handleOAuthCallback
         if (req.linkingUserId) {
             return res.redirect(`${CLIENT_URL}/profile?linked=google`);
         }
@@ -112,14 +130,20 @@ router.get('/facebook', (req, res, next) => {
         });
     }
 
-    passport.authenticate('facebook', { scope: ['email'], session: false })(req, res, next);
+    const mobileRedirect = req.query.redirect_uri;
+    const state = mobileRedirect ? `mobile:${mobileRedirect}` : undefined;
+    passport.authenticate('facebook', { scope: ['email'], session: false, state })(req, res, next);
 });
 
 // @route   GET /api/oauth/facebook/callback
 // @desc    Facebook OAuth callback
 router.get('/facebook/callback', (req, res, next) => {
     const state = decodeURIComponent(req.query.state || '');
-    if (state.startsWith('link:')) {
+
+    let mobileRedirect = null;
+    if (state.startsWith('mobile:')) {
+        mobileRedirect = state.slice(7);
+    } else if (state.startsWith('link:')) {
         const userId = linkNonce.consume(state.slice(5));
         if (!userId) {
             return res.redirect(`${CLIENT_URL}/profile?error=link_expired`);
@@ -129,20 +153,22 @@ router.get('/facebook/callback', (req, res, next) => {
 
     passport.authenticate('facebook', { session: false }, (err, user, info) => {
         if (err) return next(err);
+        const errorBase = mobileRedirect || CLIENT_URL;
         if (!user) {
             if (info && info.message === 'email_exists_different_provider') {
                 const ep = encodeURIComponent(info.existingProvider || '');
-                return res.redirect(`${CLIENT_URL}/login?error=email_exists_different_provider&existing_provider=${ep}`);
+                return res.redirect(`${errorBase}/login?error=email_exists_different_provider&existing_provider=${ep}`);
             }
 
             if (req.linkingUserId) {
                 return res.redirect(`${CLIENT_URL}/profile?error=oauth_failed`);
             }
 
-            return res.redirect(`${CLIENT_URL}/login?error=oauth_failed`);
+            return res.redirect(`${errorBase}/login?error=oauth_failed`);
         }
 
         req.user = user;
+        req._oauthRedirectUri = mobileRedirect;
         if (req.linkingUserId) {
             return res.redirect(`${CLIENT_URL}/profile?linked=facebook`);
         }
