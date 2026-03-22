@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
@@ -31,7 +31,7 @@ import TrumpAnnouncePanel from './TrumpAnnouncePanel';
 
 const INTENDED_W = Math.round(cardTokens.sizes.play.width * 0.8);  // 20% smaller
 
-function IntendedCardSlot({ card, shouldBounce, onPress }) {
+const IntendedCardSlot = memo(function IntendedCardSlot({ card, shouldBounce, onPress }) {
   const bounce = useSharedValue(0);
 
   useEffect(() => {
@@ -66,9 +66,9 @@ function IntendedCardSlot({ card, shouldBounce, onPress }) {
       </Animated.View>
     </Pressable>
   );
-}
+});
 
-function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase }) {
+const ScoreboardModal = memo(function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
@@ -97,10 +97,10 @@ function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameTyp
       </View>
     </Modal>
   );
-}
+});
 
 /* ── Partner reveal announcement toast ── */
-function RevealAnnouncement({ playerName, bidderName }) {
+const RevealAnnouncement = memo(function RevealAnnouncement({ playerName, bidderName }) {
   return (
     <View style={styles.revealToast}>
       <Text style={styles.revealText}>
@@ -111,7 +111,7 @@ function RevealAnnouncement({ playerName, bidderName }) {
       </Text>
     </View>
   );
-}
+});
 
 export default function GameBoard({ userId, isAdmin = false }) {
   const dispatch = useDispatch();
@@ -257,7 +257,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
     return () => clearInterval(timer);
   }, [phase, gameType, bidTimeMs, bidding?.currentBidderIndex]);
 
-  const getName = (pid) => playerNames?.[pid] || pid?.slice?.(0, 8) || 'Player';
+  const getName = useCallback((pid) => playerNames?.[pid] || pid?.slice?.(0, 8) || 'Player', [playerNames]);
 
   const currentTurn = useMemo(() => {
     if (phase === 'bidding') {

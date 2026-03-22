@@ -1,5 +1,13 @@
 # Changelog — 52 Patta Mobile
 
+## Unreleased
+
+### Performance
+- `PlayerSeat`: wrapped with `memo()` — prevents re-renders when seat data is unchanged (impacts all in-game seat updates)
+- `LobbyPlayerList`: wrapped with `memo()` — prevents re-renders when parent re-renders without changed player data
+- `LobbyChat`: wrapped with `memo()`; `send` and `renderItem` memoized with `useCallback`; FlatList tuned (`initialNumToRender`, `maxToRenderPerBatch`, `windowSize`, `removeClippedSubviews`); auto-scrolls to newest message
+- `GameBoard`: `getName` wrapped with `useCallback` — stable reference avoids unnecessary child re-renders; inner components `IntendedCardSlot`, `ScoreboardModal`, `RevealAnnouncement` wrapped with `memo()`
+
 ## 1.0.1 (build 4) — 2026-03-22
 
 ### Added

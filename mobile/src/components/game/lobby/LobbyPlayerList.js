@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SvgUri } from 'react-native-svg';
 import {
@@ -19,7 +19,7 @@ function getPlayerId(player) {
   return player?.playerId?._id?.toString?.() || player?.playerId?.toString?.() || '';
 }
 
-export default function LobbyPlayerList({ players = [], isAdmin = false, userId = '', onKick }) {
+const LobbyPlayerList = memo(function LobbyPlayerList({ players = [], isAdmin = false, userId = '', onKick }) {
   const [kickTarget, setKickTarget] = useState(null); // { pid, name }
   const [gridWidth, setGridWidth] = useState(0);
 
@@ -103,7 +103,9 @@ export default function LobbyPlayerList({ players = [], isAdmin = false, userId 
       </Modal>
     </>
   );
-}
+});
+
+export default LobbyPlayerList;
 
 const styles = StyleSheet.create({
   emptyText: {

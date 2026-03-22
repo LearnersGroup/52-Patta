@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { WsUserSendMsgRoom } from '../../../api/wsEmitters';
 import {
@@ -11,19 +11,34 @@ import {
   typography,
 } from '../../../styles/theme';
 
-export default function LobbyChat({ messages = [] }) {
+const ChatMessage = memo(function ChatMessage({ text }) {
+  return <Text style={styles.message}>• {text}</Text>;
+});
+
+const LobbyChat = memo(function LobbyChat({ messages = [] }) {
   const [draft, setDraft] = useState('');
+  const flatListRef = useRef(null);
 
   const normalized = useMemo(() => {
     return (messages || []).map((m, idx) => ({ id: `${idx}_${String(m).slice(0, 20)}`, text: String(m) }));
   }, [messages]);
 
-  const send = () => {
+  // Auto-scroll to newest message when messages change
+  useEffect(() => {
+    if (normalized.length > 0) {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }
+  }, [normalized.length]);
+
+  const send = useCallback(() => {
     const msg = draft.trim();
     if (!msg) return;
     WsUserSendMsgRoom(msg);
     setDraft('');
-  };
+  }, [draft]);
+
+  const renderItem = useCallback(({ item }) => <ChatMessage text={item.text} />, []);
+  const keyExtractor = useCallback((item) => item.id, []);
 
   return (
     <View style={styles.wrap}>
@@ -32,9 +47,15 @@ export default function LobbyChat({ messages = [] }) {
       <View style={styles.chatBox}>
         {normalized.length ? (
           <FlatList
+            ref={flatListRef}
             data={normalized}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => <Text style={styles.message}>• {item.text}</Text>}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+            initialNumToRender={20}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews
+            keyboardShouldPersistTaps="handled"
           />
         ) : (
           <Text style={styles.empty}>No messages yet.</Text>
@@ -56,7 +77,9 @@ export default function LobbyChat({ messages = [] }) {
       </View>
     </View>
   );
-}
+});
+
+export default LobbyChat;
 
 const styles = StyleSheet.create({
   wrap: {
