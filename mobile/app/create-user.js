@@ -1,53 +1,29 @@
 import { Redirect } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import AvatarCreator from '../src/components/auth/AvatarCreator';
 import { update_profile } from '../src/api/apiHandler';
 import { useAuth } from '../src/hooks/useAuth';
+import AppBackground from '../src/components/shared/AppBackground';
 import {
   buttonStyles,
   colors,
   fonts,
   inputFocusStyle,
   inputStyle,
-  panelStyle,
   spacing,
   typography,
 } from '../src/styles/theme';
 
-const NAME_ADJECTIVES = [
-  'Lucky',
-  'Royal',
-  'Swift',
-  'Mighty',
-  'Golden',
-  'Bold',
-  'Fierce',
-  'Epic',
-  'Clever',
-  'Turbo',
-];
-
-const NAME_NOUNS = [
-  'Ace',
-  'Raja',
-  'Falcon',
-  'Tiger',
-  'Jack',
-  'Queen',
-  'Wizard',
-  'Player',
-  'Patta',
-  'Champion',
-];
+const NAME_ADJECTIVES = ['Lucky','Royal','Swift','Mighty','Golden','Bold','Fierce','Epic','Clever','Turbo'];
+const NAME_NOUNS = ['Ace','Raja','Falcon','Tiger','Jack','Queen','Wizard','Player','Patta','Champion'];
 
 const hashSeed = (value) => {
   const source = String(value || 'seed');
@@ -68,7 +44,7 @@ const generateNameFromSeed = (seedValue) => {
 
 export default function CreateUserScreen() {
   const { user, profile, refreshProfile, completeOnboarding } = useAuth();
-  const [name, setName] = useState(user?.user_name || '');
+  const [name, setName] = useState('');
   const [avatar, setAvatar] = useState('');
   const [seed, setSeed] = useState('');
   const [nameTouched, setNameTouched] = useState(false);
@@ -76,9 +52,7 @@ export default function CreateUserScreen() {
   const [error, setError] = useState(null);
   const [focusedField, setFocusedField] = useState(null);
 
-  useEffect(() => {
-    refreshProfile();
-  }, [refreshProfile]);
+  useEffect(() => { refreshProfile(); }, [refreshProfile]);
 
   useEffect(() => {
     if (!profile) return;
@@ -92,19 +66,16 @@ export default function CreateUserScreen() {
   }, [name, nameTouched, seed]);
 
   const needsOnboarding = useMemo(() => {
-    // Keep user on this page if they have no username yet, regardless of the flag
     if (!user?.user_name) return true;
     if (profile) return !!profile.needsOnboarding;
     return !!user?.needs_onboarding;
   }, [profile, user?.needs_onboarding, user?.user_name]);
 
-  if (!user) {
-    return <Redirect href="/login" />;
-  }
+  const handleAvatarChange = useCallback((dataUri) => { setAvatar(dataUri); }, []);
+  const handleSeedChange = useCallback((s) => { setSeed(s); }, []);
 
-  if (!needsOnboarding) {
-    return <Redirect href="/" />;
-  }
+  if (!user) return <Redirect href="/login" />;
+  if (!needsOnboarding) return <Redirect href="/" />;
 
   const onRandomName = () => {
     setNameTouched(true);
@@ -113,19 +84,16 @@ export default function CreateUserScreen() {
 
   const onContinue = async () => {
     if (!name?.trim()) {
-      setError('Please enter a name to continue.');
+      setError('Please enter a display name to continue.');
       return;
     }
-
     try {
       setSaving(true);
       setError(null);
       const payload = { name: name.trim() };
-
       if (typeof avatar === 'string' && avatar.startsWith('data:image/svg+xml')) {
         payload.avatar = avatar;
       }
-
       await update_profile(payload);
       await completeOnboarding(name.trim());
     } catch (e) {
@@ -136,155 +104,170 @@ export default function CreateUserScreen() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.card}>
-        <Text style={styles.suitTopLeft}>{'\u2660 \u2665'}</Text>
-        <Text style={styles.suitBottomRight}>{'\u2666 \u2663'}</Text>
+    <AppBackground style={styles.page}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerSpacer} />
+        <Text style={styles.headerTitle}>Create Profile</Text>
+        <View style={styles.headerSpacer} />
+      </View>
 
-        <Text style={styles.heading}>Create Username</Text>
-        <Text style={styles.subtext}>Finish your profile before entering the lobby.</Text>
-
+      {/* Username row */}
+      <View style={styles.nameSection}>
         <Text style={styles.label}>Display Name</Text>
-        <View style={styles.randomNameRow}>
+        <View style={styles.nameRow}>
           <TextInput
             value={name}
-            onChangeText={(value) => {
-              setNameTouched(true);
-              setName(value);
-            }}
+            onChangeText={(v) => { setNameTouched(true); setName(v); }}
             placeholder="Choose your display name"
             placeholderTextColor={colors.creamMuted}
-            style={[styles.input, styles.grow, focusedField === 'name' && styles.inputFocus]}
+            style={[styles.input, styles.nameInput, focusedField === 'name' && styles.inputFocus]}
             maxLength={50}
             onFocus={() => setFocusedField('name')}
             onBlur={() => setFocusedField(null)}
           />
-          <Pressable style={styles.secondaryButton} onPress={onRandomName}>
-            <Text style={styles.secondaryButtonText}>Random</Text>
+          <Pressable style={styles.randomBtn} onPress={onRandomName}>
+            <Text style={styles.randomBtnText}>Random</Text>
           </Pressable>
         </View>
+      </View>
 
+      {/* Avatar creator — fills remaining space */}
+      <View style={styles.card}>
+        <Text style={styles.cornerTL}>♠ ♥</Text>
+        <Text style={styles.cornerBR}>♦ ♣</Text>
         <AvatarCreator
           initialAvatar={profile?.avatar || ''}
-          onAvatarChange={setAvatar}
-          onSeedChange={setSeed}
+          onAvatarChange={handleAvatarChange}
+          onSeedChange={handleSeedChange}
         />
-
-        {error ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        ) : null}
-
-        <TouchableOpacity
-          style={[styles.primaryButton, saving && buttonStyles.disabled]}
-          onPress={onContinue}
-          disabled={saving}
-        >
-          {saving ? (
-            <ActivityIndicator color={colors.buttonText} />
-          ) : (
-            <Text style={styles.primaryButtonText}>Continue to Lobby</Text>
-          )}
-        </TouchableOpacity>
       </View>
-    </View>
+
+      {/* Error */}
+      {error ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      ) : null}
+
+      {/* Continue button */}
+      <Pressable
+        style={[styles.continueBtn, saving && buttonStyles.disabled]}
+        onPress={onContinue}
+        disabled={saving}
+      >
+        {saving
+          ? <ActivityIndicator color={colors.buttonText} />
+          : <Text style={styles.continueBtnText}>Continue to Lobby</Text>}
+      </Pressable>
+    </AppBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  page: {
     flex: 1,
-    backgroundColor: colors.bgDeep,
-    justifyContent: 'center',
-    padding: spacing.lg,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.md,
   },
-  card: {
-    ...panelStyle,
-    padding: spacing.lg,
-    gap: spacing.md,
-    position: 'relative',
-    overflow: 'hidden',
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderGold,
+    marginBottom: spacing.md,
   },
-  suitTopLeft: {
-    position: 'absolute',
-    top: 10,
-    left: 12,
-    fontSize: 28,
-    color: colors.gold,
-    opacity: 0.12,
-  },
-  suitBottomRight: {
-    position: 'absolute',
-    bottom: 10,
-    right: 12,
-    fontSize: 28,
-    color: colors.gold,
-    opacity: 0.12,
-  },
-  heading: {
-    ...typography.heading,
+  headerSpacer: { width: 40 },
+  headerTitle: {
     fontFamily: fonts.heading,
+    fontSize: 18,
     color: colors.gold,
-    letterSpacing: 1.5,
-    textAlign: 'center',
-    textShadowColor: 'rgba(201, 162, 39, 0.4)',
+    letterSpacing: 2,
+    textShadowColor: 'rgba(201, 162, 39, 0.35)',
     textShadowOffset: { width: 0, height: 0 },
     textShadowRadius: 8,
   },
-  subtext: {
-    ...typography.bodySmall,
-    fontFamily: fonts.body,
-    color: colors.creamMuted,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
+
+  // Username section
+  nameSection: {
+    gap: 5,
+    marginBottom: spacing.md,
   },
   label: {
     ...typography.label,
     fontFamily: fonts.heading,
     color: colors.gold,
   },
-  randomNameRow: {
+  nameRow: {
     flexDirection: 'row',
-    gap: spacing.sm,
     alignItems: 'center',
+    gap: spacing.sm,
   },
-  grow: {
-    flex: 1,
-  },
+  nameInput: { flex: 1 },
   input: {
     ...inputStyle,
     fontFamily: fonts.body,
   },
-  inputFocus: {
-    ...inputFocusStyle,
-  },
-  secondaryButton: {
+  inputFocus: { ...inputFocusStyle },
+  randomBtn: {
     ...buttonStyles.base,
     ...buttonStyles.secondary,
   },
-  secondaryButtonText: {
-    ...buttonStyles.secondaryText,
+  randomBtnText: { ...buttonStyles.secondaryText },
+
+  // Avatar card
+  card: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    borderRadius: 12,
+    backgroundColor: colors.bgPanel,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  errorContainer: {
+  cornerTL: {
+    position: 'absolute', top: 10, left: 12,
+    color: colors.gold, opacity: 0.12,
+    fontSize: 13, letterSpacing: 4,
+    fontFamily: fonts.heading,
+  },
+  cornerBR: {
+    position: 'absolute', bottom: 10, right: 12,
+    color: colors.gold, opacity: 0.12,
+    fontSize: 13, letterSpacing: 4,
+    fontFamily: fonts.heading,
+  },
+
+  // Error
+  errorBox: {
     backgroundColor: colors.dangerBg,
     borderWidth: 1,
     borderColor: colors.dangerBorder,
     borderRadius: 7,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
   },
   errorText: {
-    color: colors.redSuit,
+    color: '#ff9090',
+    fontSize: 13,
     fontFamily: fonts.body,
-    fontSize: 14,
   },
-  primaryButton: {
+
+  // Continue button
+  continueBtn: {
     ...buttonStyles.base,
     ...buttonStyles.primary,
     ...buttonStyles.full,
+    paddingVertical: 14,
   },
-  primaryButtonText: {
+  continueBtnText: {
     ...buttonStyles.primaryText,
+    fontFamily: fonts.heading,
   },
 });

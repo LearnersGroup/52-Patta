@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -160,6 +160,9 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
   const [intendedCard, setIntendedCard] = useState(null);
   const [revealAnnouncement, setRevealAnnouncement] = useState(null);
+  const [showRoundScore, setShowRoundScore] = useState(false);
+  const [roundScoreCountdown, setRoundScoreCountdown] = useState(0);
+  const [showSeriesFinished, setShowSeriesFinished] = useState(false);
   const prevPhaseRef = useRef(phase);
   const prevRevealedPartnersRef = useRef(revealedPartners || []);
   const revealAnnouncementTimerRef = useRef(null);
@@ -205,6 +208,34 @@ export default function GameBoard({ userId, isAdmin = false }) {
   useEffect(() => () => {
     if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
   }, []);
+
+  // ── Round scoreboard (Judgement: show scores for scoreboardTimeMs after each round) ──
+  useEffect(() => {
+    if (phase !== 'scoring' || gameType !== 'judgement') {
+      setShowRoundScore(false);
+      return;
+    }
+    const durationMs = scoreboardTimeMs || 5000;
+    setShowRoundScore(true);
+    const started = Date.now();
+    setRoundScoreCountdown(Math.ceil(durationMs / 1000));
+    const interval = setInterval(() => {
+      const leftMs = Math.max(0, durationMs - (Date.now() - started));
+      setRoundScoreCountdown(Math.ceil(leftMs / 1000));
+      if (leftMs <= 0) clearInterval(interval);
+    }, 250);
+    return () => clearInterval(interval);
+  }, [phase, gameType, scoreboardTimeMs]);
+
+  // ── Delay series-finished panel so trick sweep animation can finish ──
+  useEffect(() => {
+    if (phase === 'series-finished') {
+      const t = setTimeout(() => setShowSeriesFinished(true), 1500);
+      return () => clearTimeout(t);
+    }
+    setShowSeriesFinished(false);
+    return undefined;
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== 'bidding' || gameType !== 'judgement' || !bidTimeMs) {
@@ -315,7 +346,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
   const isMyTurn = phase === 'playing' && Array.isArray(validPlays) && validPlays.length > 0;
   const activeTrump = trumpSuit || powerHouseSuit;
-  const isSeriesFinished = phase === 'series-finished';
+  const isSeriesFinished = showSeriesFinished;
   const showTable = !isSeriesFinished;
 
   // Clear intended card when it's no longer in hand or phase changes away from playing
@@ -509,6 +540,30 @@ export default function GameBoard({ userId, isAdmin = false }) {
             onSelectCard={handleSelectCard}
             intendedCard={intendedCard}
           />
+        </View>
+      ) : null}
+
+      {/* ── Round scoreboard overlay (Judgement only) ── */}
+      {showRoundScore ? (
+        <View style={styles.roundScoreOverlay}>
+          <View style={styles.roundScoreCard}>
+            <Text style={styles.roundScoreTitle}>Round Complete</Text>
+            <Text style={styles.roundScoreCountdown}>
+              Starting next round in {roundScoreCountdown}…
+            </Text>
+            <ScrollView style={{ maxHeight: 320 }}>
+              <ScoreTable
+                seatOrder={seatOrder || []}
+                scores={scores || {}}
+                getName={getName}
+                gameType={gameType}
+                roundResults={roundResults || []}
+                tricksWon={tricksWon || {}}
+                bidding={bidding || {}}
+                phase={phase}
+              />
+            </ScrollView>
+          </View>
         </View>
       ) : null}
 
@@ -775,5 +830,38 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     fontSize: 12,
+  },
+
+  // ── Round scoreboard overlay ──────────────────────────────────────────────
+  roundScoreOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(5, 12, 7, 0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+    zIndex: 50,
+  },
+  roundScoreCard: {
+    ...panelStyle,
+    width: '100%',
+    maxWidth: 400,
+    padding: spacing.md,
+    gap: spacing.sm,
+    overflow: 'hidden',
+  },
+  roundScoreTitle: {
+    ...typography.subtitle,
+    color: colors.goldLight,
+    fontFamily: fonts.heading,
+    textAlign: 'center',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  roundScoreCountdown: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.creamMuted,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });

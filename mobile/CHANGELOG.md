@@ -1,5 +1,14 @@
 # Changelog — 52 Patta Mobile
 
+## 1.0.1 (2026-03-22)
+
+### Fixed
+- App icon: replaced placeholder with 52 Patta card suits logo on dark green felt background
+- Splash screen background updated to match app theme (`#0f2a16`)
+- Winning card gold border now sits flush on the card (removed gap); added gold glow shadow matching web app
+- Series finished panel now waits 1.5s after last trick sweep before appearing
+- Judgement: round scoreboard shown for 5s between rounds with "Starting next round in X…" countdown
+
 ## 1.0.0 (2026-03-22)
 Initial TestFlight release.
 
