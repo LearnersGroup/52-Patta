@@ -67,6 +67,8 @@ function inspectPosition(seatDir) {
   };
 }
 
+const EASE_SLIDE = { duration: 320, easing: Easing.out(Easing.cubic) };
+
 function AnimatedTrickCard({
   play,
   target,
@@ -78,6 +80,16 @@ function AnimatedTrickCard({
 }) {
   const flyProgress = useSharedValue(isEntering ? 0 : 1);
   const sweepProgress = useSharedValue(0);
+  const targetX = useSharedValue(target.x);
+  const targetY = useSharedValue(target.y);
+  const targetRot = useSharedValue(target.rotate);
+
+  // Animate target changes (inspect mode transitions)
+  useEffect(() => {
+    targetX.value = withTiming(target.x, EASE_SLIDE);
+    targetY.value = withTiming(target.y, EASE_SLIDE);
+    targetRot.value = withTiming(target.rotate, EASE_SLIDE);
+  }, [target.x, target.y, target.rotate, targetX, targetY, targetRot]);
 
   useEffect(() => {
     if (isEntering) {
@@ -103,11 +115,11 @@ function AnimatedTrickCard({
   }, [isSweeping, sweepProgress]);
 
   const animStyle = useAnimatedStyle(() => {
-    const baseX = seatDir.x + (target.x - seatDir.x) * flyProgress.value;
-    const baseY = seatDir.y + (target.y - seatDir.y) * flyProgress.value;
+    const baseX = seatDir.x + (targetX.value - seatDir.x) * flyProgress.value;
+    const baseY = seatDir.y + (targetY.value - seatDir.y) * flyProgress.value;
     const x = baseX + (winnerDir.x - baseX) * sweepProgress.value;
     const y = baseY + (winnerDir.y - baseY) * sweepProgress.value;
-    const rot = target.rotate * (1 - sweepProgress.value);
+    const rot = targetRot.value * (1 - sweepProgress.value);
 
     return {
       transform: [

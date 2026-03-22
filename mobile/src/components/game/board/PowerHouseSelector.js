@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { WsSelectPartners, WsSelectPowerHouse } from '../../../api/wsEmitters';
-import { buttonStyles, colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
+import { buttonStyles, colors, fonts, spacing, typography } from '../../../styles/theme';
 import CardFace from '../CardFace';
 import { isRedSuit, suitSymbol } from '../utils/cardMapper';
 
@@ -247,18 +247,12 @@ export default function PowerHouseSelector({
 
 const styles = StyleSheet.create({
   wrap: {
-    ...panelStyle,
-    width: '100%',
-    maxWidth: 300,
-    padding: spacing.md,
+    width: '80%',
     alignItems: 'center',
     gap: spacing.sm,
   },
   wrapTall: {
-    ...panelStyle,
-    width: '100%',
-    maxWidth: 320,
-    padding: spacing.md,
+    width: '80%',
     gap: spacing.sm,
     maxHeight: 340,
   },
@@ -266,6 +260,9 @@ const styles = StyleSheet.create({
     ...typography.subtitle,
     color: colors.cream,
     textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontFamily: fonts.body,
@@ -273,11 +270,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   note: {
     fontFamily: fonts.body,
     color: colors.creamMuted,
     fontSize: 12,
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   suitLarge: {
     fontSize: 44,
@@ -303,7 +306,7 @@ const styles = StyleSheet.create({
   },
   suitBtn: {
     width: 68,
-    backgroundColor: colors.bgInput,
+    backgroundColor: 'rgba(0,0,0,0.45)',
     borderWidth: 1,
     borderColor: colors.gold,
     borderRadius: 10,
@@ -382,8 +385,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   copyPickerPanel: {
-    ...panelStyle,
+    backgroundColor: 'rgba(0,0,0,0.6)',
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.borderGold,
     padding: spacing.sm,
     gap: spacing.xs,
   },

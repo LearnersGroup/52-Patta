@@ -7,8 +7,9 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { useSelector } from 'react-redux';
-import { WsPlayCard, WsQuitGame } from '../../../api/wsEmitters';
+import { useDispatch, useSelector } from 'react-redux';
+import { resetGame } from '../../../redux/slices/game';
+import { WsPlayCard, WsQuitGame, WsReturnToLobby } from '../../../api/wsEmitters';
 import { cardTokens, colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
 import CardFace from '../CardFace';
 import PlayerHand from '../PlayerHand';
@@ -19,7 +20,6 @@ import CircularTable from './CircularTable';
 import DealRevealOverlay from './DealRevealOverlay';
 import DealingOverlay from './DealingOverlay';
 import JudgementBiddingPanel from './JudgementBiddingPanel';
-import PartnerCardDisplay from './PartnerCardDisplay';
 import PlayArea from './PlayArea';
 import PlayerSeat from './PlayerSeat';
 import PowerHouseSelector from './PowerHouseSelector';
@@ -51,7 +51,7 @@ function IntendedCardSlot({ card, shouldBounce, onPress }) {
   }));
 
   return (
-    <Pressable style={styles.intendedSlot} onPress={onPress}>
+    <Pressable style={styles.intendedSlot} onPressIn={onPress}>
       <Animated.View style={[
         styles.intendedCardWrap,
         shouldBounce && styles.intendedPlayable,
@@ -99,7 +99,22 @@ function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameTyp
   );
 }
 
+/* ── Partner reveal announcement toast ── */
+function RevealAnnouncement({ playerName, bidderName }) {
+  return (
+    <View style={styles.revealToast}>
+      <Text style={styles.revealText}>
+        <Text style={styles.revealPlayer}>{playerName}</Text>
+        {' is '}
+        <Text style={styles.revealBidder}>{bidderName}</Text>
+        {"'s teammate!"}
+      </Text>
+    </View>
+  );
+}
+
 export default function GameBoard({ userId, isAdmin = false }) {
+  const dispatch = useDispatch();
   const gameType = useSelector((state) => state.game.game_type) || 'kaliteri';
   const phase = useSelector((state) => state.game.phase);
   const configKey = useSelector((state) => state.game.configKey);
@@ -137,13 +152,17 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const cardRevealTimeMs = useSelector((state) => state.game.cardRevealTimeMs);
   const trumpMode = useSelector((state) => state.game.trumpMode);
   const bidTimeMs = useSelector((state) => state.game.bidTimeMs);
+  const revealedPartners = useSelector((state) => state.game.revealedPartners);
 
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [showDealReveal, setShowDealReveal] = useState(false);
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
   const [intendedCard, setIntendedCard] = useState(null);
+  const [revealAnnouncement, setRevealAnnouncement] = useState(null);
   const prevPhaseRef = useRef(phase);
+  const prevRevealedPartnersRef = useRef(revealedPartners || []);
+  const revealAnnouncementTimerRef = useRef(null);
 
   useEffect(() => {
     const prev = prevPhaseRef.current;
@@ -158,6 +177,34 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
     prevPhaseRef.current = phase;
   }, [phase, myHand]);
+
+  // ── Partner reveal announcements ──────────────────────────────────────
+  useEffect(() => {
+    const curr = revealedPartners || [];
+    const prev = prevRevealedPartnersRef.current;
+
+    if (curr.length > prev.length) {
+      const newPartnerId = curr[curr.length - 1];
+      const resolveName = (pid) => playerNames?.[pid] || pid?.substring(0, 8) || 'Player';
+
+      if (revealAnnouncementTimerRef.current) {
+        clearTimeout(revealAnnouncementTimerRef.current);
+      }
+      setRevealAnnouncement({
+        playerName: resolveName(newPartnerId),
+        bidderName: resolveName(leader),
+      });
+      revealAnnouncementTimerRef.current = setTimeout(
+        () => setRevealAnnouncement(null),
+        2000,
+      );
+    }
+    prevRevealedPartnersRef.current = [...curr];
+  }, [revealedPartners]); // eslint-disable-line
+
+  useEffect(() => () => {
+    if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (phase !== 'bidding' || gameType !== 'judgement' || !bidTimeMs) {
@@ -194,6 +241,31 @@ export default function GameBoard({ userId, isAdmin = false }) {
     return null;
   }, [phase, gameType, bidding, currentTrick, leader, dealer]);
 
+  // ── Compute relation for each player (kaliteri team badges) ──────────
+  const getRelation = useCallback((pid) => {
+    if (gameType !== 'kaliteri') return null;
+    if (phase !== 'playing' && phase !== 'series-finished') return null;
+    if (pid === userId) return null;
+
+    const myTeam = teams?.bid?.includes(userId) ? 'bid' : teams?.oppose?.includes(userId) ? 'oppose' : null;
+    if (!myTeam) return null;
+
+    const theirTeam = teams?.bid?.includes(pid) ? 'bid' : teams?.oppose?.includes(pid) ? 'oppose' : null;
+
+    // If not all partners revealed yet, show "partner" for partner card holders
+    const allRevealed = (partnerCards || []).length > 0 && (partnerCards || []).every((pc) => pc.revealed);
+    if (!allRevealed) {
+      // Check if this player is a known revealed partner
+      const isRevealed = (revealedPartners || []).includes(pid);
+      if (isRevealed) return myTeam === theirTeam ? 'teammate' : 'opponent';
+      return null;
+    }
+
+    if (theirTeam === myTeam) return 'teammate';
+    if (theirTeam) return 'opponent';
+    return null;
+  }, [gameType, phase, userId, teams, partnerCards, revealedPartners]);
+
   const tablePlayers = useMemo(() => {
     const ids = (seatOrder && seatOrder.length ? seatOrder : Object.keys(playerNames || {})) || [];
 
@@ -220,6 +292,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
         }
       }
 
+      const relation = getRelation(pid);
+
       return {
         id: pid,
         isMe,
@@ -232,11 +306,12 @@ export default function GameBoard({ userId, isAdmin = false }) {
             isDealer={dealer === pid}
             team={phase === 'playing' || phase === 'series-finished' ? team : null}
             jdgStatus={jdgStatus}
+            relation={relation}
           />
         ),
       };
     });
-  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon]);
+  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon, getRelation]);
 
   const isMyTurn = phase === 'playing' && Array.isArray(validPlays) && validPlays.length > 0;
   const activeTrump = trumpSuit || powerHouseSuit;
@@ -251,6 +326,11 @@ export default function GameBoard({ userId, isAdmin = false }) {
       setIntendedCard(null);
     }
   }, [phase, myHand, intendedCard]);
+
+  const handleReturnToLobby = useCallback(() => {
+    WsReturnToLobby();
+    dispatch(resetGame());
+  }, [dispatch]);
 
   const handleSelectCard = useCallback((card) => {
     setIntendedCard(card);
@@ -274,7 +354,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
   return (
     <View style={styles.wrap}>
-      {/* ── Top row ─────────────────────────────────────────────────── */}
+      {/* ── Top rows (HUD) ─────────────────────────────────────────────── */}
       {!isSeriesFinished ? (
         <TeamScoreHUD
           roundText={roundText}
@@ -282,11 +362,14 @@ export default function GameBoard({ userId, isAdmin = false }) {
           onShowScoreboard={() => setShowScoreboard(true)}
           isAdmin={isAdmin}
           onQuit={() => setShowQuitConfirm(true)}
+          gameType={gameType}
+          phase={phase}
+          tricks={tricks || []}
+          teams={teams || {}}
+          leader={leader}
+          partnerCards={partnerCards || []}
+          getName={getName}
         />
-      ) : null}
-
-      {showTable && gameType === 'kaliteri' && (phase === 'playing' || phase === 'powerhouse') ? (
-        <PartnerCardDisplay partnerCards={partnerCards || []} powerHouseSuit={powerHouseSuit} getName={getName} />
       ) : null}
 
       {/* ── Table area — flex: 1 so it fills remaining space ────────── */}
@@ -317,16 +400,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     />
                   );
                 }
-                const bidder = bidding?.currentBidder;
-                const currentBid = bidding?.currentBid;
                 return (
-                  <View style={styles.centerInfo}>
-                    <Text style={styles.centerTitle}>Bidding</Text>
-                    <Text style={styles.centerText}>Turn: {bidder ? getName(bidder) : '—'}</Text>
-                    {typeof currentBid === 'number' ? (
-                      <Text style={styles.centerText}>Current bid: {currentBid}</Text>
-                    ) : null}
-                  </View>
+                  <BiddingPanel bidding={bidding} userId={userId} getName={getName} />
                 );
               }
 
@@ -410,6 +485,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
             tricksWon={tricksWon || {}}
             bidding={bidding || {}}
             phase={phase}
+            onReturnToLobby={handleReturnToLobby}
           />
         ) : null}
       </View>
@@ -417,10 +493,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
       {/* ── Hand overlay — absolutely pinned to bottom, sits over the table ── */}
       {showTable && phase !== 'dealing' && !showDealReveal ? (
         <View style={styles.handOverlay} pointerEvents="box-none">
-          {phase === 'bidding' && gameType !== 'judgement' ? (
-            <BiddingPanel bidding={bidding} userId={userId} getName={getName} />
-          ) : null}
-
           {/* ── Intended card slot ── */}
           {intendedCard ? (
             <IntendedCardSlot
@@ -438,6 +510,14 @@ export default function GameBoard({ userId, isAdmin = false }) {
             intendedCard={intendedCard}
           />
         </View>
+      ) : null}
+
+      {/* ── Partner reveal announcement ── */}
+      {revealAnnouncement ? (
+        <RevealAnnouncement
+          playerName={revealAnnouncement.playerName}
+          bidderName={revealAnnouncement.bidderName}
+        />
       ) : null}
 
       <ScoreboardModal
@@ -556,6 +636,39 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 6,
     elevation: 4,
+  },
+
+  // ── Partner reveal announcement toast ────────────────────────────────────
+  revealToast: {
+    position: 'absolute',
+    top: '45%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(15, 35, 20, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(46, 204, 113, 0.55)',
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    shadowColor: 'rgba(46, 204, 113, 0.4)',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 12,
+    elevation: 8,
+    zIndex: 100,
+  },
+  revealText: {
+    fontFamily: fonts.body,
+    fontSize: 14,
+    color: colors.cream,
+    textAlign: 'center',
+  },
+  revealPlayer: {
+    color: '#2ecc71',
+    fontWeight: '900',
+  },
+  revealBidder: {
+    color: colors.goldLight,
+    fontWeight: '900',
   },
 
   // ── Scoreboard modal ──────────────────────────────────────────────────────

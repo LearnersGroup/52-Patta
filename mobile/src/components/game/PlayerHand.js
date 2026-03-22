@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -15,9 +15,9 @@ import { cardKey, isCardInList, sortCardsBySuit } from './utils/cardMapper';
 
 const CARD_W = cardTokens.sizes.hand.width;   // 56
 const CARD_H = cardTokens.sizes.hand.height;   // 78
-const OVERLAP = 18;                             // negative margin between cards
-const CARD_STEP = CARD_W - OVERLAP;             // 38 — visible width per card
-const PAD_LEFT = 4;
+const DEFAULT_OVERLAP = 18;                     // negative margin between cards
+const MIN_STEP = 16;                            // minimum visible width per card
+const PAD_H = 4;                                // horizontal padding each side
 const RISE_PX = Math.round(CARD_H * 0.7);      // rise 70% of card height
 const SPRING_CFG = { damping: 20, stiffness: 300, mass: 0.5 };
 
@@ -35,33 +35,35 @@ export default function PlayerHand({
   onSelectCard,
   intendedCard = null,
 }) {
+  const { width: screenW } = useWindowDimensions();
   const handSorted = useSelector((state) => state.game.handSorted);
   const displayCards = useMemo(
     () => (handSorted ? sortCardsBySuit(cards) : cards),
     [cards, handSorted],
   );
 
+  // Compute card step dynamically so all cards fit on screen
+  const count = displayCards.length;
+  const cardStep = useMemo(() => {
+    if (count <= 1) return CARD_W;
+    const availableW = screenW - PAD_H * 2;
+    // Total width: CARD_W + (count-1) * step
+    const maxStep = CARD_W - DEFAULT_OVERLAP; // default step = 38
+    const fittingStep = Math.floor((availableW - CARD_W) / (count - 1));
+    return Math.max(MIN_STEP, Math.min(maxStep, fittingStep));
+  }, [count, screenW]);
+  const overlap = CARD_W - cardStep;
+
   const cardsRef = useRef(displayCards);
   cardsRef.current = displayCards;
+  const cardStepRef = useRef(cardStep);
+  cardStepRef.current = cardStep;
 
   const onSelectCardRef = useRef(onSelectCard);
   onSelectCardRef.current = onSelectCard;
 
   // Shared value: index of the card currently being hovered (-1 = none)
   const hoveredIndex = useSharedValue(-1);
-  const scrollOffsetRef = useRef(0);
-  const scrollRef = useRef(null);
-
-  // JS-thread helper: compute card index from touch x
-  const getCardIndexFromX = useCallback((absX) => {
-    'worklet';
-    // This runs on JS thread via runOnJS — but we can also make a simple version
-    const x = absX - PAD_LEFT; // scroll offset handled separately
-    const count = cardsRef.current?.length || 0;
-    if (count === 0) return -1;
-    const idx = Math.floor(x / CARD_STEP);
-    return Math.max(0, Math.min(idx, count - 1));
-  }, []);
 
   // JS-thread: handle card selection
   const selectCardAtIndex = useCallback((idx) => {
@@ -75,13 +77,14 @@ export default function PlayerHand({
   // JS-thread: compute index and update hover shared value
   const prevHoverRef = useRef(-1);
   const updateHoverFromX = useCallback((absX) => {
-    const x = absX + scrollOffsetRef.current - PAD_LEFT;
+    const x = absX - PAD_H;
     const count = cardsRef.current?.length || 0;
     if (count === 0) return;
-    const idx = Math.max(0, Math.min(Math.floor(x / CARD_STEP), count - 1));
+    const step = cardStepRef.current;
+    const idx = Math.max(0, Math.min(Math.floor(x / step), count - 1));
     if (idx !== prevHoverRef.current) {
       prevHoverRef.current = idx;
-      hapticSelection(); // haptic tick as finger moves across cards
+      hapticSelection();
     }
     hoveredIndex.value = idx;
   }, [hoveredIndex]);
@@ -98,10 +101,11 @@ export default function PlayerHand({
   }, [hoveredIndex]);
 
   const selectFromTapX = useCallback((absX) => {
-    const x = absX + scrollOffsetRef.current - PAD_LEFT;
+    const x = absX - PAD_H;
     const count = cardsRef.current?.length || 0;
     if (count === 0) return;
-    const idx = Math.max(0, Math.min(Math.floor(x / CARD_STEP), count - 1));
+    const step = cardStepRef.current;
+    const idx = Math.max(0, Math.min(Math.floor(x / step), count - 1));
     selectCardAtIndex(idx);
   }, [selectCardAtIndex]);
 
@@ -136,14 +140,7 @@ export default function PlayerHand({
   return (
     <GestureDetector gesture={composed}>
       <Animated.View>
-        <ScrollView
-          ref={scrollRef}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          scrollEventThrottle={16}
-          onScroll={(e) => { scrollOffsetRef.current = e.nativeEvent.contentOffset.x; }}
-          contentContainerStyle={styles.listContent}
-        >
+        <View style={[styles.listContent, { paddingLeft: PAD_H, paddingRight: PAD_H + overlap }]}>
           {displayCards.map((card, i) => {
             const key = cardKey(card);
             const playable = !isMyTurn || isCardInList(card, validPlays);
@@ -158,10 +155,11 @@ export default function PlayerHand({
                 isMyTurn={isMyTurn}
                 isIntended={isIntended}
                 hoveredIndex={hoveredIndex}
+                overlap={overlap}
               />
             );
           })}
-        </ScrollView>
+        </View>
       </Animated.View>
     </GestureDetector>
   );
@@ -170,7 +168,7 @@ export default function PlayerHand({
 /**
  * AnimatedCard — individual card in the fan that rises when hovered.
  */
-function AnimatedCard({ index, card, playable, isMyTurn, isIntended, hoveredIndex }) {
+function AnimatedCard({ index, card, playable, isMyTurn, isIntended, hoveredIndex, overlap }) {
   const animStyle = useAnimatedStyle(() => {
     const isHovered = hoveredIndex.value === index;
     return {
@@ -182,7 +180,7 @@ function AnimatedCard({ index, card, playable, isMyTurn, isIntended, hoveredInde
   });
 
   return (
-    <Animated.View style={[styles.cardWrap, isIntended && styles.cardWrapIntended, animStyle]}>
+    <Animated.View style={[{ marginRight: -overlap }, isIntended && styles.cardWrapIntended, animStyle]}>
       <CardFace
         card={card}
         width={CARD_W}
@@ -196,13 +194,9 @@ function AnimatedCard({ index, card, playable, isMyTurn, isIntended, hoveredInde
 
 const styles = StyleSheet.create({
   listContent: {
-    paddingLeft: PAD_LEFT,
-    paddingRight: PAD_LEFT + OVERLAP,  // compensate last card's negative marginRight
+    flexDirection: 'row',
     paddingVertical: 6,
     paddingTop: RISE_PX + 6,  // room for cards to rise without clipping
-  },
-  cardWrap: {
-    marginRight: -OVERLAP,
   },
   cardWrapIntended: {
     transform: [{ translateY: -10 }],

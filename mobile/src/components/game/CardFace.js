@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     ...cardTokens.playableGlow,
   },
   cardDisabled: {
-    opacity: cardTokens.disabledOpacity,
+    opacity: 0.85,
+    transform: [{ translateY: 6 }],
   },
 });

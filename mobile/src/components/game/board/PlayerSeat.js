@@ -13,6 +13,8 @@ import { colors, fonts, shadows } from '../../../styles/theme';
 /**
  * jdgStatus shape (Judgement only, null otherwise):
  *   { label: string, type: 'waiting' | 'placed' | 'on-target' | 'over' | 'under' }
+ *
+ * relation: null | 'partner' | 'teammate' | 'opponent'
  */
 export default function PlayerSeat({
   name,
@@ -22,6 +24,7 @@ export default function PlayerSeat({
   isDealer = false,
   team = null,
   jdgStatus = null,
+  relation = null,
 }) {
   const glowOpacity = useSharedValue(0);
 
@@ -53,9 +56,6 @@ export default function PlayerSeat({
       : colors.borderGold,
   }));
 
-  // Optional judgement tricks-won badge
-  const showBadge = typeof tricksWon === 'number';
-
   return (
     <View style={styles.wrap}>
       <Animated.View style={[styles.avatarRing, ringStyle]}>
@@ -73,16 +73,24 @@ export default function PlayerSeat({
             <Text style={styles.dealerBadgeText}>D</Text>
           </View>
         ) : null}
-
-        {/* Tricks-won badge — bottom-right corner */}
-        {showBadge ? (
-          <View style={styles.tricksBadge}>
-            <Text style={styles.tricksBadgeText}>{tricksWon}</Text>
-          </View>
-        ) : null}
       </Animated.View>
 
       <Text numberOfLines={1} style={styles.name}>{name || 'Player'}</Text>
+
+      {/* ── Relation badge ── */}
+      {relation === 'partner' ? (
+        <View style={styles.partnerBadge}>
+          <Text style={styles.partnerBadgeText}>Partner</Text>
+        </View>
+      ) : relation === 'teammate' ? (
+        <View style={styles.teammateBadge}>
+          <Text style={styles.teammateBadgeText}>Teammate</Text>
+        </View>
+      ) : relation === 'opponent' ? (
+        <View style={styles.opponentBadge}>
+          <Text style={styles.opponentBadgeText}>Opponent</Text>
+        </View>
+      ) : null}
 
       {jdgStatus ? (
         <View style={[styles.jdgChip, styles[`jdgChip_${jdgStatus.type}`]]}>
@@ -97,6 +105,22 @@ export default function PlayerSeat({
 
 const AVATAR = 51;          // 44 × 1.15 ≈ 51
 const RING   = AVATAR + 7;  // ~3-4px padding each side  (= 58)
+
+const badgeBase = {
+  borderRadius: 8,
+  paddingHorizontal: 5,
+  paddingVertical: 1,
+  borderWidth: 1,
+};
+
+const badgeTextBase = {
+  fontFamily: fonts.heading,
+  fontSize: 7,
+  fontWeight: '700',
+  letterSpacing: 0.3,
+  textTransform: 'uppercase',
+  textAlign: 'center',
+};
 
 const styles = StyleSheet.create({
   wrap: {
@@ -160,6 +184,35 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+
+  // ── Relation badges ─────────────────────────────────────────────────────
+  partnerBadge: {
+    ...badgeBase,
+    backgroundColor: 'rgba(46, 204, 113, 0.12)',
+    borderColor: 'rgba(46, 204, 113, 0.35)',
+  },
+  partnerBadgeText: {
+    ...badgeTextBase,
+    color: '#2ecc71',
+  },
+  teammateBadge: {
+    ...badgeBase,
+    backgroundColor: 'rgba(59, 130, 246, 0.18)',
+    borderColor: 'rgba(59, 130, 246, 0.4)',
+  },
+  teammateBadgeText: {
+    ...badgeTextBase,
+    color: '#93c5fd',
+  },
+  opponentBadge: {
+    ...badgeBase,
+    backgroundColor: 'rgba(204, 41, 54, 0.18)',
+    borderColor: 'rgba(204, 41, 54, 0.4)',
+  },
+  opponentBadgeText: {
+    ...badgeTextBase,
+    color: '#fca5a5',
   },
 
   // ── Judgement bid/tricks status chip ──────────────────────────────────────
