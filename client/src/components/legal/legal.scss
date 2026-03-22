@@ -1,0 +1,409 @@
+@import "../../styles/variables";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared tokens
+// ─────────────────────────────────────────────────────────────────────────────
+
+$max-w: 760px;
+$max-w-mkt: 1060px;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PRIVACY / LEGAL PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+.legal-page {
+  min-height: 100vh;
+  background: $bg-deep;
+  color: $cream;
+  font-family: $font-body;
+  padding: 48px 24px 80px;
+}
+
+.legal-container {
+  max-width: $max-w;
+  margin: 0 auto;
+}
+
+.legal-header {
+  text-align: center;
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid rgba($gold, 0.2);
+}
+
+.legal-logo {
+  display: inline-block;
+  font-family: $font-heading;
+  font-size: 20px;
+  color: $gold;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.legal-title {
+  font-family: $font-heading;
+  font-size: clamp(26px, 5vw, 36px);
+  color: $cream;
+  letter-spacing: 2px;
+  margin: 8px 0 12px;
+}
+
+.legal-meta {
+  font-size: 13px;
+  color: $cream-muted;
+  margin: 0;
+}
+
+.legal-intro {
+  font-size: 15px;
+  line-height: 1.75;
+  color: $cream;
+  margin-bottom: 36px;
+
+  strong {
+    color: $gold-light;
+  }
+}
+
+.legal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+.legal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.legal-section-title {
+  font-family: $font-heading;
+  font-size: 16px;
+  color: $gold;
+  letter-spacing: 1px;
+  margin: 0 0 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba($gold, 0.15);
+}
+
+.legal-subsection {
+  margin-top: 8px;
+}
+
+.legal-subsection-title {
+  font-family: $font-heading;
+  font-size: 13px;
+  color: $gold-light;
+  letter-spacing: 0.8px;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.legal-body {
+  p, li {
+    font-size: 14px;
+    line-height: 1.75;
+    color: $cream;
+    margin: 0 0 8px;
+  }
+
+  ul {
+    margin: 6px 0 8px 18px;
+    padding: 0;
+  }
+
+  a {
+    color: $gold-light;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+
+    &:hover {
+      color: $gold;
+    }
+  }
+
+  strong {
+    color: $gold-light;
+    font-weight: 700;
+  }
+}
+
+.legal-footer {
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid rgba($gold, 0.15);
+  text-align: center;
+
+  a {
+    font-size: 14px;
+    color: $gold-light;
+    text-decoration: none;
+    letter-spacing: 0.5px;
+
+    &:hover {
+      color: $gold;
+      text-decoration: underline;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MARKETING PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+
+.marketing-page {
+  min-height: 100vh;
+  background: $bg-deep;
+  color: $cream;
+  font-family: $font-body;
+}
+
+// ── Nav ──────────────────────────────────────────────────────────────────────
+
+.mkt-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  border-bottom: 1px solid rgba($gold, 0.12);
+  position: sticky;
+  top: 0;
+  background: rgba($bg-deep, 0.95);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+}
+
+.mkt-nav-logo {
+  font-family: $font-heading;
+  font-size: 20px;
+  color: $gold;
+  letter-spacing: 2px;
+}
+
+.mkt-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.mkt-nav-link {
+  font-size: 14px;
+  color: $cream-muted;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+
+  &:hover {
+    color: $cream;
+  }
+}
+
+.mkt-nav-cta {
+  font-family: $font-heading;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: $bg-deep;
+  background: $gold;
+  border-radius: 8px;
+  padding: 8px 18px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: $gold-light;
+  }
+}
+
+// ── Hero ─────────────────────────────────────────────────────────────────────
+
+.mkt-hero {
+  text-align: center;
+  padding: clamp(60px, 10vw, 120px) 24px clamp(60px, 8vw, 100px);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 60% 50% at 50% 40%, rgba($gold, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+}
+
+.mkt-hero-suits {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 28px;
+  margin-bottom: 24px;
+  opacity: 0.35;
+
+  span:nth-child(2),
+  span:nth-child(4) {
+    color: $red-suit;
+  }
+}
+
+.mkt-hero-title {
+  font-family: $font-heading;
+  font-size: clamp(48px, 10vw, 88px);
+  color: $gold;
+  letter-spacing: 6px;
+  margin: 0 0 16px;
+  text-shadow: 0 0 40px rgba($gold, 0.3);
+}
+
+.mkt-hero-tagline {
+  font-size: clamp(16px, 2.5vw, 20px);
+  color: $cream-muted;
+  max-width: 520px;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+}
+
+.mkt-hero-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mkt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: $font-heading;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 14px 28px;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.mkt-btn-primary {
+  background: $gold;
+  color: $bg-deep;
+
+  &:hover {
+    background: $gold-light;
+    transform: translateY(-1px);
+  }
+}
+
+.mkt-btn-store {
+  background: transparent;
+  color: $cream;
+  border: 1px solid rgba($cream, 0.25);
+
+  &:hover {
+    border-color: rgba($gold, 0.55);
+    color: $gold-light;
+    transform: translateY(-1px);
+  }
+}
+
+.mkt-store-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+// ── Features ─────────────────────────────────────────────────────────────────
+
+.mkt-features {
+  padding: clamp(48px, 8vw, 96px) 24px;
+  max-width: $max-w-mkt;
+  margin: 0 auto;
+}
+
+.mkt-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.mkt-feature-card {
+  background: rgba($gold, 0.04);
+  border: 1px solid rgba($gold, 0.14);
+  border-radius: 14px;
+  padding: 28px 24px;
+  transition: border-color 0.2s, background 0.2s;
+
+  &:hover {
+    background: rgba($gold, 0.07);
+    border-color: rgba($gold, 0.28);
+  }
+}
+
+.mkt-feature-icon {
+  display: block;
+  font-size: 30px;
+  margin-bottom: 14px;
+}
+
+.mkt-feature-title {
+  font-family: $font-heading;
+  font-size: 15px;
+  color: $gold-light;
+  letter-spacing: 0.8px;
+  margin: 0 0 8px;
+}
+
+.mkt-feature-desc {
+  font-size: 14px;
+  line-height: 1.65;
+  color: $cream-muted;
+  margin: 0;
+}
+
+// ── Footer ───────────────────────────────────────────────────────────────────
+
+.mkt-footer {
+  border-top: 1px solid rgba($gold, 0.12);
+  padding: 36px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.mkt-footer-logo {
+  font-family: $font-heading;
+  font-size: 18px;
+  color: $gold;
+  letter-spacing: 2px;
+  opacity: 0.6;
+}
+
+.mkt-footer-links {
+  display: flex;
+  gap: 24px;
+
+  a {
+    font-size: 13px;
+    color: $cream-muted;
+    text-decoration: none;
+    letter-spacing: 0.3px;
+
+    &:hover {
+      color: $cream;
+      text-decoration: underline;
+    }
+  }
+}
+
+.mkt-footer-copy {
+  font-size: 12px;
+  color: rgba($cream-muted, 0.5);
+  margin: 0;
+}

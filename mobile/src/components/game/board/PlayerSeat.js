@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { memo, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SvgUri } from 'react-native-svg';
 import Animated, {
@@ -16,7 +16,7 @@ import { colors, fonts, shadows } from '../../../styles/theme';
  *
  * relation: null | 'partner' | 'teammate' | 'opponent'
  */
-export default function PlayerSeat({
+const PlayerSeat = memo(function PlayerSeat({
   name,
   avatar,
   avatarInitial,
@@ -101,7 +101,9 @@ export default function PlayerSeat({
       ) : null}
     </View>
   );
-}
+});
+
+export default PlayerSeat;
 
 const AVATAR = 51;          // 44 × 1.15 ≈ 51
 const RING   = AVATAR + 7;  // ~3-4px padding each side  (= 58)

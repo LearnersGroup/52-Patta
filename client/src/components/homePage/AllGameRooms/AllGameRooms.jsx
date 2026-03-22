@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { socket } from "../../../socket";
 import { useDispatch } from "react-redux";
 import { notify } from "../../../redux/slices/alert";
+import GameRules from "./GameRules.jsx";
 
 const AllGameRooms = () => {
     const navigate = useNavigate();
@@ -83,6 +84,8 @@ const AllGameRooms = () => {
                     </button>
                 </div>
             </div>
+
+            <GameRules />
         </div>
     );
 };

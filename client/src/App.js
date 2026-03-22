@@ -12,6 +12,8 @@ import { Provider } from "react-redux";
 import Alert from "./components/layout/Alert";
 
 // Lazy-loaded page components
+const PrivacyPage = lazy(() => import("./components/legal/PrivacyPage"));
+const MarketingPage = lazy(() => import("./components/legal/MarketingPage"));
 const HomePage = lazy(() => import("./components/homePage/HomePage"));
 const AuthPage = lazy(() => import("./components/authPage/AuthPage"));
 const RegisterPage = lazy(() => import("./components/authPage/RegisterPage"));
@@ -67,6 +69,8 @@ export default function App() {
                                     }
                                 />
                             </Route>
+                            <Route path="/privacy" element={<PrivacyPage />} />
+                            <Route path="/about" element={<MarketingPage />} />
                             <Route path="/login" element={<AuthPage />} />
                             <Route
                                 path="/register"

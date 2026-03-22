@@ -1,5 +1,26 @@
 # Changelog — 52 Patta Mobile
 
+## Unreleased
+
+### Added
+- "Games" section on home page with horizontal-scroll game cards (Kaliteri, Judgement); tapping a card opens a dedicated rules screen
+- Full rules screens (`/rules/kaliteri`, `/rules/judgement`) with phased breakdown: Introduction, Shuffling & Dealing, Bidding, PowerHouse & Partner Selection, Playing Tricks, Scoring
+
+### Fixed
+- Intended card play area now sits higher to avoid overlapping the player avatar; shows a persistent dashed outline + arrow indicator even when no card is selected
+- **Back navigation**: swiping back or tapping the back button in game rooms now shows a confirmation dialog instead of silently leaving without updating the server
+- **Triple-swipe bug**: non-admin players no longer need to swipe back 3 times; fixed by using `router.replace` for rejoin/redirect to avoid stacking duplicate navigation entries
+- **Admin back-nav**: admin swiping back no longer lands on the create-room page; `router.dismissAll()` clears the full stack back to home
+- **Room closure toast**: other players now see a "The room was closed by the host" toast when the admin closes the room
+
+### Removed
+- Lobby chat feature removed (`LobbyChat` component + `WsUserSendMsgRoom` socket emitter)
+
+### Performance
+- `PlayerSeat`: wrapped with `memo()` — prevents re-renders when seat data is unchanged
+- `LobbyPlayerList`: wrapped with `memo()` — prevents re-renders when parent re-renders without changed player data
+- `GameBoard`: `getName` wrapped with `useCallback`; inner components `IntendedCardSlot`, `ScoreboardModal`, `RevealAnnouncement` wrapped with `memo()`
+
 ## 1.0.1 (build 4) — 2026-03-22
 
 ### Added
