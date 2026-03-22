@@ -8,6 +8,10 @@
 
 ### Fixed
 - Intended card play area now sits higher to avoid overlapping the player avatar; shows a persistent dashed outline + arrow indicator even when no card is selected
+- **Back navigation**: swiping back or tapping the back button in game rooms now shows a confirmation dialog instead of silently leaving without updating the server
+- **Triple-swipe bug**: non-admin players no longer need to swipe back 3 times; fixed by using `router.replace` for rejoin/redirect to avoid stacking duplicate navigation entries
+- **Admin back-nav**: admin swiping back no longer lands on the create-room page; `router.dismissAll()` clears the full stack back to home
+- **Room closure toast**: other players now see a "The room was closed by the host" toast when the admin closes the room
 
 ### Removed
 - Lobby chat feature removed (`LobbyChat` component + `WsUserSendMsgRoom` socket emitter)

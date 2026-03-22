@@ -37,16 +37,17 @@ export default function HomeScreen() {
     const onDisconnect = () => setIsConnected(false);
     const onRejoin     = (data) => {
       if (!data) return;
-      // Auto-navigate back into an active game without needing the user to tap
+      // Auto-navigate back into an active game without needing the user to tap.
+      // Use replace to avoid stacking duplicate game-room entries.
       if (data.roomId) {
-        router.push(`/game-room/${data.roomId}`);
+        router.replace(`/game-room/${data.roomId}`);
       } else {
         setRejoinInfo(data);
       }
     };
     const onRedirect   = (roomId, callback) => {
       setJoiningKey('');
-      router.push(`/game-room/${roomId}`);
+      router.replace(`/game-room/${roomId}`);
       if (typeof callback === 'function') callback({ status: 200 });
     };
 
@@ -87,7 +88,7 @@ export default function HomeScreen() {
   const onRejoin = () => {
     if (!rejoinInfo) return;
     if (rejoinInfo.code) { joinRoom({ code: rejoinInfo.code }, `rejoin:${rejoinInfo.code}`); return; }
-    if (rejoinInfo.roomId) router.push(`/game-room/${rejoinInfo.roomId}`);
+    if (rejoinInfo.roomId) router.replace(`/game-room/${rejoinInfo.roomId}`);
   };
 
   if (!isAuthResolved) {
@@ -169,6 +170,33 @@ export default function HomeScreen() {
       </TouchableOpacity>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      {/* ── Games ── */}
+      <Text style={styles.gamesTitle}>Games</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.gamesRow}
+        style={styles.gamesScroll}
+      >
+        <Pressable
+          style={styles.gameCard}
+          onPress={() => router.push('/rules/kaliteri')}
+        >
+          <Text style={styles.gameCardIcon}>3♠</Text>
+          <Text style={styles.gameCardName}>Kaliteri</Text>
+          <Text style={styles.gameCardSub}>Patta</Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.gameCard}
+          onPress={() => router.push('/rules/judgement')}
+        >
+          <Text style={styles.gameCardIcon}>♠♦♣♥</Text>
+          <Text style={styles.gameCardName}>Judgement</Text>
+          <Text style={styles.gameCardSub}>Katchufool</Text>
+        </Pressable>
+      </ScrollView>
 
     </ScrollView>
     </AppBackground>
@@ -335,5 +363,48 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     color: colors.redSuit,
     fontSize: 13,
+  },
+
+  // Games section
+  gamesTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    color: colors.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 1.8,
+    marginTop: spacing.xs,
+  },
+  gamesScroll: {
+    flexGrow: 0,
+  },
+  gamesRow: {
+    gap: spacing.md,
+    paddingRight: spacing.lg,
+  },
+  gameCard: {
+    width: 150,
+    height: 110,
+    ...panelStyle,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+  },
+  gameCardIcon: {
+    fontSize: 24,
+    color: colors.cream,
+    marginBottom: 4,
+  },
+  gameCardName: {
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    color: colors.gold,
+    letterSpacing: 1,
+  },
+  gameCardSub: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.creamMuted,
   },
 });

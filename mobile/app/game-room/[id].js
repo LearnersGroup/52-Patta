@@ -1,7 +1,8 @@
-import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Redirect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,8 +10,9 @@ import {
   View,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { setPlayerAvatars } from '../../src/redux/slices/game';
-import { WsRequestGameState, WsUserLeaveRoom } from '../../src/api/wsEmitters';
+import { resetGame, setPlayerAvatars } from '../../src/redux/slices/game';
+import { notify } from '../../src/redux/slices/alert';
+import { WsQuitGame, WsRequestGameState, WsUserLeaveRoom } from '../../src/api/wsEmitters';
 import { registerGameListeners } from '../../src/api/wsGameListeners';
 import { socket } from '../../src/api/socket';
 import { get_all_user_in_room } from '../../src/api/apiHandler';
@@ -19,23 +21,30 @@ import LobbyView from '../../src/components/game/lobby/LobbyView';
 import { useAuth } from '../../src/hooks/useAuth';
 import AppBackground from '../../src/components/shared/AppBackground';
 import {
+  buttonStyles,
   colors,
   fonts,
+  panelStyle,
   spacing,
 } from '../../src/styles/theme';
 
 export default function GameRoomScreen() {
-  const router   = useRouter();
-  const dispatch = useDispatch();
-  const { id }   = useLocalSearchParams();
-  const { user } = useAuth();
-  const phase    = useSelector((state) => state.game.phase);
+  const router     = useRouter();
+  const navigation = useNavigation();
+  const dispatch   = useDispatch();
+  const { id }     = useLocalSearchParams();
+  const { user }   = useAuth();
+  const phase      = useSelector((state) => state.game.phase);
 
-  const [roomData,        setRoomData]        = useState(null);
-  const [loading,         setLoading]         = useState(true);
-  const [initialLoaded,   setInitialLoaded]   = useState(false);
-  const [error,           setError]           = useState('');
-  const [stateRequested,  setStateRequested]  = useState(false);
+  const [roomData,          setRoomData]          = useState(null);
+  const [loading,           setLoading]           = useState(true);
+  const [initialLoaded,     setInitialLoaded]     = useState(false);
+  const [error,             setError]             = useState('');
+  const [stateRequested,    setStateRequested]    = useState(false);
+  const [showLeaveConfirm,  setShowLeaveConfirm]  = useState(false);
+
+  // When true, allow navigation to proceed (bypass beforeRemove guard)
+  const leavingRef = useRef(false);
 
   const deriveUserIdFromRoom = (room) => {
     if (!room?.players?.length || !user?.user_name) return '';
@@ -47,6 +56,39 @@ export default function GameRoomScreen() {
   const adminId = (roomData?.admin?._id || roomData?.admin)?.toString?.() || '';
   const isAdmin = !!userId && userId === adminId;
 
+  // ── Intercept ALL back navigation (swipe, hardware back, header back) ────
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      // Allow if we've explicitly confirmed leaving
+      if (leavingRef.current) return;
+
+      // Block and show the confirmation dialog
+      e.preventDefault();
+      setShowLeaveConfirm(true);
+    });
+    return unsubscribe;
+  }, [navigation]);
+
+  // ── Confirm leave handler ────────────────────────────────────────────────
+  const handleConfirmLeave = useCallback(() => {
+    setShowLeaveConfirm(false);
+    leavingRef.current = true;
+
+    const isGameActive = phase !== null && phase !== 'lobby';
+    if (isGameActive) {
+      // Admin quitting ends the game for everyone; non-admin just forfeits
+      if (isAdmin) {
+        WsQuitGame();
+      }
+      dispatch(resetGame());
+    } else {
+      // Lobby — tell the server so the player slot is freed
+      WsUserLeaveRoom();
+    }
+
+    router.dismissAll();
+  }, [phase, isAdmin, dispatch, router]);
+
   useEffect(() => {
     let mounted = true;
 
@@ -56,9 +98,6 @@ export default function GameRoomScreen() {
         return;
       }
       try {
-        // Only show the loading spinner on the very first fetch.
-        // Subsequent socket-triggered refreshes (e.g. ready toggle) update silently
-        // to avoid the brief black-screen flash.
         if (!initialLoaded) setLoading(true);
         const room = await get_all_user_in_room(id);
         if (!mounted) return;
@@ -76,7 +115,13 @@ export default function GameRoomScreen() {
     fetchRoom();
 
     const onFetchUsers   = () => fetchRoom();
-    const onRedirectHome = () => router.replace('/');
+    const onRedirectHome = () => {
+      // Server told us to go home (e.g. admin closed the room, or kicked)
+      dispatch(notify('The room was closed by the host.', 'warning', 4000));
+      leavingRef.current = true;
+      dispatch(resetGame());
+      router.replace('/');
+    };
 
     socket.on('fetch-users-in-room',   onFetchUsers);
     socket.on('redirect-to-home-page', onRedirectHome);
@@ -86,7 +131,7 @@ export default function GameRoomScreen() {
       socket.off('fetch-users-in-room',   onFetchUsers);
       socket.off('redirect-to-home-page', onRedirectHome);
     };
-  }, [id, router, initialLoaded]);
+  }, [id, router, initialLoaded, dispatch]);
 
   useEffect(() => {
     const cleanup = registerGameListeners();
@@ -113,13 +158,40 @@ export default function GameRoomScreen() {
   const isGameActive = phase !== null && phase !== 'lobby';
   const roomTitle    = roomData?.roomname || 'Game Room';
 
-  const handleBack = () => {
-    if (!isGameActive) {
-      // Properly leave the lobby server-side so the player slot is freed
-      WsUserLeaveRoom();
-    }
-    router.dismissAll();
-  };
+  const handleBack = () => setShowLeaveConfirm(true);
+
+  // ── Leave confirmation modal ───────────────────────────────────────────
+  const leaveModal = (
+    <Modal
+      visible={showLeaveConfirm}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowLeaveConfirm(false)}
+    >
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalCard}>
+          <Text style={styles.modalTitle}>
+            {isGameActive ? 'Leave game?' : 'Leave room?'}
+          </Text>
+          <Text style={styles.modalBody}>
+            {isGameActive
+              ? (isAdmin
+                  ? 'This will end the active game for everyone in the room.'
+                  : 'You will leave the current game. You may not be able to rejoin.')
+              : 'You will leave this room and return to the home screen.'}
+          </Text>
+          <View style={styles.modalActions}>
+            <Pressable style={styles.modalBtnGhost} onPress={() => setShowLeaveConfirm(false)}>
+              <Text style={styles.modalGhostText}>Cancel</Text>
+            </Pressable>
+            <Pressable style={styles.modalBtnDanger} onPress={handleConfirmLeave}>
+              <Text style={styles.modalDangerText}>Leave</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
 
   // ── Active game — full-screen, no chrome, hand fixed at bottom ──────────
   if (isGameActive) {
@@ -144,6 +216,7 @@ export default function GameRoomScreen() {
             </>
           )}
         </View>
+        {leaveModal}
       </AppBackground>
     );
   }
@@ -174,10 +247,14 @@ export default function GameRoomScreen() {
             roomData={roomData}
             userId={userId}
             currentUserName={user?.user_name || ''}
-            onLeaveSuccess={() => router.replace('/')}
+            onLeaveSuccess={() => {
+              leavingRef.current = true;
+              router.replace('/');
+            }}
           />
         )}
       </ScrollView>
+      {leaveModal}
     </AppBackground>
   );
 }
@@ -253,5 +330,69 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     color: colors.redSuit,
     fontSize: 13,
+  },
+
+  // ── Leave confirmation modal ──────────────────────────────────────────────
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+  },
+  modalCard: {
+    ...panelStyle,
+    width: '100%',
+    maxWidth: 340,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  modalTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 16,
+    color: colors.cream,
+    letterSpacing: 1,
+  },
+  modalBody: {
+    fontFamily: fonts.body,
+    color: colors.creamMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  modalBtnGhost: {
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    borderRadius: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  modalGhostText: {
+    color: colors.goldLight,
+    fontFamily: fonts.heading,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    fontSize: 12,
+  },
+  modalBtnDanger: {
+    borderWidth: 1,
+    borderColor: colors.redSuit,
+    borderRadius: 8,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  modalDangerText: {
+    color: colors.redSuit,
+    fontFamily: fonts.heading,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    fontSize: 12,
   },
 });
