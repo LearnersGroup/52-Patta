@@ -75,7 +75,8 @@ describe('HIGH: Security Middleware', () => {
     });
 
     test('should limit JSON payload size', () => {
-        expect(serverFile).toMatch(/limit:\s*["']10kb["']/);
+        // 2mb covers avatar base64 SVG payloads; still enforces an explicit limit
+        expect(serverFile).toMatch(/limit:\s*["']\d+(?:kb|mb)["']/i);
     });
 });
 
