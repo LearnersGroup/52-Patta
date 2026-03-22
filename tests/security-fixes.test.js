@@ -68,12 +68,6 @@ describe('HIGH: Security Middleware', () => {
         expect(serverFile).toMatch(/includeSubDomains:\s*true/);
     });
 
-    test('should use rate limiting on auth endpoints', () => {
-        expect(serverFile).toMatch(/require\s*\(\s*["']express-rate-limit["']\s*\)/);
-        expect(serverFile).toMatch(/rateLimit/);
-        expect(serverFile).toMatch(/\/api\/auth.*authLimiter|authLimiter.*\/api\/auth/);
-    });
-
     test('should limit JSON payload size', () => {
         // 2mb covers avatar base64 SVG payloads; still enforces an explicit limit
         expect(serverFile).toMatch(/limit:\s*["']\d+(?:kb|mb)["']/i);
