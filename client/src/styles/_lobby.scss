@@ -239,3 +239,125 @@
   text-transform: uppercase;
 }
 
+// ─── GAME RULES ──────────────────────────────
+.game-rules {
+  margin-top: 24px;
+  border-top: 1px solid $border-gold;
+  padding-top: 8px;
+}
+
+.game-rules-label {
+  font-family: $font-heading;
+  font-size: 0.72rem;
+  color: $gold;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 8px 4px;
+}
+
+.game-cards-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.game-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 18px 12px;
+  background: $bg-input;
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    background: rgba(201, 162, 39, 0.06);
+    border-color: rgba(201, 162, 39, 0.45);
+  }
+
+  &--active {
+    background: rgba(201, 162, 39, 0.1);
+    border-color: $gold;
+    box-shadow: 0 0 0 2px $glow-gold;
+  }
+}
+
+.game-card-icon {
+  font-size: 1.4rem;
+  color: $cream;
+  line-height: 1;
+}
+
+.game-card-name {
+  font-family: $font-heading;
+  font-size: 0.72rem;
+  color: $gold;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.rules-chevron {
+  font-size: 0.7rem;
+  color: $cream-muted;
+}
+
+.game-rules-body {
+  padding: 0 4px 12px;
+}
+
+.rules-section {
+  border-radius: 6px;
+  overflow: hidden;
+
+  & + .rules-section { margin-top: 2px; }
+}
+
+.rules-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $cream;
+  font-size: 0.88rem;
+  font-weight: 600;
+
+  &:hover { background: rgba(201, 162, 39, 0.04); }
+}
+
+.rules-section-body {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 10px 16px;
+
+  li {
+    position: relative;
+    padding-left: 14px;
+    font-size: 0.82rem;
+    color: $cream-muted;
+    line-height: 1.55;
+    margin-bottom: 5px;
+
+    &::before {
+      content: "\2022";
+      position: absolute;
+      left: 0;
+      color: $gold;
+    }
+  }
+}
+
+.rules-divider {
+  border: none;
+  border-top: 1px solid rgba(201, 162, 39, 0.15);
+  margin: 12px 0;
+}
+

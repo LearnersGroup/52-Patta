@@ -50,20 +50,28 @@ const IntendedCardSlot = memo(function IntendedCardSlot({ card, shouldBounce, on
     transform: [{ translateY: bounce.value * -8 }],
   }));
 
+  const SLOT_H = Math.round(INTENDED_W * (7 / 5));
+
   return (
-    <Pressable style={styles.intendedSlot} onPressIn={onPress}>
-      <Animated.View style={[
-        styles.intendedCardWrap,
-        shouldBounce && styles.intendedPlayable,
-        animStyle,
-      ]}>
-        <CardFace
-          card={card}
-          width={INTENDED_W}
-          playable={shouldBounce}
-          selected
-        />
-      </Animated.View>
+    <Pressable style={styles.intendedSlot} onPressIn={card ? onPress : undefined}>
+      {/* Arrow indicator */}
+      <Text style={styles.intendedArrow}>^</Text>
+      {card ? (
+        <Animated.View style={[
+          styles.intendedCardWrap,
+          shouldBounce && styles.intendedPlayable,
+          animStyle,
+        ]}>
+          <CardFace
+            card={card}
+            width={INTENDED_W}
+            playable={shouldBounce}
+            selected
+          />
+        </Animated.View>
+      ) : (
+        <View style={[styles.intendedEmpty, { width: INTENDED_W, height: SLOT_H }]} />
+      )}
     </Pressable>
   );
 });
@@ -524,14 +532,12 @@ export default function GameBoard({ userId, isAdmin = false }) {
       {/* ── Hand overlay — absolutely pinned to bottom, sits over the table ── */}
       {showTable && phase !== 'dealing' && !showDealReveal ? (
         <View style={styles.handOverlay} pointerEvents="box-none">
-          {/* ── Intended card slot ── */}
-          {intendedCard ? (
-            <IntendedCardSlot
-              card={intendedCard}
-              shouldBounce={isMyTurn && isCardInList(intendedCard, validPlays)}
-              onPress={handlePlayIntended}
-            />
-          ) : null}
+          {/* ── Intended card slot — always visible for affordance ── */}
+          <IntendedCardSlot
+            card={intendedCard}
+            shouldBounce={isMyTurn && intendedCard && isCardInList(intendedCard, validPlays)}
+            onPress={handlePlayIntended}
+          />
 
           <PlayerHand
             cards={myHand || []}
@@ -677,15 +683,30 @@ const styles = StyleSheet.create({
   // ── Intended card slot ────────────────────────────────────────────────────
   intendedSlot: {
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
+    marginTop: -10,
+  },
+  intendedArrow: {
+    fontSize: 14,
+    color: 'rgba(201,162,39,0.5)',
+    lineHeight: 14,
+    fontWeight: '700',
+    marginBottom: 1,
   },
   intendedCardWrap: {
     borderRadius: cardTokens.borderRadius + 2,
-    borderWidth: 2,
-    borderColor: 'rgba(201,162,39,0.3)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(201,162,39,0.35)',
+  },
+  intendedEmpty: {
+    borderRadius: cardTokens.borderRadius + 2,
+    borderWidth: 1.5,
+    borderColor: 'rgba(201,162,39,0.2)',
+    borderStyle: 'dashed',
   },
   intendedPlayable: {
     borderColor: cardTokens.playableBorder,
+    borderWidth: 2,
     shadowColor: cardTokens.playableBorder,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
