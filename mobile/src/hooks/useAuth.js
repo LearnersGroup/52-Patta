@@ -142,9 +142,12 @@ export const AuthProvider = ({ children }) => {
         return next;
       });
 
+      // Refresh profile so avatar is available immediately on the home screen
+      await refreshProfile();
+
       router.replace('/');
     },
-    [persistUser, router]
+    [persistUser, refreshProfile, router]
   );
 
   const logout = useCallback(async () => {
