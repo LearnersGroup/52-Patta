@@ -47,6 +47,7 @@ export default function CardFace({
       ]}
     >
       <SvgXml xml={xml} width={width} height={height} />
+      {disabled ? <View style={styles.dimOverlay} /> : null}
     </View>
   );
 }
@@ -66,7 +67,11 @@ const styles = StyleSheet.create({
     ...cardTokens.playableGlow,
   },
   cardDisabled: {
-    opacity: 0.85,
     transform: [{ translateY: 6 }],
+  },
+  dimOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: cardTokens.borderRadius,
   },
 });
