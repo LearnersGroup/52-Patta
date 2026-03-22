@@ -11,7 +11,6 @@ function emitWithCallback(event, data) {
 export const WsUserJoinRoom = (data) => emitWithCallback("user-join-room", data);
 export const WsUserCreateRoom = (data) => emitWithCallback("user-create-room", data);
 export const WsUserLeaveRoom = () => emitWithCallback("user-leave-room");
-export const WsUserSendMsgRoom = (message) => emitWithCallback("user-message-room", message);
 export const WsUserToggleReady = () => emitWithCallback("user-toggle-ready");
 export const WsAdminUpdateConfig = (data) => emitWithCallback("admin-update-config", data);
 export const WsAdminKickPlayer = (playerId) => emitWithCallback("admin-kick-player", { playerId });

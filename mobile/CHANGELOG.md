@@ -2,11 +2,13 @@
 
 ## Unreleased
 
+### Removed
+- Lobby chat feature removed (`LobbyChat` component + `WsUserSendMsgRoom` socket emitter)
+
 ### Performance
-- `PlayerSeat`: wrapped with `memo()` — prevents re-renders when seat data is unchanged (impacts all in-game seat updates)
+- `PlayerSeat`: wrapped with `memo()` — prevents re-renders when seat data is unchanged
 - `LobbyPlayerList`: wrapped with `memo()` — prevents re-renders when parent re-renders without changed player data
-- `LobbyChat`: wrapped with `memo()`; `send` and `renderItem` memoized with `useCallback`; FlatList tuned (`initialNumToRender`, `maxToRenderPerBatch`, `windowSize`, `removeClippedSubviews`); auto-scrolls to newest message
-- `GameBoard`: `getName` wrapped with `useCallback` — stable reference avoids unnecessary child re-renders; inner components `IntendedCardSlot`, `ScoreboardModal`, `RevealAnnouncement` wrapped with `memo()`
+- `GameBoard`: `getName` wrapped with `useCallback`; inner components `IntendedCardSlot`, `ScoreboardModal`, `RevealAnnouncement` wrapped with `memo()`
 
 ## 1.0.1 (build 4) — 2026-03-22
 
