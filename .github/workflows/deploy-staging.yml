@@ -3,6 +3,9 @@ name: Deploy to Staging
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'mobile/**'
+      - '**.md'
 
 env:
   AWS_REGION: ca-central-1
@@ -139,5 +142,5 @@ jobs:
             # Restart containers with new images (no rebuild)
             IMAGE_TAG=staging docker-compose -f docker-compose.prod.yml up -d
 
-            # Clean up old images
-            docker image prune -f
+            # Clean up old images (|| true — safe if another prune is already running)
+            docker image prune -f || true
