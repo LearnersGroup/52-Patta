@@ -32,7 +32,8 @@ function findWinningIndex(plays = [], trumpSuit = null) {
   for (let i = 1; i < contenders.length; i += 1) {
     const curr = contenders[i].play?.card;
     const best = winner.play?.card;
-    if ((RANK_ORDER[curr?.rank] || 0) > (RANK_ORDER[best?.rank] || 0)) {
+    if ((RANK_ORDER[curr?.rank] || 0) >= (RANK_ORDER[best?.rank] || 0)) {
+      // >= so that duplicate cards (same rank in 2-deck games) pick the later play as winner
       winner = contenders[i];
     }
   }

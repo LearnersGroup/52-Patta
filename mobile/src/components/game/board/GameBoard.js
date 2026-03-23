@@ -14,7 +14,7 @@ import { cardTokens, colors, fonts, panelStyle, spacing, typography } from '../.
 import CardFace from '../CardFace';
 import PlayerHand from '../PlayerHand';
 import { cardKey, isCardInList, suitSymbol } from '../utils/cardMapper';
-import { hapticSuccess, hapticWarning } from '../../../utils/haptics';
+import { hapticHeavy, hapticSuccess, hapticWarning } from '../../../utils/haptics';
 import BiddingPanel from './BiddingPanel';
 import CircularTable from './CircularTable';
 import DealRevealOverlay from './DealRevealOverlay';
@@ -279,6 +279,15 @@ export default function GameBoard({ userId, isAdmin = false }) {
     if (phase === 'shuffling' || phase === 'dealing') return dealer || null;
     return null;
   }, [phase, gameType, bidding, currentTrick, leader, dealer]);
+
+  // ── Haptic feedback when it becomes the local player's turn ──────────
+  const prevTurnRef = useRef(currentTurn);
+  useEffect(() => {
+    if (currentTurn === userId && prevTurnRef.current !== userId) {
+      hapticHeavy();
+    }
+    prevTurnRef.current = currentTurn;
+  }, [currentTurn, userId]);
 
   // ── Compute relation for each player (kaliteri team badges) ──────────
   const getRelation = useCallback((pid) => {
@@ -671,7 +680,7 @@ const styles = StyleSheet.create({
   },
   trumpWatermark: {
     position: 'absolute',
-    fontSize: 88,
+    fontSize: 264,
     color: colors.cream,
     opacity: 0.07,
     includeFontPadding: false,
