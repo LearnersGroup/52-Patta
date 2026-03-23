@@ -14,7 +14,7 @@ import { cardTokens, colors, fonts, panelStyle, spacing, typography } from '../.
 import CardFace from '../CardFace';
 import PlayerHand from '../PlayerHand';
 import { cardKey, isCardInList, suitSymbol } from '../utils/cardMapper';
-import { hapticSuccess, hapticWarning } from '../../../utils/haptics';
+import { hapticHeavy, hapticSuccess, hapticWarning } from '../../../utils/haptics';
 import BiddingPanel from './BiddingPanel';
 import CircularTable from './CircularTable';
 import DealRevealOverlay from './DealRevealOverlay';
@@ -27,6 +27,7 @@ import ScoreTable from './ScoreTable';
 import SeriesFinishedPanel from './SeriesFinishedPanel';
 import ShufflingPanel from './ShufflingPanel';
 import TeamScoreHUD from './TeamScoreHUD';
+import InGameSettings from './InGameSettings';
 import TrumpAnnouncePanel from './TrumpAnnouncePanel';
 
 const INTENDED_W = Math.round(cardTokens.sizes.play.width * 0.8);  // 20% smaller
@@ -76,7 +77,7 @@ const IntendedCardSlot = memo(function IntendedCardSlot({ card, shouldBounce, on
   );
 });
 
-const ScoreboardModal = memo(function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase }) {
+const ScoreboardModal = memo(function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase, userId, gameHistory }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
@@ -95,10 +96,12 @@ const ScoreboardModal = memo(function ScoreboardModal({ visible, onClose, seatOr
             scores={scores}
             getName={getName}
             gameType={gameType}
+            userId={userId}
             roundResults={roundResults}
             tricksWon={tricksWon}
             bidding={bidding}
             phase={phase}
+            gameHistory={gameHistory}
           />
 
         </View>
@@ -161,9 +164,13 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const trumpMode = useSelector((state) => state.game.trumpMode);
   const bidTimeMs = useSelector((state) => state.game.bidTimeMs);
   const revealedPartners = useSelector((state) => state.game.revealedPartners);
+  const gameHistory = useSelector((state) => state.game.gameHistory);
 
+  const tableShape = useSelector((state) => state.preferences.tableShape);
+  const stickyInspect = useSelector((state) => state.preferences.stickyInspect);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showDealReveal, setShowDealReveal] = useState(false);
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
   const [intendedCard, setIntendedCard] = useState(null);
@@ -279,6 +286,15 @@ export default function GameBoard({ userId, isAdmin = false }) {
     if (phase === 'shuffling' || phase === 'dealing') return dealer || null;
     return null;
   }, [phase, gameType, bidding, currentTrick, leader, dealer]);
+
+  // ── Haptic feedback when it becomes the local player's turn ──────────
+  const prevTurnRef = useRef(currentTurn);
+  useEffect(() => {
+    if (currentTurn === userId && prevTurnRef.current !== userId) {
+      hapticHeavy();
+    }
+    prevTurnRef.current = currentTurn;
+  }, [currentTurn, userId]);
 
   // ── Compute relation for each player (kaliteri team badges) ──────────
   const getRelation = useCallback((pid) => {
@@ -399,6 +415,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
           roundText={roundText}
           trumpText={activeTrump ? `Trump ${suitSymbol(activeTrump)}` : null}
           onShowScoreboard={() => setShowScoreboard(true)}
+          onShowSettings={() => setShowSettings(true)}
           isAdmin={isAdmin}
           onQuit={() => setShowQuitConfirm(true)}
           gameType={gameType}
@@ -416,6 +433,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
         {showTable ? (
           <CircularTable
             players={tablePlayers}
+            tableShape={tableShape}
             centerContent={({ seatPositionMap, tableSize }) => {
               if (phase === 'trump-announce') {
                 return (
@@ -504,6 +522,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     tableSize={tableSize}
                     getName={getName}
                     trumpSuit={activeTrump}
+                    stickyInspect={stickyInspect}
+                    tableShape={tableShape}
                   />
                 </View>
               );
@@ -563,10 +583,12 @@ export default function GameBoard({ userId, isAdmin = false }) {
                 scores={scores || {}}
                 getName={getName}
                 gameType={gameType}
+                userId={userId}
                 roundResults={roundResults || []}
                 tricksWon={tricksWon || {}}
                 bidding={bidding || {}}
                 phase={phase}
+                gameHistory={gameHistory || []}
               />
             </ScrollView>
           </View>
@@ -588,12 +610,16 @@ export default function GameBoard({ userId, isAdmin = false }) {
         scores={scores || {}}
         getName={getName}
         gameType={gameType}
+        userId={userId}
         roundResults={roundResults || []}
         tricksWon={tricksWon || {}}
         bidding={bidding || {}}
         phase={phase}
         trumpSuit={trumpSuit}
+        gameHistory={gameHistory || []}
       />
+
+      <InGameSettings visible={showSettings} onClose={() => setShowSettings(false)} />
 
       <Modal
         visible={showQuitConfirm}
@@ -671,7 +697,7 @@ const styles = StyleSheet.create({
   },
   trumpWatermark: {
     position: 'absolute',
-    fontSize: 88,
+    fontSize: 264,
     color: colors.cream,
     opacity: 0.07,
     includeFontPadding: false,

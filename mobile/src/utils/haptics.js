@@ -32,3 +32,11 @@ export async function hapticWarning() {
   }
   if (Platform.OS !== 'web') Vibration.vibrate(18);
 }
+
+export async function hapticHeavy() {
+  if (ExpoHaptics?.impactAsync && ExpoHaptics?.ImpactFeedbackStyle?.Heavy) {
+    await ExpoHaptics.impactAsync(ExpoHaptics.ImpactFeedbackStyle.Heavy);
+    return;
+  }
+  if (Platform.OS !== 'web') Vibration.vibrate(30);
+}

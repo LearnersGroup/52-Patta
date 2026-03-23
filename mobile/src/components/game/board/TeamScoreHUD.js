@@ -7,6 +7,7 @@ export default function TeamScoreHUD({
   trumpText,
   roundText,
   onShowScoreboard,
+  onShowSettings,
   isAdmin = false,
   onQuit,
   // Kaliteri team score props
@@ -69,6 +70,10 @@ export default function TeamScoreHUD({
 
           <Pressable style={styles.scoreboardBtn} onPress={onShowScoreboard}>
             <Text style={styles.scoreboardText}>⊞</Text>
+          </Pressable>
+
+          <Pressable style={styles.scoreboardBtn} onPress={onShowSettings}>
+            <Text style={styles.scoreboardText}>⚙</Text>
           </Pressable>
         </View>
 

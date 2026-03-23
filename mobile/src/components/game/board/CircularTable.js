@@ -6,17 +6,34 @@ import { feltStyle, shadows } from '../../../styles/theme';
  * Seat component width — must match PlayerSeat's wrap.width so the
  * centering arithmetic (left: pos.x - SEAT_SIZE/2) stays accurate.
  */
-const SEAT_SIZE = 68;
+const SEAT_SIZE = 76;
 
 /**
  * Half the avatar ring height.  Used to vertically pin the ring centre
  * on the orbital point (instead of the top of the seat view).
- * RING = 58 (51 + 7)  →  SEAT_AVATAR_HALF = 29
+ * RING = 68 (58 + 10)  →  SEAT_AVATAR_HALF = 34
  */
-const SEAT_AVATAR_HALF = 29;
+const SEAT_AVATAR_HALF = 34;
 
-export default function CircularTable({ players = [], centerContent }) {
-  // Measure the full available space (width AND height) via onLayout
+/**
+ * Project an angle onto the perimeter of a rectangle centred at the origin.
+ * Returns { x, y } in the rectangle's local coordinate system.
+ */
+function rectPerimeterPoint(angle, halfW, halfH) {
+  const cosA = Math.cos(angle);
+  const sinA = Math.sin(angle);
+
+  // Avoid division by zero for perfectly axis-aligned angles
+  const absCos = Math.abs(cosA) || 1e-9;
+  const absSin = Math.abs(sinA) || 1e-9;
+
+  // Scale factor to reach the rectangle edge in the direction of the angle
+  const scale = Math.min(halfW / absCos, halfH / absSin);
+
+  return { x: cosA * scale, y: sinA * scale };
+}
+
+export default function CircularTable({ players = [], tableShape = 'rectangular', centerContent }) {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
   const myIndex = useMemo(() => {
@@ -24,50 +41,35 @@ export default function CircularTable({ players = [], centerContent }) {
     return idx >= 0 ? idx : 0;
   }, [players]);
 
+  const isElliptical = tableShape === 'elliptical';
+
   // ── Geometry ──────────────────────────────────────────────────────────────
   const geo = useMemo(() => {
     const W = layout.width  || 360;
     const H = layout.height || 500;
 
-    /**
-     * Horizontal padding:
-     *   PAD_H_TABLE — table margin each side.
-     *
-     * Avatar centres sit exactly on the table border (orbitX = tableW/2).
-     * The outer half of side-seat avatars intentionally hangs into this margin.
-     * Keep it just wide enough to show the avatar ring (SEAT_AVATAR_HALF = 29),
-     * plus a small safety gap so nothing clips the screen edge.
-     */
-    const PAD_H_TABLE = 12;    // tight margin — avatar centres on border, outer half hangs off slightly
-
-    /**
-     * Vertical padding:
-     *   top — just enough so the top-seat avatar clears the container edge.
-     *   bottom — hand overlay height (≈90) PLUS the full PlayerSeat extent below
-     *            the orbit centre: ring bottom half (29) + gap (3) + name (~14) +
-     *            gap (3) + jdg-chip (~18) + safety (3) = 160.
-     *            This keeps the entire "You" seat (avatar + label + chip) above the
-     *            player hand, and also reduces the table height slightly.
-     */
-    const PAD_V_TOP = SEAT_AVATAR_HALF + 4;   // 33 px – clears top avatar
-    const PAD_V_BOT = 160;                    // hand (90) + full seat below orbit (67) + safety (3)
+    const PAD_H_TABLE = 12;
+    const PAD_V_TOP = SEAT_AVATAR_HALF + 4;
+    const PAD_V_BOT = 160;
 
     const tableW = Math.max(100, W - PAD_H_TABLE * 2);
     const tableH = Math.max(100, H - PAD_V_TOP - PAD_V_BOT);
 
-    // Wrapper equals measured container; centre is shifted up by half the
-    // asymmetric padding so the table is visually centred in the space.
     const wrapW = W;
     const wrapH = H;
     const cx = W / 2;
-    const cy = PAD_V_TOP + tableH / 2;   // top of table + half table height
+    const cy = PAD_V_TOP + tableH / 2;
 
-    // Avatar centres sit exactly on the table border.
     const orbitX = tableW / 2;
     const orbitY = tableH / 2;
 
-    return { tableW, tableH, wrapW, wrapH, cx, cy, orbitX, orbitY, PAD_V_TOP };
-  }, [layout]);
+    // Elliptical table uses half-dimensions as border radius
+    const tableBorderRadius = isElliptical
+      ? { borderRadius: Math.max(tableW, tableH) / 2 }
+      : { borderRadius: 28 };
+
+    return { tableW, tableH, wrapW, wrapH, cx, cy, orbitX, orbitY, PAD_V_TOP, tableBorderRadius };
+  }, [layout, isElliptical]);
 
   // ── Seat positions (angles + pixel coords) ────────────────────────────────
   const seatPositions = useMemo(() => {
@@ -77,13 +79,22 @@ export default function CircularTable({ players = [], centerContent }) {
     return players.map((_, i) => {
       const offset = i - myIndex;
       const angle  = Math.PI / 2 + (offset * 2 * Math.PI) / n;
-      return {
-        angle,
-        x: geo.cx + Math.cos(angle) * geo.orbitX,
-        y: geo.cy + Math.sin(angle) * geo.orbitY,
-      };
+
+      let x, y;
+      if (isElliptical) {
+        // Elliptical orbit — sits on the ellipse
+        x = geo.cx + Math.cos(angle) * geo.orbitX;
+        y = geo.cy + Math.sin(angle) * geo.orbitY;
+      } else {
+        // Rectangular orbit — sits on the rectangle perimeter
+        const pt = rectPerimeterPoint(angle, geo.orbitX, geo.orbitY);
+        x = geo.cx + pt.x;
+        y = geo.cy + pt.y;
+      }
+
+      return { angle, x, y };
     });
-  }, [players, myIndex, geo]);
+  }, [players, myIndex, geo, isElliptical]);
 
   const seatPositionMap = useMemo(() => {
     const map = {};
@@ -104,9 +115,8 @@ export default function CircularTable({ players = [], centerContent }) {
         })
       }
     >
-      {/* Wrapper fills the measured space exactly */}
       <View style={[styles.wrapper, { width: geo.wrapW, height: geo.wrapH }]}>
-        {/* Portrait rounded-rectangle felt table — top-anchored */}
+        {/* Felt table */}
         <View style={[
           styles.table,
           {
@@ -116,9 +126,10 @@ export default function CircularTable({ players = [], centerContent }) {
             top:      geo.PAD_V_TOP,
             left:     geo.wrapW / 2 - geo.tableW / 2,
           },
+          geo.tableBorderRadius,
         ]} />
 
-        {/* Seats — absolutely positioned on the elliptical orbit */}
+        {/* Seats — absolutely positioned on the table border */}
         {players.map((player, i) => {
           const pos = seatPositions[i];
           if (!pos) return null;
@@ -139,7 +150,7 @@ export default function CircularTable({ players = [], centerContent }) {
           );
         })}
 
-        {/* Centre content — positioned at geometric centre of the table */}
+        {/* Centre content */}
         <View
           style={[
             styles.center,
@@ -161,7 +172,6 @@ export default function CircularTable({ players = [], centerContent }) {
 }
 
 const styles = StyleSheet.create({
-  // Fills tableArea completely so onLayout reports the full available space
   container: {
     flex: 1,
     alignSelf: 'stretch',
@@ -172,7 +182,7 @@ const styles = StyleSheet.create({
   table: {
     ...feltStyle,
     ...shadows.deep,
-    borderRadius: 28,
+    // borderRadius applied dynamically via geo.tableBorderRadius
   },
   seat: {
     position: 'absolute',

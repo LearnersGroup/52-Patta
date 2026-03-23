@@ -105,8 +105,8 @@ const PlayerSeat = memo(function PlayerSeat({
 
 export default PlayerSeat;
 
-const AVATAR = 51;          // 44 × 1.15 ≈ 51
-const RING   = AVATAR + 7;  // ~3-4px padding each side  (= 58)
+const AVATAR = 58;          // larger avatar for visibility
+const RING   = AVATAR + 10; // room for thicker border  (= 68)
 
 const badgeBase = {
   borderRadius: 8,
@@ -128,14 +128,14 @@ const styles = StyleSheet.create({
   wrap: {
     alignItems: 'center',
     gap: 3,
-    width: 68,
+    width: 76,
   },
 
   avatarRing: {
     width: RING,
     height: RING,
     borderRadius: RING / 2,
-    borderWidth: 2,
+    borderWidth: 3,
     padding: 2,
     alignItems: 'center',
     justifyContent: 'center',
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 10,
     fontWeight: '600',
-    maxWidth: 66,
+    maxWidth: 74,
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
