@@ -94,10 +94,12 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
         phaseRef.current = 'complete';
         setRenderTick((n) => n + 1);
       } else {
-        phaseRef.current = 'idle';
-        flip.value = 0;
+        // Auto-flip the next card so one tap = move + reveal
         move.value = 0;
+        flip.value = 0;
+        phaseRef.current = 'flipped';
         setRenderTick((n) => n + 1);
+        flip.value = withTiming(1, { duration: FLIP_MS, easing: Easing.inOut(Easing.ease) });
       }
       return nextIdx;
     });

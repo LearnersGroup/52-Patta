@@ -71,6 +71,9 @@ const initialState = {
     totalRoundsInSeries: 0,
     roundResults: [],
 
+    // Auto-play setting (room-level, default on)
+    autoplay: true,
+
     // Client-side per-game score history (accumulated from scoringResult events)
     // Each entry: { gameNumber, playerDeltas, bidTeamSuccess }
     gameHistory: [],
@@ -153,6 +156,7 @@ const gameSlice = createSlice({
             state.seriesRoundIndex = data.seriesRoundIndex || 0;
             state.totalRoundsInSeries = data.totalRoundsInSeries || 0;
             state.roundResults = data.roundResults || [];
+            state.autoplay = data.autoplay ?? true;
 
             // Accumulate per-game score history when a game finishes
             if (data.scoringResult && data.phase === "finished") {

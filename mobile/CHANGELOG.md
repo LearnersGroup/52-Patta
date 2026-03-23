@@ -5,6 +5,16 @@
 ### Added
 - "Games" section on home page with horizontal-scroll game cards (Kaliteri, Judgement); tapping a card opens a dedicated rules screen
 - Full rules screens (`/rules/kaliteri`, `/rules/judgement`) with phased breakdown: Introduction, Shuffling & Dealing, Bidding, PowerHouse & Partner Selection, Playing Tricks, Scoring
+- **Auto-play**: optional room setting (default ON) that automatically plays the card when it's the player's only legal move; toggle available in room config for both Kaliteri and Judgement
+
+### Changed
+- Card reveal phase now combines move + reveal into one tap: 1st tap reveals card, each subsequent tap moves it to hand and auto-reveals the next card
+- Round-end scoreboard now waits for trick sweep animation to finish before appearing; displays for 5 seconds with countdown — works for both Kaliteri and Judgement
+- Bid value shown alongside team scores in the HUD during Kaliteri play
+- Bidder badge ("B") shown on the bidder's player seat during Kaliteri play
+- Ported intelligent teammate inference logic from web client: players can now infer their own team membership by checking if they hold a partner card (1-deck: certain, 2-deck: certain/potential based on copy analysis)
+- Full relation resolver ported from web: leader shows as teammate/opponent/potential-teammate; revealed partners display correctly; "Teammate?" badge for ambiguous 2-deck situations
+- Relation badges now appear during powerhouse phase (not just playing)
 
 ### Fixed
 - Intended card play area now sits higher to avoid overlapping the player avatar; shows a persistent dashed outline + arrow indicator even when no card is selected
