@@ -14,10 +14,12 @@ const MIN_COL_W  = 76;
  * scores        { [pid]: number }
  * getName       (pid) => string
  * gameType      'judgement' | 'kaliteri'
+ * userId        string  (local player id — column gets gold highlight)
  * roundResults  array  (judgement only)
  * tricksWon     object (judgement, live row)
  * bidding       object (judgement, live row)
  * phase         string (shows live row when 'playing')
+ * gameHistory   array  (kaliteri only — per-game deltas)
  * maxRowHeight  number (max scrollable height for round rows, default 280)
  */
 export default function ScoreTable({
@@ -25,10 +27,12 @@ export default function ScoreTable({
   scores = {},
   getName,
   gameType,
+  userId,
   roundResults = [],
   tricksWon = {},
   bidding = {},
   phase,
+  gameHistory = [],
   maxRowHeight = 280,
 }) {
   const { width: screenW } = useWindowDimensions();
@@ -45,7 +49,14 @@ export default function ScoreTable({
 
   const renderPlayerCells = (cellFn) =>
     players.map((pid) => (
-      <View key={pid} style={[styles.playerCell, { width: colW }]}>
+      <View
+        key={pid}
+        style={[
+          styles.playerCell,
+          { width: colW },
+          pid === userId && styles.playerCellHighlight,
+        ]}
+      >
         {cellFn(pid)}
       </View>
     ));
@@ -60,7 +71,7 @@ export default function ScoreTable({
             <Text style={styles.colHead}>#</Text>
           </View>
           {renderPlayerCells((pid) => (
-            <Text style={styles.colHead} numberOfLines={1}>{getName(pid)}</Text>
+            <Text style={[styles.colHead, pid === userId && styles.colHeadMe]} numberOfLines={1}>{getName(pid)}</Text>
           ))}
         </View>
 
@@ -122,17 +133,56 @@ export default function ScoreTable({
     ) : tableContent;
   }
 
-  // ── Kaliteri table ──────────────────────────────────────────────────────
-  return (
-    <ScrollView style={{ maxHeight: maxRowHeight }}>
-      {players.map((pid, idx) => (
-        <View key={pid} style={[styles.kalRow, idx % 2 === 0 && styles.rowAlt]}>
-          <Text style={styles.kalName} numberOfLines={1}>{getName(pid)}</Text>
-          <Text style={styles.kalScore}>{scores?.[pid] || 0}</Text>
+  // ── Kaliteri table (players on X-axis, games on Y-axis) ───────────────
+  const kalTableContent = (
+    <View>
+      {/* Column headers */}
+      <View style={styles.row}>
+        <View style={styles.rndCell}>
+          <Text style={styles.colHead}>#</Text>
         </View>
-      ))}
-    </ScrollView>
+        {renderPlayerCells((pid) => (
+          <Text style={[styles.colHead, pid === userId && styles.colHeadMe]} numberOfLines={1}>{getName(pid)}</Text>
+        ))}
+      </View>
+
+      {/* Game rows */}
+      <ScrollView style={{ maxHeight: maxRowHeight }}>
+        {(gameHistory || []).map((gh, idx) => (
+          <View key={`g-${gh?.gameNumber}`} style={[styles.row, idx % 2 === 0 && styles.rowAlt]}>
+            <View style={styles.rndCell}>
+              <Text style={styles.rndNum}>{gh?.gameNumber}</Text>
+            </View>
+            {renderPlayerCells((pid) => {
+              const delta = gh?.playerDeltas?.[pid] ?? 0;
+              const positive = delta > 0;
+              return (
+                <Text style={[styles.delta, positive ? styles.deltaHit : styles.deltaMiss]}>
+                  {positive ? `+${delta}` : delta}
+                </Text>
+              );
+            })}
+          </View>
+        ))}
+      </ScrollView>
+
+      {/* Totals footer */}
+      <View style={[styles.row, styles.rowTotal]}>
+        <View style={styles.rndCell}>
+          <Text style={styles.totalLabel} numberOfLines={1}>Total</Text>
+        </View>
+        {renderPlayerCells((pid) => (
+          <Text style={styles.totalValue}>{scores?.[pid] || 0}</Text>
+        ))}
+      </View>
+    </View>
   );
+
+  return needsHScroll ? (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      {kalTableContent}
+    </ScrollView>
+  ) : kalTableContent;
 }
 
 const styles = StyleSheet.create({
@@ -154,7 +204,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(201,162,39,0.07)',
   },
 
-  // ── Cells ───────────────────────────────────────────────────────────────
+  // ── Cells ─────────────────────────────────────────────────────────────
   rndCell: {
     width: RND_CELL_W,
     paddingVertical: 8,
@@ -174,8 +224,15 @@ const styles = StyleSheet.create({
     borderRightWidth: StyleSheet.hairlineWidth,
     borderRightColor: 'rgba(201,162,39,0.12)',
   },
+  playerCellHighlight: {
+    backgroundColor: 'rgba(201,162,39,0.08)',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderLeftColor: 'rgba(201,162,39,0.45)',
+    borderRightColor: 'rgba(201,162,39,0.45)',
+  },
 
-  // ── Cell text ───────────────────────────────────────────────────────────
+  // ── Cell text ─────────────────────────────────────────────────────────
   colHead: {
     fontFamily: fonts.heading,
     fontSize: 10,
@@ -183,6 +240,10 @@ const styles = StyleSheet.create({
     color: colors.gold,
     letterSpacing: 0.4,
     textAlign: 'center',
+  },
+  colHeadMe: {
+    color: colors.goldLight,
+    textDecorationLine: 'underline',
   },
   rndNum: {
     fontFamily: fonts.heading,
@@ -233,32 +294,5 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.cream,
     textAlign: 'center',
-  },
-
-  // ── Kaliteri rows ───────────────────────────────────────────────────────
-  kalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 11,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(201,162,39,0.15)',
-  },
-  kalName: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.cream,
-    flex: 1,
-    marginRight: spacing.sm,
-  },
-  kalScore: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.gold,
-    minWidth: 40,
-    textAlign: 'right',
   },
 });

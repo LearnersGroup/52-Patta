@@ -148,6 +148,7 @@ export default function SeriesFinishedPanel({
             scores={scores}
             getName={getName}
             gameType={gameType}
+            userId={userId}
             roundResults={roundResults}
             tricksWon={tricksWon}
             bidding={bidding}

@@ -77,7 +77,7 @@ const IntendedCardSlot = memo(function IntendedCardSlot({ card, shouldBounce, on
   );
 });
 
-const ScoreboardModal = memo(function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase }) {
+const ScoreboardModal = memo(function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase, userId, gameHistory }) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
@@ -96,10 +96,12 @@ const ScoreboardModal = memo(function ScoreboardModal({ visible, onClose, seatOr
             scores={scores}
             getName={getName}
             gameType={gameType}
+            userId={userId}
             roundResults={roundResults}
             tricksWon={tricksWon}
             bidding={bidding}
             phase={phase}
+            gameHistory={gameHistory}
           />
 
         </View>
@@ -162,6 +164,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const trumpMode = useSelector((state) => state.game.trumpMode);
   const bidTimeMs = useSelector((state) => state.game.bidTimeMs);
   const revealedPartners = useSelector((state) => state.game.revealedPartners);
+  const gameHistory = useSelector((state) => state.game.gameHistory);
 
   const tableShape = useSelector((state) => state.preferences.tableShape);
   const stickyInspect = useSelector((state) => state.preferences.stickyInspect);
@@ -580,10 +583,12 @@ export default function GameBoard({ userId, isAdmin = false }) {
                 scores={scores || {}}
                 getName={getName}
                 gameType={gameType}
+                userId={userId}
                 roundResults={roundResults || []}
                 tricksWon={tricksWon || {}}
                 bidding={bidding || {}}
                 phase={phase}
+                gameHistory={gameHistory || []}
               />
             </ScrollView>
           </View>
@@ -605,11 +610,13 @@ export default function GameBoard({ userId, isAdmin = false }) {
         scores={scores || {}}
         getName={getName}
         gameType={gameType}
+        userId={userId}
         roundResults={roundResults || []}
         tricksWon={tricksWon || {}}
         bidding={bidding || {}}
         phase={phase}
         trumpSuit={trumpSuit}
+        gameHistory={gameHistory || []}
       />
 
       <InGameSettings visible={showSettings} onClose={() => setShowSettings(false)} />
