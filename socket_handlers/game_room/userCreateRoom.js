@@ -38,6 +38,7 @@ module.exports = wrapHandler('user-create-room', async (socket, io, data, callba
         scoreboard_time,
         judgement_bid_time,
         card_reveal_time,
+        autoplay,
     } = data;
 
     const normalizedGameType = game_type === "judgement" ? "judgement" : "kaliteri";
@@ -111,6 +112,7 @@ module.exports = wrapHandler('user-create-room', async (socket, io, data, callba
         admin: socket.user.id,
     };
     gameData.deck_count = deckCountParsed;
+    gameData.autoplay = autoplay !== undefined ? !!autoplay : true;
     if (normalizedGameType === "kaliteri" && bid_threshold && typeof bid_threshold === 'number' && bid_threshold > 0) {
         gameData.bid_threshold = bid_threshold;
     }

@@ -49,6 +49,7 @@ function buildInitialState({ gameId, game, config, seatOrder, playerNames, playe
         gameId,
         roomname: game.roomname,
         game_type: "kaliteri",
+        autoplay: game.autoplay ?? true,
         config,
         phase: "shuffling",
         seatOrder,
@@ -178,6 +179,7 @@ async function nextRound(io, gameId, existingState, deps) {
     const newGameState = {
         gameId,
         roomname: existingState.roomname,
+        autoplay: existingState.autoplay ?? true,
         config,
         phase: "bidding",
         seatOrder,
@@ -221,6 +223,7 @@ function buildPublicView(gameState, handSizes) {
     return {
         gameId: gameState.gameId,
         game_type: "kaliteri",
+        autoplay: gameState.autoplay ?? true,
         phase: gameState.phase,
         configKey: gameState.config?.key,
         seatOrder: gameState.seatOrder,

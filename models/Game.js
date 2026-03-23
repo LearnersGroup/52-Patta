@@ -73,6 +73,10 @@ const GameSchema = new mongoose.Schema({
         type: Number,  // card inspect time in seconds (null = use server default of 15)
         default: null,
     },
+    autoplay: {
+        type: Boolean,
+        default: true,
+    },
     game_count: {
         type: Number,
         default: null,

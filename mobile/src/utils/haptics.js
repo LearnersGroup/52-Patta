@@ -40,3 +40,7 @@ export async function hapticHeavy() {
   }
   if (Platform.OS !== 'web') Vibration.vibrate(30);
 }
+
+export function hapticLong() {
+  if (Platform.OS !== 'web') Vibration.vibrate(1000);
+}

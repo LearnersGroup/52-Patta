@@ -82,10 +82,13 @@ module.exports = wrapHandler("admin-update-config", async (socket, io, data, cal
         }
     }
 
+    const autoplayValue = data?.autoplay !== undefined ? !!data.autoplay : (game.autoplay ?? true);
+
     const updates = {
         player_count: count,
         deck_count: deckCountParsed,
         game_type: normalizedGameType,
+        autoplay: autoplayValue,
     };
 
     if (normalizedGameType === "kaliteri") {

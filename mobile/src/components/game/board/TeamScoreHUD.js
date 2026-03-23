@@ -18,6 +18,7 @@ export default function TeamScoreHUD({
   leader,
   partnerCards = [],
   getName,
+  bidding,
 }) {
   const isKaliteriPlaying = gameType === 'kaliteri' && (phase === 'playing' || phase === 'powerhouse');
 
@@ -84,6 +85,9 @@ export default function TeamScoreHUD({
               <View style={[styles.teamDot, styles.bidDot]} />
               <Text style={styles.scoreText}>{bidScore}</Text>
             </View>
+            {bidding?.currentBid != null ? (
+              <Text style={styles.bidLabel}>/ {bidding.currentBid}</Text>
+            ) : null}
             <Text style={styles.vsText}>vs</Text>
             <View style={styles.teamScore}>
               <View style={[styles.teamDot, styles.opposeDot]} />
@@ -201,6 +205,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: colors.cream,
+  },
+  bidLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.goldLight,
+    opacity: 0.7,
   },
   vsText: {
     fontFamily: fonts.body,

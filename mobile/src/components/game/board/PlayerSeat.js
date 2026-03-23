@@ -22,6 +22,7 @@ const PlayerSeat = memo(function PlayerSeat({
   avatarInitial,
   isTurn = false,
   isDealer = false,
+  isBidder = false,
   team = null,
   jdgStatus = null,
   relation = null,
@@ -40,20 +41,25 @@ const PlayerSeat = memo(function PlayerSeat({
     }
   }, [isTurn, glowOpacity]);
 
-  // Pulsing glow on the avatar ring when it's this player's turn
+  // Ring color based on team
+  const baseColor = team === 'bid'
+    ? colors.gold
+    : team === 'oppose'
+    ? colors.redSuit
+    : colors.borderGold;
+
+  // Active turn: full-width ring + pulsing glow in ring color
+  // Inactive: half-width ring, no glow
   const ringStyle = useAnimatedStyle(() => ({
-    shadowColor: isTurn ? colors.gold : 'transparent',
+    borderWidth: isTurn ? 3 : 1.5,
+    shadowColor: isTurn ? baseColor : 'transparent',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: glowOpacity.value * 0.8,
     shadowRadius: 8 + glowOpacity.value * 4,
     elevation: glowOpacity.value > 0.1 ? 5 : 0,
     borderColor: isTurn
-      ? `rgba(201, 162, 39, ${0.5 + glowOpacity.value * 0.5})`
-      : team === 'bid'
-      ? colors.gold
-      : team === 'oppose'
-      ? colors.redSuit
-      : colors.borderGold,
+      ? baseColor
+      : baseColor,
   }));
 
   return (
@@ -73,6 +79,13 @@ const PlayerSeat = memo(function PlayerSeat({
             <Text style={styles.dealerBadgeText}>D</Text>
           </View>
         ) : null}
+
+        {/* Bidder badge — top-left corner of the ring */}
+        {isBidder ? (
+          <View style={styles.bidderBadge}>
+            <Text style={styles.bidderBadgeText}>B</Text>
+          </View>
+        ) : null}
       </Animated.View>
 
       <Text numberOfLines={1} style={styles.name}>{name || 'Player'}</Text>
@@ -89,6 +102,10 @@ const PlayerSeat = memo(function PlayerSeat({
       ) : relation === 'opponent' ? (
         <View style={styles.opponentBadge}>
           <Text style={styles.opponentBadgeText}>Opponent</Text>
+        </View>
+      ) : relation === 'potential-teammate' ? (
+        <View style={styles.potentialBadge}>
+          <Text style={styles.potentialBadgeText}>Teammate?</Text>
         </View>
       ) : null}
 
@@ -135,11 +152,10 @@ const styles = StyleSheet.create({
     width: RING,
     height: RING,
     borderRadius: RING / 2,
-    borderWidth: 3,
+    borderWidth: 1.5,
     padding: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.shallow,
   },
   avatarInner: {
     width: AVATAR,
@@ -171,6 +187,25 @@ const styles = StyleSheet.create({
   },
   dealerBadgeText: {
     color: colors.bgDeep,
+    fontFamily: fonts.heading,
+    fontSize: 9,
+    fontWeight: '800',
+  },
+
+  bidderBadge: {
+    position: 'absolute',
+    left: -2,
+    top: -2,
+    width: 17,
+    height: 17,
+    borderRadius: 9,
+    backgroundColor: '#3b82f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.shallow,
+  },
+  bidderBadgeText: {
+    color: '#fff',
     fontFamily: fonts.heading,
     fontSize: 9,
     fontWeight: '800',
@@ -215,6 +250,15 @@ const styles = StyleSheet.create({
   opponentBadgeText: {
     ...badgeTextBase,
     color: '#fca5a5',
+  },
+  potentialBadge: {
+    ...badgeBase,
+    backgroundColor: 'rgba(201, 162, 39, 0.15)',
+    borderColor: 'rgba(201, 162, 39, 0.4)',
+  },
+  potentialBadgeText: {
+    ...badgeTextBase,
+    color: colors.goldLight,
   },
 
   // ── Judgement bid/tricks status chip ──────────────────────────────────────

@@ -14,7 +14,7 @@ import { cardTokens, colors, fonts, panelStyle, spacing, typography } from '../.
 import CardFace from '../CardFace';
 import PlayerHand from '../PlayerHand';
 import { cardKey, isCardInList, suitSymbol } from '../utils/cardMapper';
-import { hapticHeavy, hapticSuccess, hapticWarning } from '../../../utils/haptics';
+import { hapticHeavy, hapticLong, hapticSuccess, hapticWarning } from '../../../utils/haptics';
 import BiddingPanel from './BiddingPanel';
 import CircularTable from './CircularTable';
 import DealRevealOverlay from './DealRevealOverlay';
@@ -165,6 +165,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const bidTimeMs = useSelector((state) => state.game.bidTimeMs);
   const revealedPartners = useSelector((state) => state.game.revealedPartners);
   const gameHistory = useSelector((state) => state.game.gameHistory);
+  const autoplay = useSelector((state) => state.game.autoplay);
 
   const tableShape = useSelector((state) => state.preferences.tableShape);
   const stickyInspect = useSelector((state) => state.preferences.stickyInspect);
@@ -181,6 +182,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const prevPhaseRef = useRef(phase);
   const prevRevealedPartnersRef = useRef(revealedPartners || []);
   const revealAnnouncementTimerRef = useRef(null);
+  const roundScoreDelayRef = useRef(null);
+  const roundScoreIntervalRef = useRef(null);
 
   useEffect(() => {
     const prev = prevPhaseRef.current;
@@ -224,23 +227,40 @@ export default function GameBoard({ userId, isAdmin = false }) {
     if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
   }, []);
 
-  // ── Round scoreboard (Judgement: show scores for scoreboardTimeMs after each round) ──
+  // ── Round scoreboard (both game types: show scores after trick animation) ──
   useEffect(() => {
-    if (phase !== 'scoring' || gameType !== 'judgement') {
-      setShowRoundScore(false);
-      return;
+    const isRoundEnd =
+      phase === 'scoring' ||
+      (phase === 'finished' && gameType === 'kaliteri');
+
+    if (isRoundEnd) {
+      // Wait for trick sweep animation (2000ms hold + 760ms sweep + buffer)
+      clearTimeout(roundScoreDelayRef.current);
+      clearInterval(roundScoreIntervalRef.current);
+      roundScoreDelayRef.current = setTimeout(() => {
+        setShowRoundScore(true);
+        const displayMs = 5000;
+        const started = Date.now();
+        setRoundScoreCountdown(Math.ceil(displayMs / 1000));
+        roundScoreIntervalRef.current = setInterval(() => {
+          const leftMs = Math.max(0, displayMs - (Date.now() - started));
+          setRoundScoreCountdown(Math.ceil(leftMs / 1000));
+          if (leftMs <= 0) {
+            clearInterval(roundScoreIntervalRef.current);
+            setShowRoundScore(false);
+          }
+        }, 250);
+      }, 3000);
     }
-    const durationMs = scoreboardTimeMs || 5000;
-    setShowRoundScore(true);
-    const started = Date.now();
-    setRoundScoreCountdown(Math.ceil(durationMs / 1000));
-    const interval = setInterval(() => {
-      const leftMs = Math.max(0, durationMs - (Date.now() - started));
-      setRoundScoreCountdown(Math.ceil(leftMs / 1000));
-      if (leftMs <= 0) clearInterval(interval);
-    }, 250);
-    return () => clearInterval(interval);
-  }, [phase, gameType, scoreboardTimeMs]);
+
+    // Don't auto-hide on phase change — let the local timer handle it
+  }, [phase, gameType]);
+
+  // Cleanup round score timers on unmount
+  useEffect(() => () => {
+    clearTimeout(roundScoreDelayRef.current);
+    clearInterval(roundScoreIntervalRef.current);
+  }, []);
 
   // ── Delay series-finished panel so trick sweep animation can finish ──
   useEffect(() => {
@@ -291,35 +311,132 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const prevTurnRef = useRef(currentTurn);
   useEffect(() => {
     if (currentTurn === userId && prevTurnRef.current !== userId) {
-      hapticHeavy();
+      hapticLong();
     }
     prevTurnRef.current = currentTurn;
   }, [currentTurn, userId]);
 
-  // ── Compute relation for each player (kaliteri team badges) ──────────
+  // ── Partner / relation logic (ported from web client) ──────────────
+  const allPartnersRevealed =
+    (partnerCards?.length ?? 0) > 0 &&
+    partnerCards.every((pc) => pc.revealed);
+
+  // Server-confirmed team membership (public info as reveals happen)
+  const myTeam = teams?.bid?.includes(userId)
+    ? 'bid'
+    : teams?.oppose?.includes(userId)
+    ? 'oppose'
+    : null;
+
+  // Private hand-based inference (only the local user sees this).
+  // Groups partner cards by {suit, rank} and uses whichCopy to determine
+  // how many copies are actually available to non-leader players.
+  const myKnownRelation = useMemo(() => {
+    if (!partnerCards?.length || !myHand?.length) return null;
+    if (phase !== 'powerhouse' && phase !== 'playing') return null;
+    if (myTeam === 'bid') return null;
+    if (allPartnersRevealed) return null;
+
+    const is2Deck = configKey?.includes('2D');
+
+    if (!is2Deck) {
+      for (const pc of partnerCards) {
+        if (!pc.card || pc.revealed) continue;
+        const inHand = myHand.some(
+          (c) => c.suit === pc.card.suit && c.rank === pc.card.rank,
+        );
+        if (inHand) return 'certain-teammate';
+      }
+      return 'certain-not-teammate';
+    }
+
+    // 2-deck: group UNREVEALED partner card slots by {suit, rank}
+    const groups = {};
+    for (const pc of partnerCards) {
+      if (!pc.card || pc.revealed) continue;
+      const key = `${pc.card.suit}_${pc.card.rank}`;
+      if (!groups[key]) {
+        groups[key] = {
+          suit: pc.card.suit,
+          rank: pc.card.rank,
+          slots: 0,
+          leaderHoldsOne: false,
+        };
+      }
+      groups[key].slots += 1;
+      if (pc.whichCopy === null) groups[key].leaderHoldsOne = true;
+    }
+
+    let hasCertain = false;
+    let hasPotential = false;
+
+    for (const g of Object.values(groups)) {
+      const myCount = myHand.filter(
+        (c) => c.suit === g.suit && c.rank === g.rank,
+      ).length;
+      if (myCount === 0) continue;
+
+      const copiesAvailable = g.leaderHoldsOne ? 1 : 2;
+      const nonPartnerCopies = copiesAvailable - g.slots;
+
+      if (myCount > nonPartnerCopies) {
+        hasCertain = true;
+        break;
+      } else {
+        hasPotential = true;
+      }
+    }
+
+    return hasCertain ? 'certain-teammate' : hasPotential ? 'potential-teammate' : 'certain-not-teammate';
+  }, [partnerCards, myHand, configKey, phase, myTeam, allPartnersRevealed]);
+
+  // Effective team: private inference overrides the server's default "oppose"
+  const myEffectiveTeam =
+    allPartnersRevealed                            ? myTeam   :
+    myTeam === 'bid'                               ? 'bid'    :
+    myKnownRelation === 'certain-teammate'         ? 'bid'    :
+    myKnownRelation === 'certain-not-teammate'     ? 'oppose' :
+    myKnownRelation === 'potential-teammate'       ? null     :
+    myTeam;
+
+  // ── Relation resolver (per opponent seat) ─────────────────────────────
+  // Returns "teammate" | "opponent" | "potential-teammate" | null
   const getRelation = useCallback((pid) => {
     if (gameType !== 'kaliteri') return null;
-    if (phase !== 'playing' && phase !== 'series-finished') return null;
+    if (phase !== 'playing' && phase !== 'powerhouse' && phase !== 'series-finished') return null;
     if (pid === userId) return null;
 
-    const myTeam = teams?.bid?.includes(userId) ? 'bid' : teams?.oppose?.includes(userId) ? 'oppose' : null;
-    if (!myTeam) return null;
+    const pidIsLeader          = pid === leader;
+    const pidIsRevealedPartner = (revealedPartners || []).includes(pid);
+    const pidOnBid             = (teams?.bid || []).includes(pid);
+    const partnerCardsChosen   = (partnerCards?.length ?? 0) > 0;
 
-    const theirTeam = teams?.bid?.includes(pid) ? 'bid' : teams?.oppose?.includes(pid) ? 'oppose' : null;
-
-    // If not all partners revealed yet, show "partner" for partner card holders
-    const allRevealed = (partnerCards || []).length > 0 && (partnerCards || []).every((pc) => pc.revealed);
-    if (!allRevealed) {
-      // Check if this player is a known revealed partner
-      const isRevealed = (revealedPartners || []).includes(pid);
-      if (isRevealed) return myTeam === theirTeam ? 'teammate' : 'opponent';
+    // ── Bidder (leader) seat ─────────────────────────────────────────
+    if (pidIsLeader) {
+      if (!partnerCardsChosen) return null;
+      if (myEffectiveTeam === 'bid') return 'teammate';
+      if (myKnownRelation === 'potential-teammate') return 'potential-teammate';
+      if (myEffectiveTeam === 'oppose') return 'opponent';
       return null;
     }
 
-    if (theirTeam === myTeam) return 'teammate';
-    if (theirTeam) return 'opponent';
+    // ── All other seats: only visible once publicly revealed ──────────
+    const pidTeamPublic = pidIsRevealedPartner || allPartnersRevealed;
+    if (!pidTeamPublic) return null;
+
+    const pidTeam = pidOnBid ? 'bid' : 'oppose';
+
+    if (myEffectiveTeam) {
+      return pidTeam === myEffectiveTeam ? 'teammate' : 'opponent';
+    }
+
+    // myEffectiveTeam is null → potential-teammate, can't commit either way
+    if (myKnownRelation === 'potential-teammate' && pidTeam === 'bid') {
+      return 'potential-teammate';
+    }
+
     return null;
-  }, [gameType, phase, userId, teams, partnerCards, revealedPartners]);
+  }, [gameType, phase, userId, leader, teams, partnerCards, revealedPartners, allPartnersRevealed, myEffectiveTeam, myKnownRelation]);
 
   const tablePlayers = useMemo(() => {
     const ids = (seatOrder && seatOrder.length ? seatOrder : Object.keys(playerNames || {})) || [];
@@ -349,6 +466,9 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
       const relation = getRelation(pid);
 
+      const isBidder = gameType === 'kaliteri' && leader === pid &&
+        (phase === 'playing' || phase === 'powerhouse' || phase === 'series-finished');
+
       return {
         id: pid,
         isMe,
@@ -359,6 +479,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
             avatarInitial={getName(pid).charAt(0).toUpperCase()}
             isTurn={currentTurn === pid}
             isDealer={dealer === pid}
+            isBidder={isBidder}
             team={phase === 'playing' || phase === 'series-finished' ? team : null}
             jdgStatus={jdgStatus}
             relation={relation}
@@ -366,7 +487,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
         ),
       };
     });
-  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon, getRelation]);
+  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon, getRelation, leader]);
 
   const isMyTurn = phase === 'playing' && Array.isArray(validPlays) && validPlays.length > 0;
   const activeTrump = trumpSuit || powerHouseSuit;
@@ -402,6 +523,21 @@ export default function GameBoard({ userId, isAdmin = false }) {
     }
   }, [intendedCard, isMyTurn, validPlays]);
 
+  // ── Auto-play: play the card immediately when it's the only legal move ──
+  useEffect(() => {
+    if (
+      autoplay &&
+      phase === 'playing' &&
+      currentTurn === userId &&
+      Array.isArray(validPlays) &&
+      validPlays.length === 1
+    ) {
+      WsPlayCard(validPlays[0]);
+      hapticSuccess();
+      setIntendedCard(null);
+    }
+  }, [autoplay, phase, currentTurn, userId, validPlays]);
+
   const roundText =
     gameType === 'judgement'
       ? `Round ${Number(seriesRoundIndex || 0) + 1}/${totalRoundsInSeries || 1} • Cards ${currentCardsPerRound || 0}`
@@ -425,6 +561,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
           leader={leader}
           partnerCards={partnerCards || []}
           getName={getName}
+          bidding={bidding}
         />
       ) : null}
 
@@ -573,9 +710,11 @@ export default function GameBoard({ userId, isAdmin = false }) {
       {showRoundScore ? (
         <View style={styles.roundScoreOverlay}>
           <View style={styles.roundScoreCard}>
-            <Text style={styles.roundScoreTitle}>Round Complete</Text>
+            <Text style={styles.roundScoreTitle}>
+              {gameType === 'judgement' ? 'Round Complete' : 'Game Complete'}
+            </Text>
             <Text style={styles.roundScoreCountdown}>
-              Starting next round in {roundScoreCountdown}…
+              Continuing in {roundScoreCountdown}…
             </Text>
             <ScrollView style={{ maxHeight: 320 }}>
               <ScoreTable

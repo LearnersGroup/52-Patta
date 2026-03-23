@@ -43,6 +43,7 @@ function buildInitialState({ gameId, game, config, seatOrder, playerNames, playe
         gameId,
         roomname: game.roomname,
         game_type: "judgement",
+        autoplay: game.autoplay ?? true,
         config,
         phase: "trump-announce",
         seatOrder,
@@ -185,6 +186,7 @@ function buildPublicView(gameState, handSizes) {
     return {
         gameId: gameState.gameId,
         game_type: "judgement",
+        autoplay: gameState.autoplay ?? true,
         phase: gameState.phase,
         config: gameState.config,
         seatOrder: gameState.seatOrder,

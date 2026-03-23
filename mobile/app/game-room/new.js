@@ -122,6 +122,9 @@ export default function NewGameRoomScreen() {
   const [bidTime,          setBidTime]          = useState(15);
   const [cardRevealTime,   setCardRevealTime]   = useState(10);
 
+  // Shared setting
+  const [autoplay, setAutoplay] = useState(true);
+
   const [creating, setCreating] = useState(false);
   const [error,    setError]    = useState('');
 
@@ -206,6 +209,7 @@ export default function NewGameRoomScreen() {
       player_count: playerCount,
       game_type:    gameType,
       deck_count:   deckCount,
+      autoplay,
     };
 
     if (gameType === 'kaliteri') {
@@ -380,6 +384,17 @@ export default function NewGameRoomScreen() {
               </Row>
             </>
           )}
+        </View>
+
+        {/* ── auto-play ── */}
+        <View style={styles.panel}>
+          <Row label="Auto-Play">
+            <ChipGroup
+              options={[{ label: 'Off', value: false }, { label: 'On', value: true }]}
+              value={autoplay}
+              onChange={setAutoplay}
+            />
+          </Row>
         </View>
 
         {error ? (

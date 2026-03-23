@@ -50,6 +50,7 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
   const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
   const [bidTime, setBidTime] = useState(15);
   const [cardRevealTime, setCardRevealTime] = useState(10);
+  const [autoplay, setAutoplay] = useState(true);
 
   const minPlayers = gameType === 'judgement' ? 3 : 4;
   const maxPossibleCards = useMemo(
@@ -76,6 +77,7 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
     setBidTimeEnabled(roomData?.judgement_bid_time !== null && roomData?.judgement_bid_time !== undefined);
     setBidTime(roomData?.judgement_bid_time || 15);
     setCardRevealTime(roomData?.card_reveal_time || 10);
+    setAutoplay(roomData?.autoplay ?? true);
   }, [roomData]);
 
   useEffect(() => {
@@ -92,6 +94,7 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
       game_type: gameType,
       player_count: playerCount,
       deck_count: deckCount,
+      autoplay,
     };
 
     if (gameType === 'kaliteri') {
@@ -135,6 +138,18 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
           </Pressable>
           <Pressable style={[styles.chip, deckCount === 2 && styles.chipActive]} onPress={() => setDeckCount(2)}>
             <Text style={styles.chipText}>2 Decks</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.group}>
+        <Text style={styles.label}>Auto-Play</Text>
+        <View style={styles.row}>
+          <Pressable style={[styles.chip, !autoplay && styles.chipActive]} onPress={() => setAutoplay(false)}>
+            <Text style={styles.chipText}>Off</Text>
+          </Pressable>
+          <Pressable style={[styles.chip, autoplay && styles.chipActive]} onPress={() => setAutoplay(true)}>
+            <Text style={styles.chipText}>On</Text>
           </Pressable>
         </View>
       </View>
