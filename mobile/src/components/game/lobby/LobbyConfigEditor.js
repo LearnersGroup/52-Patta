@@ -45,7 +45,7 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
   const [inspectTime, setInspectTime] = useState(15);
   const [maxCardsPerRound, setMaxCardsPerRound] = useState(7);
   const [reverseOrder, setReverseOrder] = useState(true);
-  const [trumpMode, setTrumpMode] = useState('fixed');
+  const [trumpMode, setTrumpMode] = useState('cyclic');
   const [scoreboardTime, setScoreboardTime] = useState(5);
   const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
   const [bidTime, setBidTime] = useState(15);
