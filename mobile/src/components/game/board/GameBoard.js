@@ -165,10 +165,9 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const bidTimeMs = useSelector((state) => state.game.bidTimeMs);
   const revealedPartners = useSelector((state) => state.game.revealedPartners);
   const gameHistory = useSelector((state) => state.game.gameHistory);
-  const autoplay = useSelector((state) => state.game.autoplay);
+  const autoplay = useSelector((state) => state.preferences.autoplay);
 
   const tableShape = useSelector((state) => state.preferences.tableShape);
-  const stickyInspect = useSelector((state) => state.preferences.stickyInspect);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -188,7 +187,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
   useEffect(() => {
     const prev = prevPhaseRef.current;
 
-    if (prev === 'dealing' && phase === 'bidding' && Array.isArray(myHand) && myHand.length > 0) {
+    if (prev !== 'bidding' && phase === 'bidding' && Array.isArray(myHand) && myHand.length > 0) {
       setShowDealReveal(true);
     }
 
@@ -229,9 +228,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
   // ── Round scoreboard (both game types: show scores after trick animation) ──
   useEffect(() => {
-    const isRoundEnd =
-      phase === 'scoring' ||
-      (phase === 'finished' && gameType === 'kaliteri');
+    const isRoundEnd = phase === 'finished';
 
     if (isRoundEnd) {
       // Wait for trick sweep animation (2000ms hold + 760ms sweep + buffer)
@@ -239,7 +236,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
       clearInterval(roundScoreIntervalRef.current);
       roundScoreDelayRef.current = setTimeout(() => {
         setShowRoundScore(true);
-        const displayMs = 5000;
+        const displayMs = scoreboardTimeMs || 5000;
         const started = Date.now();
         setRoundScoreCountdown(Math.ceil(displayMs / 1000));
         roundScoreIntervalRef.current = setInterval(() => {
@@ -254,7 +251,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
     }
 
     // Don't auto-hide on phase change — let the local timer handle it
-  }, [phase, gameType]);
+  }, [phase, scoreboardTimeMs]);
 
   // Cleanup round score timers on unmount
   useEffect(() => () => {
@@ -523,7 +520,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
     }
   }, [intendedCard, isMyTurn, validPlays]);
 
-  // ── Auto-play: play the card immediately when it's the only legal move ──
+  // ── Auto-play: play the card after 2 s when it's the only legal move ──
   useEffect(() => {
     if (
       autoplay &&
@@ -532,9 +529,12 @@ export default function GameBoard({ userId, isAdmin = false }) {
       Array.isArray(validPlays) &&
       validPlays.length === 1
     ) {
-      WsPlayCard(validPlays[0]);
-      hapticSuccess();
-      setIntendedCard(null);
+      const timer = setTimeout(() => {
+        WsPlayCard(validPlays[0]);
+        hapticSuccess();
+        setIntendedCard(null);
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [autoplay, phase, currentTurn, userId, validPlays]);
 
@@ -659,7 +659,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     tableSize={tableSize}
                     getName={getName}
                     trumpSuit={activeTrump}
-                    stickyInspect={stickyInspect}
                     tableShape={tableShape}
                   />
                 </View>

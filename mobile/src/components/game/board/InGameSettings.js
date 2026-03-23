@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { setTableShape, setStickyInspect } from '../../../redux/slices/preferences';
+import { setTableShape, setAutoplay } from '../../../redux/slices/preferences';
 import { colors, fonts, panelStyle, spacing } from '../../../styles/theme';
 
 const SHAPES = [
@@ -12,7 +12,7 @@ const SHAPES = [
 export default memo(function InGameSettings({ visible, onClose }) {
   const dispatch = useDispatch();
   const tableShape = useSelector((s) => s.preferences.tableShape);
-  const stickyInspect = useSelector((s) => s.preferences.stickyInspect);
+  const autoplay = useSelector((s) => s.preferences.autoplay);
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -38,15 +38,23 @@ export default memo(function InGameSettings({ visible, onClose }) {
             })}
           </View>
 
-          <Text style={styles.sectionLabel}>Inspect Mode</Text>
-          <Pressable
-            style={[styles.optionBtn, stickyInspect && styles.optionBtnActive, { alignSelf: 'stretch' }]}
-            onPress={() => dispatch(setStickyInspect(!stickyInspect))}
-          >
-            <Text style={[styles.optionText, stickyInspect && styles.optionTextActive]}>
-              {stickyInspect ? 'Sticky (stays on)' : 'Auto-reset each move'}
-            </Text>
-          </Pressable>
+          <Text style={styles.sectionLabel}>Auto-Play</Text>
+          <View style={styles.optionRow}>
+            {[{ key: false, label: 'Off' }, { key: true, label: 'On' }].map(({ key, label }) => {
+              const active = autoplay === key;
+              return (
+                <Pressable
+                  key={label}
+                  style={[styles.optionBtn, active && styles.optionBtnActive]}
+                  onPress={() => dispatch(setAutoplay(key))}
+                >
+                  <Text style={[styles.optionText, active && styles.optionTextActive]}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
           <Pressable style={styles.closeBtn} onPress={onClose}>
             <Text style={styles.closeBtnText}>Done</Text>

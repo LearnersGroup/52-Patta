@@ -143,7 +143,7 @@ function AnimatedTrickCard({
   );
 }
 
-function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 300, getName, trumpSuit, stickyInspect = false, tableShape = 'rectangular' }) {
+function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 300, getName, trumpSuit, tableShape = 'rectangular' }) {
   const keyFn = useCallback((play, index = 0) => {
     const c = play?.card || {};
     return `${play?.playerId || ''}_${c.suit || ''}${c.rank || ''}_${c.deckIndex ?? 0}_${index}`;
@@ -160,10 +160,14 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
     setInspectMode((prev) => !prev);
   }, []);
 
-  // Reset inspect mode when plays change (unless sticky)
+  // Reset inspect mode when a new trick starts (plays goes from 0 to 1)
+  const prevPlaysLenRef = useRef(plays.length);
   useEffect(() => {
-    if (!stickyInspect) setInspectMode(false);
-  }, [plays, stickyInspect]);
+    if (plays.length === 1 && prevPlaysLenRef.current === 0) {
+      setInspectMode(false);
+    }
+    prevPlaysLenRef.current = plays.length;
+  }, [plays.length]);
 
   useEffect(() => {
     const trickCount = tricks?.length || 0;
@@ -255,7 +259,7 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
           || (!isDeparting && cardKey === animatingCardKey);
 
         const seatDir = seatDirection(play.playerId);
-        const target = inspectMode && !isDeparting
+        const target = inspectMode
           ? inspectPosition(seatDir)
           : thrownPosition(play, index);
 

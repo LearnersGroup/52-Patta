@@ -5,9 +5,10 @@
 ### Added
 - "Games" section on home page with horizontal-scroll game cards (Kaliteri, Judgement); tapping a card opens a dedicated rules screen
 - Full rules screens (`/rules/kaliteri`, `/rules/judgement`) with phased breakdown: Introduction, Shuffling & Dealing, Bidding, PowerHouse & Partner Selection, Playing Tricks, Scoring
-- **Auto-play**: optional room setting (default ON) that automatically plays the card when it's the player's only legal move; toggle available in room config for both Kaliteri and Judgement
+- **Auto-play**: personal in-game setting (default ON) that automatically plays the card after 2 seconds when it's the player's only legal move; toggle available in the in-game settings panel
 
 ### Changed
+- **Inspect mode**: tapping the play area now persists the ordered card layout for the rest of the trick (no more settings toggle); resets only when a new trick begins; trick-sweep animation now starts from inspected positions when active
 - Card reveal phase now combines move + reveal into one tap: 1st tap reveals card, each subsequent tap moves it to hand and auto-reveals the next card
 - Round-end scoreboard now waits for trick sweep animation to finish before appearing; displays for 5 seconds with countdown — works for both Kaliteri and Judgement
 - Bid value shown alongside team scores in the HUD during Kaliteri play
