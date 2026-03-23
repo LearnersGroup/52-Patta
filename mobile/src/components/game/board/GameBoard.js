@@ -27,6 +27,7 @@ import ScoreTable from './ScoreTable';
 import SeriesFinishedPanel from './SeriesFinishedPanel';
 import ShufflingPanel from './ShufflingPanel';
 import TeamScoreHUD from './TeamScoreHUD';
+import InGameSettings from './InGameSettings';
 import TrumpAnnouncePanel from './TrumpAnnouncePanel';
 
 const INTENDED_W = Math.round(cardTokens.sizes.play.width * 0.8);  // 20% smaller
@@ -162,8 +163,11 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const bidTimeMs = useSelector((state) => state.game.bidTimeMs);
   const revealedPartners = useSelector((state) => state.game.revealedPartners);
 
+  const tableShape = useSelector((state) => state.preferences.tableShape);
+  const stickyInspect = useSelector((state) => state.preferences.stickyInspect);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showDealReveal, setShowDealReveal] = useState(false);
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
   const [intendedCard, setIntendedCard] = useState(null);
@@ -408,6 +412,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
           roundText={roundText}
           trumpText={activeTrump ? `Trump ${suitSymbol(activeTrump)}` : null}
           onShowScoreboard={() => setShowScoreboard(true)}
+          onShowSettings={() => setShowSettings(true)}
           isAdmin={isAdmin}
           onQuit={() => setShowQuitConfirm(true)}
           gameType={gameType}
@@ -425,6 +430,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
         {showTable ? (
           <CircularTable
             players={tablePlayers}
+            tableShape={tableShape}
             centerContent={({ seatPositionMap, tableSize }) => {
               if (phase === 'trump-announce') {
                 return (
@@ -513,6 +519,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     tableSize={tableSize}
                     getName={getName}
                     trumpSuit={activeTrump}
+                    stickyInspect={stickyInspect}
+                    tableShape={tableShape}
                   />
                 </View>
               );
@@ -603,6 +611,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
         phase={phase}
         trumpSuit={trumpSuit}
       />
+
+      <InGameSettings visible={showSettings} onClose={() => setShowSettings(false)} />
 
       <Modal
         visible={showQuitConfirm}
