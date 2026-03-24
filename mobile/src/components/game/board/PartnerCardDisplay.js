@@ -30,6 +30,13 @@ export default function PartnerCardDisplay({ partnerCards = [], powerHouseSuit, 
               ]}
             >
               <CardFace card={pc.card} width={30} />
+              {pc?.whichCopy != null && (
+                <View style={styles.copyNumBadge}>
+                  <Text style={styles.copyNumText}>
+                    #{pc.whichCopy === '1st' ? 1 : 2}
+                  </Text>
+                </View>
+              )}
             </View>
           ))}
           <View style={styles.stackCount}>
@@ -44,7 +51,16 @@ export default function PartnerCardDisplay({ partnerCards = [], powerHouseSuit, 
             const label = revealed ? (getName?.(pc.partnerId) || 'Partner') : '????';
             return (
               <View key={`${pc?.card?.suit}${pc?.card?.rank}_${idx}`} style={styles.cardSlot}>
-                {pc?.card ? <CardFace card={pc.card} width={30} /> : null}
+                <View style={styles.cardFaceWrap}>
+                  {pc?.card ? <CardFace card={pc.card} width={30} /> : null}
+                  {pc?.whichCopy != null && (
+                    <View style={styles.copyNumBadge}>
+                      <Text style={styles.copyNumText}>
+                        #{pc.whichCopy === '1st' ? 1 : 2}
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 <Text numberOfLines={1} style={[styles.cardLabel, revealed && styles.cardLabelRevealed]}>
                   {label}
                 </Text>
@@ -89,6 +105,30 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '700',
     color: colors.goldLight,
+  },
+  /* ── Copy number badge (shown on top of card in 2-deck games) ── */
+  cardFaceWrap: {
+    position: 'relative',
+  },
+  copyNumBadge: {
+    position: 'absolute',
+    top: 2,
+    left: 2,
+    backgroundColor: 'rgba(240,192,64,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(240,192,64,0.4)',
+    borderRadius: 3,
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+    zIndex: 10,
+  },
+  copyNumText: {
+    fontSize: 7,
+    fontFamily: fonts.body,
+    fontWeight: '700',
+    color: colors.goldLight,
+    lineHeight: 10,
+    textAlign: 'center',
   },
   /* ── Expanded row ── */
   cardsRow: {
