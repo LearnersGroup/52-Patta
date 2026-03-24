@@ -12,6 +12,7 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
     const lastToggleRef = useRef(0);
     const READY_DEBOUNCE_MS = 500;
 
+    const [readyPending, setReadyPending] = useState(false);
     const [copied, setCopied] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [confirmKick, setConfirmKick] = useState(null); // { playerId, name }
@@ -82,6 +83,8 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
         const now = Date.now();
         if (now - lastToggleRef.current < READY_DEBOUNCE_MS) return;
         lastToggleRef.current = now;
+        setReadyPending(true);
+        setTimeout(() => setReadyPending(false), READY_DEBOUNCE_MS);
         try { WsUserToggleReady(); } catch (e) { console.log(e); }
     };
 
@@ -179,8 +182,9 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                         </button>
                     )}
                     <button
-                        className={iAmReady ? "btn-ready btn-ready--active" : "btn-ready"}
+                        className={`${iAmReady ? "btn-ready btn-ready--active" : "btn-ready"}${readyPending ? " btn-ready--pending" : ""}`}
                         onClick={toggleReady}
+                        disabled={readyPending}
                     >
                         {iAmReady ? "Not Ready" : "Ready"}
                     </button>
