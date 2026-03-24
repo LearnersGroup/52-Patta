@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   WsAdminKickPlayer,
@@ -42,6 +42,9 @@ export default function LobbyView({
   currentUserName = '',
   onLeaveSuccess,
 }) {
+  const lastToggleRef = useRef(0);
+  const READY_DEBOUNCE_MS = 500;
+
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState('');
 
@@ -91,9 +94,12 @@ export default function LobbyView({
   };
 
   const toggleReady = () => {
+    const now = Date.now();
+    if (now - lastToggleRef.current < READY_DEBOUNCE_MS) return;
+    lastToggleRef.current = now;
     setPendingAction('ready');
     WsUserToggleReady();
-    setTimeout(() => setPendingAction(''), 250);
+    setTimeout(() => setPendingAction(''), READY_DEBOUNCE_MS);
   };
 
   const startGame = () => {

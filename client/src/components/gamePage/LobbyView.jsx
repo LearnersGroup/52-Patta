@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
     WsUserLeaveRoom,
     WsUserToggleReady,
@@ -9,6 +9,9 @@ import {
 import RoomConfigForm from "./RoomConfigForm";
 
 const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
+    const lastToggleRef = useRef(0);
+    const READY_DEBOUNCE_MS = 500;
+
     const [copied, setCopied] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [confirmKick, setConfirmKick] = useState(null); // { playerId, name }
@@ -76,6 +79,9 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
     };
 
     const toggleReady = () => {
+        const now = Date.now();
+        if (now - lastToggleRef.current < READY_DEBOUNCE_MS) return;
+        lastToggleRef.current = now;
         try { WsUserToggleReady(); } catch (e) { console.log(e); }
     };
 
