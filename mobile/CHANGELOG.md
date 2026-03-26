@@ -1,36 +1,13 @@
 # Changelog — 52 Patta Mobile
 
-## Unreleased
+## 1.0.7 — 2026-03-26
 
 ### Added
-- "Games" section on home page with horizontal-scroll game cards (Kaliteri, Judgement); tapping a card opens a dedicated rules screen
-- Full rules screens (`/rules/kaliteri`, `/rules/judgement`) with phased breakdown: Introduction, Shuffling & Dealing, Bidding, PowerHouse & Partner Selection, Playing Tricks, Scoring
-- **Auto-play**: personal in-game setting (default ON) that automatically plays the card after 2 seconds when it's the player's only legal move; toggle available in the in-game settings panel
+- **Auto-play**: personal in-game setting (default ON) — automatically plays the card after a 2-second delay when it's the player's only legal move; toggle available in the in-game ⚙ settings panel (replaces the room-level auto-play setting)
 
 ### Changed
-- **Inspect mode**: tapping the play area now persists the ordered card layout for the rest of the game (no more settings toggle); trick-sweep animation starts from inspected positions when active
-- Card reveal phase now combines move + reveal into one tap: 1st tap reveals card, each subsequent tap moves it to hand and auto-reveals the next card
-- Round-end scoreboard now waits for trick sweep animation to finish before appearing; displays for 5 seconds with countdown — works for both Kaliteri and Judgement
-- Bid value shown alongside team scores in the HUD during Kaliteri play
-- Bidder badge ("B") shown on the bidder's player seat during Kaliteri play
-- Ported intelligent teammate inference logic from web client: players can now infer their own team membership by checking if they hold a partner card (1-deck: certain, 2-deck: certain/potential based on copy analysis)
-- Full relation resolver ported from web: leader shows as teammate/opponent/potential-teammate; revealed partners display correctly; "Teammate?" badge for ambiguous 2-deck situations
-- Relation badges now appear during powerhouse phase (not just playing)
-
-### Fixed
-- Intended card play area now sits higher to avoid overlapping the player avatar; shows a persistent dashed outline + arrow indicator even when no card is selected
-- **Back navigation**: swiping back or tapping the back button in game rooms now shows a confirmation dialog instead of silently leaving without updating the server
-- **Triple-swipe bug**: non-admin players no longer need to swipe back 3 times; fixed by using `router.replace` for rejoin/redirect to avoid stacking duplicate navigation entries
-- **Admin back-nav**: admin swiping back no longer lands on the create-room page; `router.dismissAll()` clears the full stack back to home
-- **Room closure toast**: other players now see a "The room was closed by the host" toast when the admin closes the room
-
-### Removed
-- Lobby chat feature removed (`LobbyChat` component + `WsUserSendMsgRoom` socket emitter)
-
-### Performance
-- `PlayerSeat`: wrapped with `memo()` — prevents re-renders when seat data is unchanged
-- `LobbyPlayerList`: wrapped with `memo()` — prevents re-renders when parent re-renders without changed player data
-- `GameBoard`: `getName` wrapped with `useCallback`; inner components `IntendedCardSlot`, `ScoreboardModal`, `RevealAnnouncement` wrapped with `memo()`
+- **Inspect mode**: tapping the play area now persists the ordered card layout for the rest of the game — no automatic reset, no settings toggle needed; trick-sweep animation starts from inspected positions when active
+- In-game ⚙ settings panel now shows Auto-Play On/Off toggle instead of Sticky Inspect toggle
 
 ## 1.0.1 (build 4) — 2026-03-22
 
