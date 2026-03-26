@@ -8,7 +8,7 @@
 - **Auto-play**: personal in-game setting (default ON) that automatically plays the card after 2 seconds when it's the player's only legal move; toggle available in the in-game settings panel
 
 ### Changed
-- **Inspect mode**: tapping the play area now persists the ordered card layout for the rest of the trick (no more settings toggle); resets only when a new trick begins; trick-sweep animation now starts from inspected positions when active
+- **Inspect mode**: tapping the play area now persists the ordered card layout for the rest of the game (no more settings toggle); trick-sweep animation starts from inspected positions when active
 - Card reveal phase now combines move + reveal into one tap: 1st tap reveals card, each subsequent tap moves it to hand and auto-reveals the next card
 - Round-end scoreboard now waits for trick sweep animation to finish before appearing; displays for 5 seconds with countdown — works for both Kaliteri and Judgement
 - Bid value shown alongside team scores in the HUD during Kaliteri play

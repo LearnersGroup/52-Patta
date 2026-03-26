@@ -160,15 +160,6 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
     setInspectMode((prev) => !prev);
   }, []);
 
-  // Reset inspect mode when a new trick starts (plays goes from 0 to 1)
-  const prevPlaysLenRef = useRef(plays.length);
-  useEffect(() => {
-    if (plays.length === 1 && prevPlaysLenRef.current === 0) {
-      setInspectMode(false);
-    }
-    prevPlaysLenRef.current = plays.length;
-  }, [plays.length]);
-
   useEffect(() => {
     const trickCount = tricks?.length || 0;
     if (trickCount > prevTricksRef.current) {
