@@ -1,27 +1,57 @@
 # Changelog — 52 Patta Mobile
 
-## Unreleased
+## 1.0.6 — 2026-03-26
+
+### Fixed
+- "Failed to fetch game room" error caused by rapid Ready/Not Ready button taps — client debounce disables the button for 500ms after each press; server-side rate limit rejects duplicate toggle events within the same window
+
+## 1.0.5 — 2026-03-26
+
+### Fixed
+- Partner card display in 2-deck games now shows a `#1` / `#2` badge overlaid on the card face, matching the web app — previously the copy number was tracked but not shown
+
+## 1.0.4 — 2026-03-23
 
 ### Added
-- "Games" section on home page with horizontal-scroll game cards (Kaliteri, Judgement); tapping a card opens a dedicated rules screen
-- Full rules screens (`/rules/kaliteri`, `/rules/judgement`) with phased breakdown: Introduction, Shuffling & Dealing, Bidding, PowerHouse & Partner Selection, Playing Tricks, Scoring
-- **Auto-play**: optional room setting (default ON) that automatically plays the card when it's the player's only legal move; toggle available in room config for both Kaliteri and Judgement
+- **Auto-play**: automatically plays the card when it's the player's only legal move; configurable room setting (default ON) for both Kaliteri and Judgement — toggle available in create-room and lobby config
+- Relation badges now appear during the powerhouse phase (not just during play)
+- 1-second haptic vibration when it becomes the player's turn
 
 ### Changed
-- Card reveal phase now combines move + reveal into one tap: 1st tap reveals card, each subsequent tap moves it to hand and auto-reveals the next card
 - Round-end scoreboard now waits for trick sweep animation to finish before appearing; displays for 5 seconds with countdown — works for both Kaliteri and Judgement
 - Bid value shown alongside team scores in the HUD during Kaliteri play
 - Bidder badge ("B") shown on the bidder's player seat during Kaliteri play
+- Card reveal phase now combines move + reveal into one tap: 1st tap reveals card, each subsequent tap moves it to hand and auto-reveals the next card
 - Ported intelligent teammate inference logic from web client: players can now infer their own team membership by checking if they hold a partner card (1-deck: certain, 2-deck: certain/potential based on copy analysis)
 - Full relation resolver ported from web: leader shows as teammate/opponent/potential-teammate; revealed partners display correctly; "Teammate?" badge for ambiguous 2-deck situations
-- Relation badges now appear during powerhouse phase (not just playing)
+- Inactive player avatar ring thinned to 50%; active-turn player shows full ring with coloured glow
+
+## 1.0.3 — 2026-03-23
+
+### Added
+- In-game settings panel: tap ⚙ in the HUD to open a modal with table shape and sticky inspect mode toggles
+- Table shape preference: Rectangular (seats on rect perimeter) or Elliptical (seats on ellipse with rounded table)
+- Sticky inspect mode: keeps cards fanned out across moves, card positions adjust to match the selected table shape
+
+### Changed
+- Scoreboard: current player's column highlighted with gold border; Kaliteri layout changed to players-on-X / games-on-Y with totals row, matching Judgement layout
+- Turn indicator: larger avatar (58 px), thicker border (3 px), heavy haptic feedback on player's turn
+
+### Fixed
+- 2-deck winning card logic: the second identical card now correctly shows as the winning card when played after the first copy
+
+## 1.0.2 — 2026-03-22
+
+### Added
+- "Games" section on home screen with horizontal-scroll game cards (Kaliteri, Judgement); tapping a card opens a dedicated rules screen
+- Full rules screens (`/rules/kaliteri`, `/rules/judgement`) with phased breakdown: Introduction, Shuffling & Dealing, Bidding, PowerHouse & Partner Selection, Playing Tricks, Scoring
 
 ### Fixed
 - Intended card play area now sits higher to avoid overlapping the player avatar; shows a persistent dashed outline + arrow indicator even when no card is selected
-- **Back navigation**: swiping back or tapping the back button in game rooms now shows a confirmation dialog instead of silently leaving without updating the server
-- **Triple-swipe bug**: non-admin players no longer need to swipe back 3 times; fixed by using `router.replace` for rejoin/redirect to avoid stacking duplicate navigation entries
-- **Admin back-nav**: admin swiping back no longer lands on the create-room page; `router.dismissAll()` clears the full stack back to home
-- **Room closure toast**: other players now see a "The room was closed by the host" toast when the admin closes the room
+- Back navigation: swiping back or tapping the back button in game rooms now shows a confirmation dialog instead of silently leaving without updating the server
+- Triple-swipe bug: non-admin players no longer need to swipe back 3 times; fixed by using `router.replace` for rejoin/redirect to avoid stacking duplicate navigation entries
+- Admin back-nav: admin swiping back no longer lands on the create-room page; `router.dismissAll()` clears the full stack back to home
+- Room closure toast: other players now see a "The room was closed by the host" toast when the admin closes the room
 
 ### Removed
 - Lobby chat feature removed (`LobbyChat` component + `WsUserSendMsgRoom` socket emitter)
