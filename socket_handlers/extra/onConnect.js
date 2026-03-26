@@ -2,6 +2,7 @@ const User = require("../../models/User");
 const { getGameState, rehydrateGame } = require("../../game_engine/stateManager");
 const { buildPublicView } = require("../game_play/helpers/broadcastState");
 const { getValidPlays } = require("../../game_engine/tricks");
+const { cancelLobbyDisconnect } = require("./lobbyGracePeriod");
 
 /**
  * Fires every time a socket authenticates and connects.
@@ -15,8 +16,18 @@ const { getValidPlays } = require("../../game_engine/tricks");
  */
 module.exports = (socket, io) => async () => {
     try {
+        // Cancel any pending lobby disconnect grace-period timer
+        const cancelledGameId = cancelLobbyDisconnect(socket.user.id);
+
         const user = await User.findById(socket.user.id)
             .populate("gameroom", ["roomname", "state", "code"]);
+
+        // If the player was in a lobby and reconnected within the grace period,
+        // rejoin them to the socket room so they keep receiving events.
+        if (cancelledGameId && user?.gameroom && user.gameroom.state === "lobby") {
+            await socket.join(user.gameroom.roomname);
+            return; // Still in lobby — no game state to push
+        }
 
         if (!user?.gameroom || !user.gameroom.state || user.gameroom.state === "lobby") {
             return; // Nothing to do — user is not in an active game

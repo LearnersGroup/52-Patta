@@ -19,6 +19,7 @@ import { get_all_user_in_room } from '../../src/api/apiHandler';
 import GameBoard from '../../src/components/game/board/GameBoard';
 import LobbyView from '../../src/components/game/lobby/LobbyView';
 import { useAuth } from '../../src/hooks/useAuth';
+import useAppState from '../../src/hooks/useAppState';
 import AppBackground from '../../src/components/shared/AppBackground';
 import {
   buttonStyles,
@@ -45,6 +46,28 @@ export default function GameRoomScreen() {
 
   // When true, allow navigation to proceed (bypass beforeRemove guard)
   const leavingRef = useRef(false);
+
+  // ── Re-sync state when returning from background (screen unlock) ───────
+  useAppState({
+    onForeground: async () => {
+      const isGameActive = phase !== null && phase !== 'lobby';
+      if (isGameActive) {
+        // Re-request authoritative game state from server
+        WsRequestGameState();
+      } else {
+        // Lobby — re-fetch room data; if player was removed, go home
+        try {
+          const room = await get_all_user_in_room(id);
+          setRoomData(room);
+        } catch {
+          dispatch(notify('You were removed from the room.', 'warning', 4000));
+          leavingRef.current = true;
+          dispatch(resetGame());
+          router.replace('/');
+        }
+      }
+    },
+  });
 
   const deriveUserIdFromRoom = (room) => {
     if (!room?.players?.length || !user?.user_name) return '';

@@ -1,6 +1,7 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
 const { getGameState, persistCheckpoint } = require("../../game_engine/stateManager");
+const { scheduleLobbyDisconnect } = require("./lobbyGracePeriod");
 
 module.exports = (socket, io) => async () => {
     try {
@@ -13,6 +14,7 @@ module.exports = (socket, io) => async () => {
         if (!game) return;
 
         const gameId = game._id.toString();
+        const playerId = socket.user.id;
         const isActiveGame = game.state !== "lobby";
 
         // If game is actively in progress, don't remove the player — just
@@ -23,7 +25,7 @@ module.exports = (socket, io) => async () => {
                 `${socket.username || "A player"} has disconnected`
             );
             io.to(game.roomname).emit("game-player-disconnected", {
-                playerId: socket.user.id,
+                playerId,
             });
 
             const gameState = getGameState(gameId);
@@ -33,42 +35,52 @@ module.exports = (socket, io) => async () => {
             return;
         }
 
-        // --- Lobby disconnect: existing behavior ---
+        // --- Lobby disconnect: grace period before removal ---
 
-        // Notify room about disconnection
         io.to(game.roomname).emit(
             "room-message",
             `${socket.username || "A player"} has disconnected`
         );
 
-        // Remove user's gameroom reference
-        await User.findOneAndUpdate(
-            { _id: socket.user.id },
-            { gameroom: null }
-        );
+        // Schedule removal after 30 s — if they reconnect the timer is cancelled
+        scheduleLobbyDisconnect(gameId, playerId, async () => {
+            try {
+                // Re-fetch game to get fresh state (it may have started while waiting)
+                const freshGame = await Game.findById(gameId);
+                if (!freshGame || freshGame.state !== "lobby") return;
 
-        // If admin disconnects, close the room
-        if (game.admin.toString() === socket.user.id) {
-            for (const player of game.players) {
+                // Remove user's gameroom reference
                 await User.findOneAndUpdate(
-                    { _id: player.playerId },
+                    { _id: playerId },
                     { gameroom: null }
                 );
-            }
-            await Game.findOneAndDelete({ _id: game.id });
-            io.to(game.roomname).emit("redirect-to-home-page");
-            return;
-        }
 
-        // Remove player from room
-        const updatedPlayers = game.players.filter(
-            (player) => player.playerId.toString() !== socket.user.id
-        );
-        await Game.findOneAndUpdate(
-            { _id: game.id },
-            { players: updatedPlayers }
-        );
-        io.to(game.roomname).emit("fetch-users-in-room");
+                // If admin disconnects, close the room
+                if (freshGame.admin.toString() === playerId) {
+                    for (const player of freshGame.players) {
+                        await User.findOneAndUpdate(
+                            { _id: player.playerId },
+                            { gameroom: null }
+                        );
+                    }
+                    await Game.findOneAndDelete({ _id: freshGame._id });
+                    io.to(freshGame.roomname).emit("redirect-to-home-page");
+                    return;
+                }
+
+                // Remove player from room
+                const updatedPlayers = freshGame.players.filter(
+                    (player) => player.playerId.toString() !== playerId
+                );
+                await Game.findOneAndUpdate(
+                    { _id: freshGame._id },
+                    { players: updatedPlayers }
+                );
+                io.to(freshGame.roomname).emit("fetch-users-in-room");
+            } catch (err) {
+                console.error("Deferred lobby disconnect error");
+            }
+        });
     } catch (error) {
         console.error("Disconnect cleanup error");
     }

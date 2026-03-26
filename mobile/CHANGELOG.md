@@ -1,5 +1,22 @@
 # Changelog — 52 Patta Mobile
 
+## 1.0.8 — 2026-03-26
+
+### Fixed
+- **Daily re-login**: JWT tokens now expire after 30 days instead of 24 hours — users stay logged in across sessions without needing to re-authenticate via Google every day
+- **Screen lock desync**: The app now re-syncs state when returning from background (screen unlock): lobby players re-fetch room membership and game players re-request authoritative game state from the server
+- **Stale lobby state after reconnect**: Players who briefly lose connection while in the lobby (e.g. screen lock < 30 s) are no longer removed from the room — a 30-second grace period cancels the removal if they reconnect in time
+- **Missed reconnections**: Socket.io reconnection is now explicitly configured with `Infinity` retry attempts and up to 10-second backoff — previously relied on library defaults which could give up silently
+
+### Changed
+- Server socket ping timeout increased from 20 s → 30 s, giving iOS background-suspended apps more time before the server declares a connection dead
+- Auth error detection on socket connection errors is now precise — only exact server-side error messages ("token expired", "no token provided", "invalid token") trigger logout, preventing false logouts on unrelated connection errors
+- Token refresh happens silently in the background whenever the app returns to the foreground and the token expires within 7 days
+
+### Added
+- **Token refresh endpoint** (`GET /api/auth/refresh`): issues a fresh 30-day token without requiring a full re-login; called automatically when the app resumes
+- **App lifecycle hook** (`useAppState`): globally manages socket reconnection and token refresh on foreground resume; game-room screen uses it to trigger state re-sync based on current phase
+
 ## 1.0.7 — 2026-03-26
 
 ### Added

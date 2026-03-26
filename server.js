@@ -170,6 +170,8 @@ const io = new Server(server, {
         origin: allowedOrigins,
         credentials: true,
     },
+    pingTimeout: 30000,
+    pingInterval: 25000,
 });
 io.use(ws_auth_middleware);
 

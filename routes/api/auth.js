@@ -31,6 +31,31 @@ router.get("/", auth, async (req, res) => {
     }
 });
 
+// @route   GET api/auth/refresh
+// @desc    Refresh JWT if it expires within 7 days
+// @access  Private
+router.get("/refresh", auth, async (req, res) => {
+    try {
+        const token = req.header("x-auth-token");
+        const decoded = jwt.decode(token);
+        if (!decoded || !decoded.exp) {
+            return res.json({ token: null, refreshed: false });
+        }
+
+        const nowSec = Math.floor(Date.now() / 1000);
+        const sevenDays = 7 * 24 * 60 * 60;
+        if (decoded.exp - nowSec > sevenDays) {
+            return res.json({ token: null, refreshed: false });
+        }
+
+        const payload = { user: { id: req.user.id, provider: decoded.user?.provider || "local" } };
+        const newToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "30d" });
+        res.json({ token: newToken, refreshed: true });
+    } catch (error) {
+        res.status(500).json({ errors: [{ msg: "Server error" }] });
+    }
+});
+
 // @route   POST api/auth
 // @desc    Login user
 // @access  Public                                          // if token required then, Public
@@ -105,7 +130,7 @@ router.post(
             jwt.sign(
                 payload,
                 process.env.JWT_SECRET,
-                { expiresIn: '24h' },
+                { expiresIn: '30d' },
                 (err, token) => {
                     if (err) throw err;
                     res.json({
