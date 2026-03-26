@@ -6,8 +6,24 @@
 - **Auto-play**: personal in-game setting (default ON) — automatically plays the card after a 2-second delay when it's the player's only legal move; toggle available in the in-game ⚙ settings panel (replaces the room-level auto-play setting)
 
 ### Changed
+- Lobby settings editor: aligned all labels, option names, and option order with the web create-game page (e.g. "Round Order" with "Ascending Only"/"Up & Down", "Bidding Time Limit" with "Time Limit", "Fixed (S→D→C→H)", full labels for all steppers)
 - **Inspect mode**: tapping the play area now persists the ordered card layout for the rest of the game — no automatic reset, no settings toggle needed; trick-sweep animation starts from inspected positions when active
 - In-game ⚙ settings panel now shows Auto-Play On/Off toggle instead of Sticky Inspect toggle
+
+### Fixed
+- Intended card play area now sits higher to avoid overlapping the player avatar; shows a persistent dashed outline + arrow indicator even when no card is selected
+- **Back navigation**: swiping back or tapping the back button in game rooms now shows a confirmation dialog instead of silently leaving without updating the server
+- **Triple-swipe bug**: non-admin players no longer need to swipe back 3 times; fixed by using `router.replace` for rejoin/redirect to avoid stacking duplicate navigation entries
+- **Admin back-nav**: admin swiping back no longer lands on the create-room page; `router.dismissAll()` clears the full stack back to home
+- **Room closure toast**: other players now see a "The room was closed by the host" toast when the admin closes the room
+
+### Removed
+- Lobby chat feature removed (`LobbyChat` component + `WsUserSendMsgRoom` socket emitter)
+
+### Performance
+- `PlayerSeat`: wrapped with `memo()` — prevents re-renders when seat data is unchanged
+- `LobbyPlayerList`: wrapped with `memo()` — prevents re-renders when parent re-renders without changed player data
+- `GameBoard`: `getName` wrapped with `useCallback`; inner components `IntendedCardSlot`, `ScoreboardModal`, `RevealAnnouncement` wrapped with `memo()`
 
 ## 1.0.1 (build 4) — 2026-03-22
 
