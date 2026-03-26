@@ -45,7 +45,7 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
   const [inspectTime, setInspectTime] = useState(15);
   const [maxCardsPerRound, setMaxCardsPerRound] = useState(7);
   const [reverseOrder, setReverseOrder] = useState(true);
-  const [trumpMode, setTrumpMode] = useState('cyclic');
+  const [trumpMode, setTrumpMode] = useState('fixed');
   const [scoreboardTime, setScoreboardTime] = useState(5);
   const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
   const [bidTime, setBidTime] = useState(15);
@@ -142,11 +142,11 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
       {gameType === 'kaliteri' ? (
         <>
           {playerCount % 2 === 1 ? (
-            <NumberStepper label="Bid Threshold" value={bidThreshold} min={155} max={500} step={5} onChange={setBidThreshold} />
+            <NumberStepper label="Bid Threshold for Extra Teammate" value={bidThreshold} min={155} max={500} step={5} onChange={setBidThreshold} />
           ) : null}
-          <NumberStepper label="Games" value={gameCount} min={1} max={20} onChange={setGameCount} />
-          <NumberStepper label="Bid Window" value={bidWindow} min={5} max={60} step={5} suffix="s" onChange={setBidWindow} />
-          <NumberStepper label="Inspect Time" value={inspectTime} min={5} max={30} step={5} suffix="s" onChange={setInspectTime} />
+          <NumberStepper label="Number of Games" value={gameCount} min={1} max={20} onChange={setGameCount} />
+          <NumberStepper label="Bidding Window" value={bidWindow} min={5} max={60} step={5} suffix="s" onChange={setBidWindow} />
+          <NumberStepper label="Card Inspect Time" value={inspectTime} min={5} max={30} step={5} suffix="s" onChange={setInspectTime} />
         </>
       ) : (
         <>
@@ -158,43 +158,43 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
             onChange={setMaxCardsPerRound}
           />
           <View style={styles.group}>
-            <Text style={styles.label}>Reverse Order</Text>
+            <Text style={styles.label}>Round Order</Text>
             <View style={styles.row}>
               <Pressable style={[styles.chip, !reverseOrder && styles.chipActive]} onPress={() => setReverseOrder(false)}>
-                <Text style={styles.chipText}>No</Text>
+                <Text style={styles.chipText}>Ascending Only</Text>
               </Pressable>
               <Pressable style={[styles.chip, reverseOrder && styles.chipActive]} onPress={() => setReverseOrder(true)}>
-                <Text style={styles.chipText}>Yes</Text>
+                <Text style={styles.chipText}>Up & Down</Text>
               </Pressable>
             </View>
           </View>
           <View style={styles.group}>
             <Text style={styles.label}>Trump Mode</Text>
             <View style={styles.row}>
-              <Pressable style={[styles.chip, trumpMode === 'fixed' && styles.chipActive]} onPress={() => setTrumpMode('fixed')}>
-                <Text style={styles.chipText}>Fixed</Text>
-              </Pressable>
               <Pressable style={[styles.chip, trumpMode === 'random' && styles.chipActive]} onPress={() => setTrumpMode('random')}>
                 <Text style={styles.chipText}>Random</Text>
               </Pressable>
+              <Pressable style={[styles.chip, trumpMode === 'fixed' && styles.chipActive]} onPress={() => setTrumpMode('fixed')}>
+                <Text style={styles.chipText}>Fixed (S→D→C→H)</Text>
+              </Pressable>
             </View>
           </View>
-          <NumberStepper label="Scoreboard" value={scoreboardTime} min={3} max={30} suffix="s" onChange={setScoreboardTime} />
+          <NumberStepper label="Scoreboard Display Time" value={scoreboardTime} min={3} max={30} suffix="s" onChange={setScoreboardTime} />
           <View style={styles.group}>
-            <Text style={styles.label}>Bid Timer</Text>
+            <Text style={styles.label}>Bidding Time Limit</Text>
             <View style={styles.row}>
               <Pressable style={[styles.chip, !bidTimeEnabled && styles.chipActive]} onPress={() => setBidTimeEnabled(false)}>
                 <Text style={styles.chipText}>No Limit</Text>
               </Pressable>
               <Pressable style={[styles.chip, bidTimeEnabled && styles.chipActive]} onPress={() => setBidTimeEnabled(true)}>
-                <Text style={styles.chipText}>Limit</Text>
+                <Text style={styles.chipText}>Time Limit</Text>
               </Pressable>
             </View>
           </View>
           {bidTimeEnabled ? (
             <NumberStepper label="Bid Time" value={bidTime} min={5} max={60} step={5} suffix="s" onChange={setBidTime} />
           ) : null}
-          <NumberStepper label="Reveal Time" value={cardRevealTime} min={3} max={30} suffix="s" onChange={setCardRevealTime} />
+          <NumberStepper label="Card Reveal Time" value={cardRevealTime} min={3} max={30} suffix="s" onChange={setCardRevealTime} />
         </>
       )}
 
