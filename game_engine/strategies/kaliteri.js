@@ -284,6 +284,8 @@ function buildPublicView(gameState, handSizes) {
         handSizes,
         scores: gameState.scores,
         scoringResult: gameState.scoringResult || null,
+        cardRevealTimeMs: gameState.config?.inspectWindowMs
+            || SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS,
     };
 }
 

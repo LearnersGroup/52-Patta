@@ -32,7 +32,7 @@
 - [ ] Build a game registry that maps game types to their engines
 - [ ] Extract KaliTiri-specific socket handlers into a game-specific handler module
 - [ ] Create shared socket handler patterns (room management, state broadcast)
-- [ ] Formalize the phase state machine (explicit FSM instead of implicit if/else chains)
+- [x] Formalize the phase state machine → promoted to **EPIC 18**
 - [ ] Add TypeScript to game engine (incremental adoption)
 - [ ] Write game engine unit tests: `deck.js`
 - [ ] Write game engine unit tests: `bidding.js`
@@ -378,6 +378,118 @@
 
 ---
 
+## EPIC 18: Formalize Phase State Machine [P2 - High]
+
+> Replace ad-hoc `gameState.phase = "..."` mutations scattered across ~15 handler files with a centralized, validated finite state machine (FSM). Prevents invalid transitions, eliminates phantom phases (e.g. `"scoring"` defined client-side but never emitted by server — caused the scoreboard bug), and makes the game flow auditable from a single file.
+> **Depends on:** none (server-only refactor)
+> **Client impact:** None — same phase strings emitted at the same times. Zero mobile/web changes required.
+
+### Context: Phase Inventory
+
+**Kaliteri:** `shuffling → dealing → bidding → powerhouse → playing → finished → (next game or series-finished)`
+- Special: `bidding → shuffling` (all-pass redeal)
+
+**Judgement:** `trump-announce → shuffling → dealing → bidding → playing → finished → (next round or series-finished)`
+
+**Ghost phase:** `"scoring"` is defined in the client Redux slice but never emitted by the server. The server goes directly from trick completion → `onRoundEnd()` → `"finished"`. This mismatch caused the round-end scoreboard to never display for Judgement.
+
+### Context: Files That Mutate Phase Today
+
+| File | Mutations |
+|------|-----------|
+| `game_engine/strategies/kaliteri.js` | `buildInitialState()` → `"shuffling"`, `nextRound()` → `"shuffling"` |
+| `game_engine/strategies/judgement.js` | `buildInitialState()` → `"trump-announce"`, `onRoundEnd()` → `"finished"` or `"series-finished"` |
+| `socket_handlers/game_play/dealCardsHandler.js` | `"shuffling"` → `"dealing"`, then `"dealing"` → `"bidding"` via timer |
+| `socket_handlers/game_play/placeBid.js` | `"bidding"` → `"powerhouse"` |
+| `socket_handlers/game_play/passBid.js` | `"bidding"` → `"powerhouse"` or `"bidding"` → `"shuffling"` (all-pass) |
+| `socket_handlers/game_play/helpers/expireBidding.js` | `"bidding"` → `"powerhouse"` or `"bidding"` → `"shuffling"` (no bids) |
+| `socket_handlers/game_play/selectPartners.js` | `"powerhouse"` → `"playing"` |
+| `socket_handlers/game_play/playCard.js` | `"playing"` → `"finished"` via `onRoundEnd()` |
+| `socket_handlers/game_play/autoNextGame.js` | `"finished"` → `"shuffling"` or `"finished"` → `"series-finished"` |
+| `socket_handlers/game_play/judgementBid.js` | `"bidding"` → `"playing"` |
+| `socket_handlers/game_play/acknowledgeTrumpAnnounce.js` | `"trump-announce"` → `"shuffling"` |
+| `socket_handlers/game_play/helpers/autoNextJudgementRound.js` | `"finished"` → `"trump-announce"` or `"finished"` → `"series-finished"` |
+
+### Task 1: Create Phase Constants & Transition Engine
+
+- [ ] Create `game_engine/phases.js` with:
+  - Frozen phase constants: `SHUFFLING`, `DEALING`, `BIDDING`, `POWERHOUSE`, `PLAYING`, `FINISHED`, `SERIES_FINISHED`, `TRUMP_ANNOUNCE`
+  - No `SCORING` — it was never a real server phase
+  - Named event constants for every trigger (see tasks 2 & 3 below)
+- [ ] Define Kaliteri transition table: `{ [currentPhase]: { [event]: nextPhase } }`
+- [ ] Define Judgement transition table: same structure, different transitions
+- [ ] Implement `transition(gameState, event)` function:
+  - Selects table based on `gameState.gameType`
+  - Looks up `[gameState.phase][event]`
+  - Throws descriptive error if transition is invalid (includes current phase, event, and valid events for that phase)
+  - Returns the new phase string (pure function, does not mutate)
+
+### Task 2: Map Kaliteri Transitions (11 transitions)
+
+- [ ] `SHUFFLE_COMPLETE`: `shuffling → dealing` — `dealCardsHandler.js:53`
+- [ ] `DEAL_COMPLETE`: `dealing → bidding` — `dealCardsHandler.js:87` via `transitionToBidding()`
+- [ ] `BID_WON`: `bidding → powerhouse` — `placeBid.js:48-61` (bid hits max or 1 player left)
+- [ ] `BID_WON`: `bidding → powerhouse` — `passBid.js:91-103` (all but one pass)
+- [ ] `BID_EXPIRED_WITH_WINNER`: `bidding → powerhouse` — `expireBidding.js:60-77`
+- [ ] `ALL_PASS_NO_BIDS`: `bidding → shuffling` — `passBid.js:57` (redeal)
+- [ ] `BID_EXPIRED_NO_BIDS`: `bidding → shuffling` — `expireBidding.js:32` (redeal)
+- [ ] `PARTNERS_SELECTED`: `powerhouse → playing` — `selectPartners.js:52`
+- [ ] `ROUND_COMPLETE`: `playing → finished` — `playCard.js:73-83` via `onRoundEnd()`
+- [ ] `SCOREBOARD_DONE`: `finished → shuffling` — `autoNextGame.js:51` (next game)
+- [ ] `SERIES_COMPLETE`: `finished → series-finished` — `autoNextGame.js:123` (all games done)
+
+### Task 3: Map Judgement Transitions (7 transitions)
+
+- [ ] `TRUMP_ANNOUNCED`: `trump-announce → shuffling` — `acknowledgeTrumpAnnounce.js:28` or auto-timer
+- [ ] `SHUFFLE_COMPLETE`: `shuffling → dealing` — `dealCardsHandler.js:53`
+- [ ] `DEAL_COMPLETE`: `dealing → bidding` — `dealCardsHandler.js:87`
+- [ ] `ALL_BIDS_IN`: `bidding → playing` — `judgementBid.js:28-32`
+- [ ] `ROUND_COMPLETE`: `playing → finished` — `playCard.js:73-83` via `onRoundEnd()`
+- [ ] `ROUND_COMPLETE`: `playing → series-finished` — `judgement.js:161` (last round)
+- [ ] `SCOREBOARD_DONE`: `finished → trump-announce` — `autoNextJudgementRound.js:99-100`
+
+### Task 4: Replace All Direct Mutations
+
+- [ ] `dealCardsHandler.js` — replace `gameState.phase = "dealing"` and bidding transition
+- [ ] `placeBid.js` — replace `gameState.phase = "powerhouse"`
+- [ ] `passBid.js` — replace both `"powerhouse"` and `"shuffling"` mutations
+- [ ] `expireBidding.js` — replace both `"powerhouse"` and `"shuffling"` mutations
+- [ ] `selectPartners.js` — replace `gameState.phase = "playing"`
+- [ ] `playCard.js` — replace scoring phase transition
+- [ ] `autoNextGame.js` — replace `"shuffling"` and `"series-finished"` mutations
+- [ ] `judgementBid.js` — replace `"playing"` mutation
+- [ ] `acknowledgeTrumpAnnounce.js` — replace `"shuffling"` mutation
+- [ ] `autoNextJudgementRound.js` — replace `"trump-announce"` and `"series-finished"` mutations
+- [ ] `kaliteri.js` strategy — replace `buildInitialState()` and `nextRound()` phase sets
+- [ ] `judgement.js` strategy — replace `buildInitialState()` and `onRoundEnd()` phase sets
+- [ ] `startGame.js` — verify it delegates to strategy (no direct mutation)
+
+### Task 5: Client Cleanup
+
+- [ ] Remove `"scoring"` from phase comment in `mobile/src/redux/slices/game.js:20`
+- [ ] Grep web client (`client/`) for any `"scoring"` phase references and remove
+- [ ] Audit all client-side phase checks (`GameBoard.js`, `BiddingPanel.js`, `JudgementBiddingPanel.js`, etc.) to confirm they only reference real phases
+
+### Task 6: Unit Tests
+
+- [ ] Test Kaliteri transition table: every valid transition returns correct phase
+- [ ] Test Kaliteri transition table: invalid transitions throw with descriptive message
+- [ ] Test Judgement transition table: every valid transition returns correct phase
+- [ ] Test Judgement transition table: invalid transitions throw with descriptive message
+- [ ] Test edge case: Kaliteri all-pass redeal loop (`bidding → shuffling → dealing → bidding`)
+- [ ] Test edge case: Judgement last round goes to `series-finished` not `finished`
+
+### Task 7: Integration / Smoke Tests
+
+- [ ] Full Kaliteri game flow: shuffle → deal → bid → powerhouse → play → finish → next game → finish → series-finished
+- [ ] Kaliteri all-pass redeal: bid → all pass → reshuffle → deal → bid again
+- [ ] Kaliteri bid expiry: timer expires with winner → powerhouse; timer expires no bids → reshuffle
+- [ ] Full Judgement game flow: trump-announce → shuffle → deal → bid → play → finish → next round → ... → series-finished
+- [ ] Play one full Kaliteri series on mobile — verify no regressions
+- [ ] Play one full Judgement series on mobile — verify no regressions
+
+---
+
 ## Dependency Graph
 
 ```
@@ -398,4 +510,5 @@ EPIC 13 (Migrate off CRA) can run any time — recommended before EPIC 9 to shar
 EPIC 15 (Username & Avatar) feeds into EPIC 11 (Friends), EPIC 12 (Leaderboard), and EPIC 17 (Mobile Wireframes)
 EPIC 16 (Prod Setup) must be complete before any public launch or mobile app release
 EPIC 17 (Mobile Wireframes) must be complete before EPIC 9 (Mobile App) development begins
+EPIC 18 (Phase FSM) has no dependencies — can run any time. Recommended before EPIC 6 (New Games) to give new game engines a clean FSM contract
 ```

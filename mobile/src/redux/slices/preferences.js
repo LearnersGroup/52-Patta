@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   tableShape: 'rectangular', // 'rectangular' | 'elliptical'
-  stickyInspect: false,       // when true, inspect mode persists across moves
+  autoplay: true,             // auto-play the only legal card (per-player setting)
 };
 
 const preferencesSlice = createSlice({
@@ -12,11 +12,11 @@ const preferencesSlice = createSlice({
     setTableShape: (state, action) => {
       state.tableShape = action.payload;
     },
-    setStickyInspect: (state, action) => {
-      state.stickyInspect = action.payload;
+    setAutoplay: (state, action) => {
+      state.autoplay = action.payload;
     },
   },
 });
 
-export const { setTableShape, setStickyInspect } = preferencesSlice.actions;
+export const { setTableShape, setAutoplay } = preferencesSlice.actions;
 export default preferencesSlice.reducer;
