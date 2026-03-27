@@ -153,16 +153,64 @@ describe('MEDIUM: Double Emit on Reconnect', () => {
 describe('HIGH: JWT Expiration Fix', () => {
     const authRoute = readFile('routes/api/auth.js');
     const usersRoute = readFile('routes/api/users.js');
+    const oauthRoute = readFile('routes/api/oauth.js');
 
     test('auth route should use reasonable JWT expiration (not 360000)', () => {
         expect(authRoute).not.toMatch(/expiresIn:\s*360000/);
-        // Should be '24h' or similar reasonable expiration
-        expect(authRoute).toMatch(/expiresIn:\s*'24h'/);
+        expect(authRoute).toMatch(/expiresIn:\s*'30d'/);
     });
 
     test('users route should use reasonable JWT expiration (not 360000)', () => {
         expect(usersRoute).not.toMatch(/expiresIn:\s*360000/);
-        expect(usersRoute).toMatch(/expiresIn:\s*'24h'/);
+        expect(usersRoute).toMatch(/expiresIn:\s*'30d'/);
+    });
+
+    test('oauth route should use 30d JWT expiration', () => {
+        expect(oauthRoute).not.toMatch(/expiresIn:\s*360000/);
+        expect(oauthRoute).toMatch(/expiresIn:\s*'30d'/);
+    });
+});
+
+describe('Token Refresh Endpoint', () => {
+    const authRoute = readFile('routes/api/auth.js');
+
+    test('should have a GET /refresh endpoint', () => {
+        expect(authRoute).toMatch(/router\.get\s*\(\s*["']\/refresh["']/);
+    });
+
+    test('should be protected by auth middleware', () => {
+        // auth middleware must appear in the /refresh route definition
+        expect(authRoute).toMatch(/get\s*\(\s*["']\/refresh["'],\s*auth/);
+    });
+
+    test('should issue a new 30d token', () => {
+        expect(authRoute).toMatch(/expiresIn:\s*["']30d["']/);
+    });
+
+    test('should return refreshed flag in response', () => {
+        expect(authRoute).toMatch(/refreshed/);
+    });
+});
+
+describe('Lobby Disconnect Grace Period', () => {
+    const gracePeriod = readFile('socket_handlers/extra/lobbyGracePeriod.js');
+    const disconnectHandler = readFile('socket_handlers/extra/onDisconnect.js');
+    const connectHandler = readFile('socket_handlers/extra/onConnect.js');
+
+    test('grace period module should export scheduleLobbyDisconnect', () => {
+        expect(gracePeriod).toMatch(/scheduleLobbyDisconnect/);
+    });
+
+    test('grace period module should export cancelLobbyDisconnect', () => {
+        expect(gracePeriod).toMatch(/cancelLobbyDisconnect/);
+    });
+
+    test('disconnect handler should use grace period for lobby', () => {
+        expect(disconnectHandler).toMatch(/scheduleLobbyDisconnect/);
+    });
+
+    test('connect handler should cancel pending grace period on reconnect', () => {
+        expect(connectHandler).toMatch(/cancelLobbyDisconnect/);
     });
 });
 

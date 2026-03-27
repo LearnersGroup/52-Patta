@@ -20,11 +20,18 @@ import {
 } from '@expo-google-fonts/lato';
 import ToastOverlay from '../src/components/shared/ToastOverlay';
 import { AuthProvider } from '../src/hooks/useAuth';
+import useAppState from '../src/hooks/useAppState';
 import store from '../src/redux/store';
 import { colors } from '../src/styles/theme';
 
 // Prevent the splash screen from auto-hiding until fonts are loaded
 SplashScreen.preventAutoHideAsync();
+
+/** Global foreground handler — reconnects socket & refreshes token */
+function AppLifecycleManager() {
+  useAppState();
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -55,6 +62,7 @@ export default function RootLayout() {
       <Provider store={store}>
         <SafeAreaProvider>
           <AuthProvider>
+            <AppLifecycleManager />
             <StatusBar style="light" />
             <ToastOverlay />
             <Stack

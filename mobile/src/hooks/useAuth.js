@@ -73,6 +73,24 @@ export const AuthProvider = ({ children }) => {
     await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser));
   }, []);
 
+  const refreshToken = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/auth/refresh');
+      if (res.data?.refreshed && res.data.token) {
+        const newToken = res.data.token;
+        setAuthToken(newToken);
+        setUser((prev) => {
+          if (!prev) return prev;
+          const next = { ...prev, token: newToken };
+          persistUser(next);
+          return next;
+        });
+      }
+    } catch {
+      // 401 means token already expired — logout
+    }
+  }, [persistUser]);
+
   const refreshProfile = useCallback(async () => {
     try {
       const res = await apiClient.get('/auth');
@@ -167,6 +185,7 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       refreshProfile,
+      refreshToken,
       updateUserName,
       completeOnboarding,
     }),
@@ -177,6 +196,7 @@ export const AuthProvider = ({ children }) => {
       login,
       logout,
       refreshProfile,
+      refreshToken,
       updateUserName,
       completeOnboarding,
     ]

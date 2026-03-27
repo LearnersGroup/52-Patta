@@ -22,6 +22,11 @@ const readStoredUser = async () => {
 
 export const socket = io(WS_URL, {
   autoConnect: false,
+  reconnection: true,
+  reconnectionAttempts: Infinity,
+  reconnectionDelay: 1000,
+  reconnectionDelayMax: 10000,
+  randomizationFactor: 0.5,
   auth: async (cb) => {
     const user = await readStoredUser();
     cb({ token: user?.token || null });
@@ -30,10 +35,14 @@ export const socket = io(WS_URL, {
 
 socket.on('connect_error', async (err) => {
   const msg = String(err?.message || '').toLowerCase();
-  const tokenProblem =
-    msg.includes('token expired') || msg.includes('jwt') || msg.includes('token');
+  // Match exact server error messages from ws_auth.js
+  const isAuthError =
+    msg.includes('token expired') ||
+    msg.includes('no token provided') ||
+    msg.includes('invalid token') ||
+    msg.includes('server misconfigured');
 
-  if (!tokenProblem) return;
+  if (!isAuthError) return;
 
   await AsyncStorage.removeItem(USER_STORAGE_KEY);
   if (typeof authErrorHandler === 'function') {
