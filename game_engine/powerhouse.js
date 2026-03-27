@@ -73,16 +73,29 @@ function selectPartnerCards(gameState, playerId, cards, duplicateSpecs = []) {
         }
     }
 
-    // Build the partner tracking state
+    // Build the partner tracking state.
+    // Use a consumed-specs list so that when the same card is selected twice
+    // (e.g. both copies of Ace of Clubs), each entry gets its own distinct
+    // whichCopy ("1st" then "2nd") instead of both receiving the first match.
+    const remainingSpecs = [...duplicateSpecs];
+
     const partnerCardSpecs = cards.map((card) => {
         const inHand = leaderHand.filter((c) => cardsMatch(c, card));
-        const spec = duplicateSpecs.find(
-            (s) => s.card.suit === card.suit && s.card.rank === card.rank
-        );
+
+        let whichCopy = null;
+        if (inHand.length === 0) {
+            const specIdx = remainingSpecs.findIndex(
+                (s) => s.card.suit === card.suit && s.card.rank === card.rank
+            );
+            if (specIdx !== -1) {
+                whichCopy = remainingSpecs[specIdx].whichCopy;
+                remainingSpecs.splice(specIdx, 1); // consume so next duplicate gets the next spec
+            }
+        }
 
         return {
             card: { suit: card.suit, rank: card.rank },
-            whichCopy: inHand.length === 0 && spec ? spec.whichCopy : null,
+            whichCopy,
             playCount: 0, // track how many times this card has been played
             revealed: false,
             partnerId: null,
