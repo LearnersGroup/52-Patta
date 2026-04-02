@@ -1,0 +1,90 @@
+name: 🚀 Ship iOS to TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - preview
+      notes:
+        description: "Release notes (shown in job summary)"
+        required: false
+        default: ""
+
+jobs:
+  build-and-submit:
+    name: Build & Submit to TestFlight
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: 🔧 Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🔑 Decode Apple API Key
+        run: |
+          echo "${{ secrets.ASC_API_KEY_CONTENT }}" | base64 --decode > /tmp/asc_api_key.p8
+          echo "EXPO_APPLE_APP_STORE_CONNECT_API_KEY_PATH=/tmp/asc_api_key.p8" >> $GITHUB_ENV
+
+      - name: 🏗️ Build iOS app via EAS
+        working-directory: mobile
+        run: |
+          eas build \
+            --platform ios \
+            --profile ${{ inputs.profile }} \
+            --non-interactive \
+            --wait
+        env:
+          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_PATH: /tmp/asc_api_key.p8
+
+      - name: 📤 Submit to TestFlight
+        working-directory: mobile
+        run: |
+          eas submit \
+            --platform ios \
+            --latest \
+            --non-interactive
+        env:
+          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          EXPO_APPLE_APP_STORE_CONNECT_API_KEY_PATH: /tmp/asc_api_key.p8
+          ASC_APP_ID: ${{ vars.ASC_APP_ID }}
+
+      - name: 🧹 Clean up API key
+        if: always()
+        run: rm -f /tmp/asc_api_key.p8
+
+      - name: 📋 Job Summary
+        if: success()
+        run: |
+          echo "## ✅ iOS Ship Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Profile** | ${{ inputs.profile }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **App** | 52 Patta (in.patta52.app) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Notes** | ${{ inputs.notes }} |" >> $GITHUB_STEP_SUMMARY

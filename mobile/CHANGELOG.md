@@ -1,5 +1,10 @@
 # Changelog — 52 Patta Mobile
 
+## 1.0.9 — 2026-04-01
+
+### Infrastructure
+- Added GitHub Actions workflow (`.github/workflows/ship-ios.yml`) for manual iOS builds and TestFlight submission via EAS — trigger anytime from the GitHub Actions tab with a choice of build profile and optional release notes
+
 ## 1.0.8 — 2026-03-26
 
 ### Fixed
