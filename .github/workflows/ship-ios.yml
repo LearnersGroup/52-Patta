@@ -63,15 +63,16 @@ jobs:
       - name: 📤 Submit to TestFlight
         working-directory: mobile
         run: |
+          jq --arg id "$ASC_APP_ID" '.submit.production.ios.ascAppId = $id' eas.json > eas.json.tmp && mv eas.json.tmp eas.json
           eas submit \
             --platform ios \
             --latest \
-            --non-interactive \
-            --asc-app-id ${{ vars.ASC_APP_ID }}
+            --non-interactive
         env:
           EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_API_KEY_PATH: /tmp/asc_api_key.p8
+          ASC_APP_ID: ${{ vars.ASC_APP_ID }}
 
       - name: 🧹 Clean up API key
         if: always()
