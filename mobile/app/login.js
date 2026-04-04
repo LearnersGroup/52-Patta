@@ -81,6 +81,7 @@ export default function LoginScreen() {
       token: oauthParams.token,
       user_name: oauthParams.user_name,
       needs_onboarding: String(oauthParams.needs_onboarding || '0') === '1',
+      provider: oauthParams.provider,
     });
   };
 

@@ -162,6 +162,11 @@ const ProfilePage = () => {
                                 placeholder="Your name"
                             />
                             <p className="identity-email">{profile?.email || ''}</p>
+                            {user?.provider && (
+                                <p className="identity-session-provider">
+                                    Signed in with {user.provider.charAt(0).toUpperCase() + user.provider.slice(1)}
+                                </p>
+                            )}
                         </div>
                     </div>
 

@@ -137,6 +137,7 @@ router.post(
                         token: token,
                         user_name: user.name,
                         needs_onboarding: !!user.needsOnboarding,
+                        provider: 'local',
                     });
                 }
             );

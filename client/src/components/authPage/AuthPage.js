@@ -25,10 +25,10 @@ export const AuthPage = () => {
         e.preventDefault();
         setErrors([]);
         try {
-            const { token, user_name, needs_onboarding } = await user_login(email, password);
+            const { token, user_name, needs_onboarding, provider } = await user_login(email, password);
 
             if (token) {
-                await login({ token, user_name, needs_onboarding });
+                await login({ token, user_name, needs_onboarding, provider });
                 setAuthToken(token);
             }
         } catch (error) {
