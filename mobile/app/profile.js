@@ -165,6 +165,12 @@ export default function ProfileScreen() {
           onBlur={() => setFocusedField(null)}
         />
 
+        {user?.provider && (
+          <Text style={styles.sessionProvider}>
+            Signed in with {user.provider.charAt(0).toUpperCase() + user.provider.slice(1)}
+          </Text>
+        )}
+
         <Pressable style={styles.secondaryButton} onPress={() => router.push('/avatar-editor')}>
           <Text style={styles.secondaryButtonText}>✦ Edit Avatar</Text>
         </Pressable>
@@ -337,6 +343,11 @@ const styles = StyleSheet.create({
     color: colors.goldLight,
     fontFamily: fonts.body,
     fontSize: 14,
+  },
+  sessionProvider: {
+    ...typography.label,
+    color: colors.creamMuted,
+    fontSize: 12,
   },
   secondaryButton: {
     ...buttonStyles.base,

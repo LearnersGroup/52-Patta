@@ -26,6 +26,7 @@ export default function OAuthCallbackScreen() {
         token: parsed.token,
         user_name: parsed.user_name,
         needs_onboarding: String(parsed.needs_onboarding || '0') === '1',
+        provider: parsed.provider,
       });
       return;
     }

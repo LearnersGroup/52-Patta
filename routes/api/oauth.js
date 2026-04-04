@@ -31,7 +31,7 @@ function handleOAuthCallback(req, res, provider) {
             }
             const userName = encodeURIComponent(user.name);
             const needsOnboarding = user.needsOnboarding ? '1' : '0';
-            const params = `token=${token}&user_name=${userName}&needs_onboarding=${needsOnboarding}`;
+            const params = `token=${token}&user_name=${userName}&needs_onboarding=${needsOnboarding}&provider=${provider}`;
             if (mobileRedirect) {
                 // Deep link back to mobile app: patta52://oauth-callback?token=...
                 return res.redirect(`${mobileRedirect}?${params}`);

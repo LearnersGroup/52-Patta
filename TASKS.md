@@ -28,8 +28,8 @@
 > Extract game engine into a plugin architecture so new games (MendiKot, Kachuful) can be added cleanly.
 > **Depends on:** EPIC 1
 
-- [ ] Design a base game interface/contract (phases, events, state shape)
-- [ ] Build a game registry that maps game types to their engines
+- [x] Design a base game interface/contract (phases, events, state shape) — `game_engine/strategies/GameStrategy.js` base class with JSDoc + runtime contract enforcement; `gameRegistry.js` validates on registration
+- [x] Build a game registry that maps game types to their engines — `game_engine/gameRegistry.js` fully functional
 - [ ] Extract KaliTiri-specific socket handlers into a game-specific handler module
 - [ ] Create shared socket handler patterns (room management, state broadcast)
 - [x] Formalize the phase state machine → promoted to **EPIC 18**
@@ -95,7 +95,7 @@
   - Add `FACEBOOK_APP_SECRET` to GitHub Secrets, `FACEBOOK_APP_ID` + `FACEBOOK_CALLBACK_URL` to GitHub Variables
   - Update deploy workflows to sync FB creds to EC2 `.env`
   - Fix: move `require('dotenv').config()` to top of `server.js` so env vars load before passport strategy registration
-- [ ] Update JWT payload to include auth provider info
+- [x] Update JWT payload to include auth provider info — `provider` now included in local login response + OAuth redirect params; stored in user session (web + mobile); shown as "Signed in with X" on profile pages
 
 ---
 
@@ -105,7 +105,7 @@
 > **Depends on:** EPIC 2 (plugin architecture)
 
 ### Prerequisites
-- [ ] Set up `migrate-mongo` for database schema migrations (needed for User model changes across environments)
+- [x] Set up `migrate-mongo` for database schema migrations — `migrate-mongo-config.js` + `migrations/` exist
 
 ### MendiKot
 - [ ] Research and document MendiKot rules and game flow
@@ -114,13 +114,13 @@
 - [ ] MendiKot-specific UI components
 
 ### Kachuful (Judgement)
-- [ ] Research and document Kachuful rules and game flow
-- [ ] Implement Kachuful game engine (config, dealing, bidding, tricks, scoring)
-- [ ] Implement Kachuful socket handlers
-- [ ] Kachuful-specific UI components
+- [x] Research and document Kachuful rules and game flow
+- [x] Implement Kachuful game engine (config, dealing, bidding, tricks, scoring) — `game_engine/strategies/judgement.js` + full engine
+- [x] Implement Kachuful socket handlers — `judgementBid.js`, `acknowledgeTrumpAnnounce.js`, `autoNextJudgementRound.js`
+- [x] Kachuful-specific UI components — Judgement UI fully implemented in web + mobile
 
 ### Shared
-- [ ] Add game type selection to room creation UI
+- [x] Add game type selection to room creation UI — `CreateGamePage.jsx` has game type selector
 - [ ] Update lobby to show game type per room
 - [ ] Game-type-specific scoring display components
 
@@ -159,13 +159,13 @@
 > Native iOS and Android apps.
 > **Depends on:** EPIC 2 (clean architecture), EPIC 4 (stable infra), EPIC 5 (SSO), EPIC 17 (Mobile Wireframes)
 
-- [ ] Choose framework (React Native recommended for JS code sharing)
-- [ ] Set up React Native project with shared game logic
-- [ ] Implement auth screens (login, register, SSO)
-- [ ] Implement lobby and room screens
-- [ ] Implement game play screen
+- [x] Choose framework (React Native recommended for JS code sharing) — Expo managed workflow
+- [x] Set up React Native project with shared game logic — `/mobile` fully scaffolded
+- [x] Implement auth screens (login, register, SSO) — login, register, create-user, oauth-callback all done
+- [x] Implement lobby and room screens — home, create room, lobby view all done
+- [x] Implement game play screen — full game board, all phases, both game types done
 - [ ] Push notifications for game invites
-- [ ] Apple Developer account setup + App Store submission
+- [x] Apple Developer account setup + App Store submission — live on TestFlight at v1.0.9
 - [ ] Google Play Console setup + Play Store submission
 
 ---
@@ -306,7 +306,7 @@
 | `FACEBOOK_CALLBACK_URL` | Variable | **Environment** | `https://staging.example.com/api/oauth/facebook/callback` | `https://example.com/api/oauth/facebook/callback` |
 
 ### GitHub Actions Setup
-- [ ] Create a `production` environment in GitHub → Settings → Environments
+- [x] Create a `production` environment in GitHub → Settings → Environments — referenced in `deploy-prod.yml`
 - [ ] Add environment-level **Variables** to `production`: `CLIENT_URL`, `GOOGLE_CALLBACK_URL`, `FACEBOOK_CALLBACK_URL` (with prod domain values)
 - [ ] Add `PROD_HOST` as a repository-level **Secret** (the prod EC2 public IP or DNS)
 - [ ] *(Optional)* Add required reviewers to the `production` environment as a manual approval gate before deploy runs
