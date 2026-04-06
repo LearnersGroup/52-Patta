@@ -133,6 +133,7 @@ jobs:
                 echo "${key}=${value}" >> .env
               fi
             }
+            update_env "ECR_REGISTRY"            "$ECR_REGISTRY"
             update_env "JWT_SECRET"              "$JWT_SECRET"
             update_env "MONGO_HOST"              "$MONGO_HOST"
             update_env "GOOGLE_CLIENT_ID"        "$GOOGLE_CLIENT_ID"
