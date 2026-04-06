@@ -10,92 +10,127 @@ A sequential list of infrastructure tasks. Each builds on the previous — compl
 - Switched `appVersionSource` to `"local"` — `app.json` is now the version source of truth
 - Synced `app.json` + `package.json` version to `1.0.9`
 - `preview` EAS profile points to `staging.52patta.in`, `production` points to `52patta.in`
-- TestFlight submit gated to `production` profile only
+- Preview builds submit to TestFlight "Internal Testers" group; production to default group
 - Terraform: added Route 53 `aws_route53_record` for `staging.52patta.in`
 
 ---
 
-## ⏳ Task 2 — DNS Migration: GoDaddy → Route 53
-**Depends on:** Task 1
+## ✅ Task 2 — DNS Migration: GoDaddy → Route 53
+**Branch:** `chore/ios-versioning-staging-infra`
 
-**Why:** Single source of truth for DNS. Terraform automatically manages `staging.52patta.in` on every `apply`/`destroy` — no manual DNS updates when cycling the staging environment. Cheaper than a permanent EIP when staging is down 20+ days/month.
-
-**Steps:**
-1. Create Route 53 hosted zone for `52patta.in` manually in AWS Console (one-time — shared by prod and staging, must never be destroyed)
-2. Add `52patta.in` and `www.52patta.in` A records → `15.156.57.107` (current prod IP)
-3. Replace GoDaddy nameservers with the 4 Route 53 nameservers
-4. Verify with `dig 52patta.in +short`
-5. Paste hosted zone ID into `terraform/staging.tfvars`
-
-**After this:** `terraform apply -var-file=staging.tfvars` creates staging EC2 + EIP + `staging.52patta.in` DNS record in one shot. `terraform destroy` removes all three.
+- Route 53 hosted zone created for `52patta.in` (Zone ID: `Z0857890275T8MW0TUB4F`)
+- `52patta.in` and `www.52patta.in` A records added manually in Route 53 console
+- GoDaddy nameservers replaced with 4 Route 53 nameservers — DNS fully migrated
+- Terraform manages `staging.52patta.in → EIP` automatically on every `apply`/`destroy`
+- Decision rationale: see `SOLUTION_DECISIONS.md` → "DNS Provider: Route 53 over GoDaddy"
 
 ---
 
-## ⏳ Task 3 — Terraform Environment Isolation (prod + staging separate state)
-**Depends on:** Task 2
+## ✅ Task 3 — Terraform Environment Isolation
+**Branch:** `chore/terraform-env-isolation-staging-setup`
 
-**Why:** The current `terraform.tfstate` tracks the prod server under staging state (it was created with `staging.tfvars`). This means a `terraform destroy -var-file=staging.tfvars` could accidentally destroy prod. Before any load balancing or scaling work, prod must be under its own isolated Terraform state.
-
-**What changes:**
-```
-terraform/
-├── environments/
-│   ├── prod/
-│   │   ├── terraform.tfstate    ← prod state, completely isolated
-│   │   └── prod.tfvars
-│   └── staging/
-│       ├── terraform.tfstate    ← staging state, completely isolated
-│       └── staging.tfvars
-```
-
-**Key step — import existing prod server without recreating it:**
-```bash
-cd terraform/environments/prod
-terraform import -var-file=prod.tfvars aws_instance.app i-05c0c5f8b10a88311
-terraform import -var-file=prod.tfvars aws_eip.app eipalloc-078cac6a213077cda
-```
-
-**After this:** `terraform apply -var-file=prod.tfvars` safely manages prod infra. Adding load balancers, autoscaling groups, or multiple EC2s is a Terraform change — no manual work.
+- Restructured into `terraform/environments/prod/` and `terraform/environments/staging/`
+- Each environment has its own state — `terraform destroy` in staging cannot touch prod
+- `prod.tfvars` sets `environment = "production"` → EC2 tag `52-patta-production` (matches `deploy-prod.yml`)
+- `staging.tfvars` sets `environment = "staging"` → EC2 tag `52-patta-staging` (matches `deploy-staging.yml`)
+- **One-time migration required:** run `terraform import` commands in `terraform/MIGRATION.md` to adopt the existing prod server into prod state
 
 ---
 
-## ⏳ Task 4 — Staging Server Setup (nginx + SSL + env)
-**Depends on:** Task 2
+## ✅ Task 4 — Staging Server Setup
+**Branch:** `chore/terraform-env-isolation-staging-setup`
 
-**Why:** The staging EC2 spun up by Terraform is a blank server with only Docker installed. It needs the app stack running before preview builds can test against it.
-
-**What needs to happen after `terraform apply -var-file=staging.tfvars`:**
-1. SSH into the new staging instance
-2. Clone the repo + copy `.env` (staging values: `JWT_SECRET`, `MONGO_HOST`, `CORS_ORIGINS=https://staging.52patta.in`)
-3. Get SSL cert: `certbot certonly --standalone -d staging.52patta.in`
-4. Add `staging.52patta.in` server block to `nginx/nginx.conf`
-5. `docker-compose up -d`
-
-**Goal:** Automate this via a `user_data` bootstrap script or a GitHub Actions deploy-staging workflow so spinning up staging is one command.
-
----
-
-## ⏳ Task 5 — Production Deploy Workflow
-**Depends on:** Task 3
-
-**Why:** Currently production deploys are manual (SSH + pull + restart). With prod under proper Terraform state and a clean CI/CD pipeline, deploys should be one-click from GitHub Actions.
-
-**What to build:**
-- `deploy-prod.yml` GitHub Actions workflow triggered on version tag push (`v*`)
-- Builds Docker image → pushes to ECR → SSHes into prod EC2 → pulls + restarts
+- `nginx/nginx.staging.conf` — serves `staging.52patta.in` with SSL, same proxy rules as prod
+- `docker-compose.prod.yml` — nginx config selected by `NGINX_CONF` env var:
+  - prod:    `NGINX_CONF=nginx.conf`
+  - staging: `NGINX_CONF=nginx.staging.conf`
+- Both deploy workflows now sync `JWT_SECRET`, `MONGO_HOST`, `CORS_ORIGINS`, `NODE_ENV` to the server
+- MongoDB: same Atlas cluster, separate databases (`52patta` vs `52patta-staging`) — see `SOLUTION_DECISIONS.md`
+- **Manual one-time steps after first `terraform apply -var-file=staging.tfvars`:**
+  1. SSH into staging EC2
+  2. Clone repo: `git clone https://github.com/LearnersGroup/52-Patta.git /app`
+  3. Get SSL cert: `sudo certbot certonly --standalone -d staging.52patta.in`
+  4. Trigger `deploy-staging` from GitHub Actions — it handles the rest automatically
 
 ---
 
-## The Payoff
+## ✅ Task 5 — Production Deploy Workflow
+**Branch:** `chore/terraform-env-isolation-staging-setup`
 
-Once Tasks 1–4 are done:
-```
-Feature development loop:
-1. Build feature on a branch
-2. Merge to main
-3. trigger ship-ios (preview) → test on staging.52patta.in
-4. trigger ship-ios (production) → ships to TestFlight
-5. terraform destroy staging → zero idle cost until next cycle
-```
+The workflow (`deploy-prod.yml`) already existed but was broken — it looked for tag
+`52-patta-production` but the server was tagged `52-patta-staging`. Fixed by:
+- Task 3 terraform import renames the tag to `52-patta-production`
+- Missing env vars (`JWT_SECRET`, `MONGO_HOST`) now synced on every deploy
 
-No manual server work. No manual DNS updates. Rapid feature iteration.
+**Trigger:** push a version tag → `git tag v1.0.9 && git push origin v1.0.9`
+
+---
+
+## GitHub Actions Environment Secrets — what to set
+
+Before any deploy workflow runs, set these in **GitHub → Settings → Environments**:
+
+### `staging` environment
+| Type | Key | Value |
+|------|-----|-------|
+| Secret | `JWT_SECRET` | any strong random string (different from prod) |
+| Secret | `MONGO_HOST` | `mongodb+srv://...@cluster.mongodb.net/52patta-staging` |
+| Secret | `AWS_ACCESS_KEY_ID` | AWS IAM key with EC2 + ECR access |
+| Secret | `AWS_SECRET_ACCESS_KEY` | matching secret |
+| Secret | `EC2_SSH_KEY` | private key for `52-patta-staging` key pair |
+| Secret | `GOOGLE_CLIENT_SECRET` | Google OAuth secret |
+| Secret | `FACEBOOK_APP_SECRET` | Facebook OAuth secret |
+| Variable | `ECR_REGISTRY` | `198303630852.dkr.ecr.ca-central-1.amazonaws.com` |
+| Variable | `STAGING_HOST` | `staging.52patta.in` |
+| Variable | `CLIENT_URL` | `https://staging.52patta.in` |
+| Variable | `CORS_ORIGINS` | `https://staging.52patta.in` |
+| Variable | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| Variable | `GOOGLE_CALLBACK_URL` | `https://staging.52patta.in/api/auth/google/callback` |
+| Variable | `FACEBOOK_APP_ID` | Facebook app ID |
+| Variable | `FACEBOOK_CALLBACK_URL` | `https://staging.52patta.in/api/auth/facebook/callback` |
+
+### `production` environment
+| Type | Key | Value |
+|------|-----|-------|
+| Secret | `JWT_SECRET` | strong random string (different from staging) |
+| Secret | `MONGO_HOST` | `mongodb+srv://...@cluster.mongodb.net/52patta` |
+| Secret | `AWS_ACCESS_KEY_ID` | same or separate IAM key |
+| Secret | `AWS_SECRET_ACCESS_KEY` | matching secret |
+| Secret | `EC2_SSH_KEY` | private key for `52-patta-prod` key pair |
+| Secret | `GOOGLE_CLIENT_SECRET` | Google OAuth secret |
+| Secret | `FACEBOOK_APP_SECRET` | Facebook OAuth secret |
+| Variable | `ECR_REGISTRY` | `198303630852.dkr.ecr.ca-central-1.amazonaws.com` |
+| Variable | `PROD_HOST` | `52patta.in` |
+| Variable | `CLIENT_URL` | `https://52patta.in` |
+| Variable | `CORS_ORIGINS` | `https://52patta.in,https://www.52patta.in` |
+| Variable | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| Variable | `GOOGLE_CALLBACK_URL` | `https://52patta.in/api/auth/google/callback` |
+| Variable | `FACEBOOK_APP_ID` | Facebook app ID |
+| Variable | `FACEBOOK_CALLBACK_URL` | `https://52patta.in/api/auth/facebook/callback` |
+
+---
+
+## The Full Feature Development Loop (once all tasks done)
+
+```
+1. Build feature on a branch → merge to main
+   → deploy-staging.yml triggers automatically
+   → app is live on staging.52patta.in
+
+2. Trigger ship-ios (preview) from GitHub Actions
+   → EAS builds against staging.52patta.in
+   → lands in TestFlight "Internal Testers"
+   → test on your iPhone
+
+3. All good? Push a version tag:
+   git tag v1.1.0 && git push origin v1.1.0
+   → deploy-prod.yml triggers automatically
+   → app is live on 52patta.in
+   → trigger ship-ios (production) → TestFlight
+
+4. After testing cycle is done:
+   cd terraform/environments/staging
+   terraform destroy -var-file=staging.tfvars
+   → staging EC2 + EIP + DNS record removed
+   → $0 idle cost until next cycle
+```
