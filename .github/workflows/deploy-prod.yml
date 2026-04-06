@@ -46,10 +46,13 @@ jobs:
       # --- Test ---
       - name: Install server dependencies
         run: npm ci
+        env:
+          NODE_ENV: test
 
       - name: Run server tests
         run: npm run test:unit
         env:
+          NODE_ENV: test
           JWT_SECRET: test-secret
           MONGO_HOST: mongodb://localhost:27017/test
 
