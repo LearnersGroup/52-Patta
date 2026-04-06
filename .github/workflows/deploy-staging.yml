@@ -12,6 +12,11 @@ env:
   ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
   SERVER_IMAGE: 52-patta-server
   CLIENT_IMAGE: 52-patta-client
+  # Auth
+  JWT_SECRET: ${{ secrets.JWT_SECRET }}
+  # Database — staging Atlas DB (52patta-staging database, same cluster as prod)
+  MONGO_HOST: ${{ secrets.MONGO_HOST }}
+  # OAuth
   GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
   GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
   GOOGLE_CALLBACK_URL: ${{ vars.GOOGLE_CALLBACK_URL }}
@@ -20,6 +25,10 @@ env:
   FACEBOOK_APP_ID: ${{ vars.FACEBOOK_APP_ID }}
   FACEBOOK_APP_SECRET: ${{ secrets.FACEBOOK_APP_SECRET }}
   FACEBOOK_CALLBACK_URL: ${{ vars.FACEBOOK_CALLBACK_URL }}
+  # Server
+  CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+  NODE_ENV: staging
+  NGINX_CONF: nginx.staging.conf
 
 jobs:
   test-build-deploy:
@@ -107,7 +116,7 @@ jobs:
           host: ${{ vars.STAGING_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_CALLBACK_URL,CLIENT_URL,FACEBOOK_APP_ID,FACEBOOK_APP_SECRET,FACEBOOK_CALLBACK_URL
+          envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION,JWT_SECRET,MONGO_HOST,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_CALLBACK_URL,CLIENT_URL,FACEBOOK_APP_ID,FACEBOOK_APP_SECRET,FACEBOOK_CALLBACK_URL,CORS_ORIGINS,NODE_ENV,NGINX_CONF
           script: |
             cd /app
 
@@ -120,6 +129,8 @@ jobs:
                 echo "${key}=${value}" >> .env
               fi
             }
+            update_env "JWT_SECRET"              "$JWT_SECRET"
+            update_env "MONGO_HOST"              "$MONGO_HOST"
             update_env "GOOGLE_CLIENT_ID"        "$GOOGLE_CLIENT_ID"
             update_env "GOOGLE_CLIENT_SECRET"    "$GOOGLE_CLIENT_SECRET"
             update_env "GOOGLE_CALLBACK_URL"     "$GOOGLE_CALLBACK_URL"
@@ -127,6 +138,9 @@ jobs:
             update_env "FACEBOOK_APP_ID"         "$FACEBOOK_APP_ID"
             update_env "FACEBOOK_APP_SECRET"     "$FACEBOOK_APP_SECRET"
             update_env "FACEBOOK_CALLBACK_URL"   "$FACEBOOK_CALLBACK_URL"
+            update_env "CORS_ORIGINS"            "$CORS_ORIGINS"
+            update_env "NODE_ENV"                "$NODE_ENV"
+            update_env "NGINX_CONF"              "$NGINX_CONF"
 
             # Login to ECR
             aws ecr get-login-password --region $AWS_REGION | \

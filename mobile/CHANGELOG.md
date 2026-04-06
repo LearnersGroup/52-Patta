@@ -6,9 +6,12 @@
 - Added GitHub Actions workflow (`.github/workflows/ship-ios.yml`) for manual iOS builds and TestFlight submission via EAS — trigger anytime from the GitHub Actions tab with a choice of build profile and optional release notes
 - **Versioning source of truth moved to git** (2026-04-05): `appVersionSource` switched from `"remote"` to `"local"` — version in `app.json` is now authoritative; bumping it in `app.json` + this changelog is required before triggering `ship-ios`
 - **Preview builds now target staging** (2026-04-05): `preview` EAS profile connects to `https://staging.52patta.in`; `production` profile explicitly connects to `https://52patta.in` — test builds no longer hit the live backend
-- **Submit gated to production profile** (2026-04-05): `eas submit` (TestFlight) only runs when `ship-ios` is triggered with profile `production`; preview builds produce an internal `.ipa` only
+- **Preview builds now go to TestFlight** (2026-04-05): `preview` profile submits to "Internal Testers" group; `production` submits to "External Testers" group
 - Added Terraform support for `staging.52patta.in` DNS record (`aws_route53_record`) — staging EC2 can now be assigned a proper subdomain via `staging.tfvars`
-- **Preview builds now go to TestFlight** (2026-04-05): `preview` profile changed from `internal` to `store` distribution — both profiles submit to TestFlight; `preview` → "Internal Testers" group (staging backend), `production` → "External Testers" group
+- **Terraform environment isolation** (2026-04-05): restructured into `terraform/environments/prod/` and `terraform/environments/staging/` with separate state files — `terraform destroy` on staging cannot affect production
+- **Staging server** (2026-04-05): `nginx/nginx.staging.conf` added for `staging.52patta.in`; deploy workflows sync `JWT_SECRET`, `MONGO_HOST`, and `CORS_ORIGINS` to the server on every deploy
+- **Production deploy workflow** (2026-04-05): `deploy-prod.yml` fixed — correctly finds prod EC2 by `52-patta-production` tag; all critical env vars synced on deploy
+- **MongoDB isolation** (2026-04-05): staging and prod use separate Atlas databases (`52patta-staging` vs `52patta`) — test data never touches production
 
 ## 1.0.8 — 2026-03-26
 

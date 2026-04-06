@@ -108,6 +108,43 @@ A record of bugs encountered, fixes considered, and what was ultimately implemen
 
 ---
 
+## MongoDB: Separate Databases per Environment (same Atlas cluster)
+
+### Decision
+
+Use the **same Atlas cluster** but **different database names** per environment.
+
+```
+Production:  mongodb+srv://...@cluster.mongodb.net/52patta
+Staging:     mongodb+srv://...@cluster.mongodb.net/52patta-staging
+```
+
+### Why not a separate Atlas cluster for staging?
+
+A separate cluster (even free tier M0) adds operational overhead — two clusters to monitor, two connection strings to manage, two sets of Atlas users. The simpler solution is a single cluster with isolated databases. Atlas charges per cluster, not per database.
+
+### How MONGO_HOST differs per environment
+
+The `MONGO_HOST` secret is set separately in each GitHub Actions environment:
+
+| GitHub Environment | `MONGO_HOST` value |
+|---|---|
+| `production` | `mongodb+srv://user:pass@cluster.mongodb.net/52patta` |
+| `staging` | `mongodb+srv://user:pass@cluster.mongodb.net/52patta-staging` |
+
+The deploy workflow syncs `MONGO_HOST` to the server's `.env` file on every deploy.
+The staging database (`52patta-staging`) is created automatically by MongoDB Atlas
+on first write — no manual setup needed.
+
+### What this means for testing
+
+Anything done on staging (test users, test game rooms, test data) lands in
+`52patta-staging` and never touches production data. Destroying the staging
+EC2 does not delete the staging database — data persists between staging
+test cycles, which is intentional (avoids re-seeding test accounts each time).
+
+---
+
 ## Bug: "Failed to Fetch Game Room" on Rapid Ready-Toggle
 
 ### Description
