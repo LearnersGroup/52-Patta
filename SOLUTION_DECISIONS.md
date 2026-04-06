@@ -1,5 +1,109 @@
 # Solution Decisions
 
+---
+
+## DNS Provider: Route 53 over GoDaddy
+
+### Decision
+
+Use **AWS Route 53** as the DNS provider for `52patta.in` instead of GoDaddy's built-in DNS. GoDaddy remains the domain registrar (renewal payments stay there) but its nameservers are replaced with Route 53's.
+
+### Why Not Just Stay on GoDaddy DNS (free)?
+
+GoDaddy DNS is free with the domain registration, but it requires **manual updates every time the staging IP changes**. The staging EC2 is spun up and down between test cycles — each `terraform destroy` + `terraform apply` allocates a new EIP. That means a GoDaddy DNS update by hand every single time staging is brought back up.
+
+### Two approaches were considered
+
+| Approach | How it works | Monthly cost |
+|----------|-------------|-------------|
+| GoDaddy DNS + permanent EIP | Keep the same IP forever — set GoDaddy record once, never touch it again. EIP held even when EC2 is destroyed. | $0.005/hr × hours staging is **down** (~$2.40 if down 20 days) |
+| **Route 53 (chosen)** | EIP created/destroyed normally with EC2. Terraform automatically creates/removes the Route 53 DNS record on each apply. | **$0.50/month flat, no idle EIP cost** |
+
+These are two independent solutions to the same problem — Route 53 makes a permanent EIP unnecessary because Terraform handles the DNS update automatically on every `terraform apply`. Break-even between the two is ~4 days of downtime per month; beyond that Route 53 is cheaper. Staging is realistically down 20+ days/month.
+
+### What Changes
+
+- Route 53 hosted zone created for `52patta.in`
+- GoDaddy nameservers replaced with the 4 AWS nameservers from the hosted zone
+- All DNS records (`52patta.in`, `www.52patta.in`, `staging.52patta.in`) live in Route 53
+- Terraform creates/destroys the `staging.52patta.in → EIP` record alongside the EC2 — no manual DNS updates ever needed
+
+### Migration Steps (one-time)
+
+1. `aws route53 create-hosted-zone --name 52patta.in` → note the 4 nameservers and zone ID
+2. Recreate existing A records in Route 53 (`52patta.in`, `www.52patta.in`, `staging.52patta.in`) before switching nameservers — zero downtime
+3. In GoDaddy → DNS → Nameservers → point to the 4 Route 53 nameservers
+4. Put the zone ID in `terraform/staging.tfvars` (`route53_zone_id`) — Terraform manages it from here
+
+---
+
+## iOS Versioning Strategy & Staging Infrastructure
+
+### Decision
+
+Switch the EAS build system from **remote** versioning (source of truth in App Store Connect) to **local** versioning (source of truth in `app.json` / git). Introduce a `preview` build profile pointing to staging, and provision a `staging.52patta.in` subdomain via Terraform.
+
+---
+
+### Problem
+
+- `app.json` version was stuck at `1.0.1` while the changelog documented releases up to `1.0.9`, creating a confusing mismatch.
+- `appVersionSource: "remote"` meant the canonical version lived outside the repo in App Store Connect — making version history invisible in git.
+- Both `preview` and `production` EAS profiles pointed to the same `52patta.in` production backend, so test builds tested against live user data.
+- No staging environment existed, making it impossible to validate a build before shipping to TestFlight.
+
+---
+
+### What Changed
+
+#### 1. `appVersionSource` → `"local"` (`mobile/eas.json`)
+
+The version in `app.json` is now the single source of truth. EAS no longer queries App Store Connect for the version — it reads it directly from the file in git.
+
+`autoIncrement: true` is kept on the `production` profile so EAS still auto-increments the iOS `buildNumber` (the integer build counter App Store Connect requires) on every production build. The human-readable **marketing version** (`1.0.9`, `1.1.0`, …) is managed manually in `app.json`.
+
+#### 2. `app.json` and `package.json` versions synced to `1.0.9`
+
+Both files were bumped from `1.0.1` to `1.0.9` to match the actual released version documented in `CHANGELOG.md`.
+
+#### 3. Environment variables per EAS profile (`mobile/eas.json`)
+
+| Profile | `EXPO_PUBLIC_API_URL` | `EXPO_PUBLIC_WS_URL` |
+|---------|----------------------|---------------------|
+| `preview` | `https://staging.52patta.in/api` | `https://staging.52patta.in` |
+| `production` | `https://52patta.in/api` | `https://52patta.in` |
+
+Preview builds now connect to the staging backend. Production builds explicitly connect to production.
+
+#### 4. Submit step gated to `production` profile (`.github/workflows/ship-ios.yml`)
+
+`eas submit` runs only when the chosen profile is `production`. A `preview` build produces an internal-distribution `.ipa` but is never submitted to TestFlight.
+
+#### 5. Staging infrastructure (`terraform/`)
+
+- Added `route53_zone_id`, `create_dns_record`, and `dns_subdomain` variables to `variables.tf`.
+- `main.tf` conditionally creates an `aws_route53_record` pointing `<dns_subdomain>.52patta.in` to the environment's EIP.
+- `staging.tfvars` sets `create_dns_record = true`, `dns_subdomain = "staging"` — fill in `route53_zone_id` with the hosted zone ID for `52patta.in` before applying.
+- `prod.tfvars` leaves `create_dns_record = false` (root domain DNS is managed separately).
+
+Staging is a `t3.micro` spun up only during active testing (~$0.01/hr). Tear it down with `terraform destroy -var-file=staging.tfvars` when not needed.
+
+---
+
+### Release Workflow (going forward)
+
+Before triggering `ship-ios`:
+
+1. Update `app.json` `version` (and `mobile/package.json` `version`) to the new version number.
+2. Add a section to `mobile/CHANGELOG.md` (`## x.y.z — YYYY-MM-DD`) documenting what changed.
+3. Commit the version bump + changelog entry on a branch → merge to main.
+4. Trigger `ship-ios` from GitHub Actions with profile `preview` to verify the build against staging.
+5. If staging looks good, trigger `ship-ios` again with profile `production` to ship to TestFlight.
+
+The iOS `buildNumber` in `app.json` does **not** need to be bumped manually — `autoIncrement: true` in the production EAS profile handles it automatically on the EAS servers.
+
+---
+
 A record of bugs encountered, fixes considered, and what was ultimately implemented.
 
 ---

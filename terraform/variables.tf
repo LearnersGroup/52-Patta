@@ -38,3 +38,21 @@ variable "ssh_allowed_cidrs" {
   type        = list(string)
   default     = ["0.0.0.0/0"] # CHANGE THIS to your IP in production
 }
+
+variable "route53_zone_id" {
+  description = "Route 53 hosted zone ID for 52patta.in (required when create_dns_record = true)"
+  type        = string
+  default     = ""
+}
+
+variable "create_dns_record" {
+  description = "Whether to create a Route 53 A record for this environment (e.g. staging.52patta.in)"
+  type        = bool
+  default     = false
+}
+
+variable "dns_subdomain" {
+  description = "Subdomain to create under 52patta.in (e.g. 'staging' creates staging.52patta.in)"
+  type        = string
+  default     = ""
+}
