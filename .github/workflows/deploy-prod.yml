@@ -119,7 +119,7 @@ jobs:
       - name: Deploy to production EC2
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.PROD_HOST }}
+          host: ${{ vars.PROD_HOST }}
           username: ec2-user
           key: ${{ secrets.EC2_SSH_KEY }}
           envs: ECR_REGISTRY,SERVER_IMAGE,CLIENT_IMAGE,AWS_REGION,JWT_SECRET,MONGO_HOST,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_CALLBACK_URL,CLIENT_URL,FACEBOOK_APP_ID,FACEBOOK_APP_SECRET,FACEBOOK_CALLBACK_URL,CORS_ORIGINS,NODE_ENV,NGINX_CONF
