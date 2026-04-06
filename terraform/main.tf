@@ -168,3 +168,15 @@ resource "aws_eip" "app" {
     Name = "${var.project_name}-eip-${var.environment}"
   }
 }
+
+# --- DNS (optional: creates <subdomain>.52patta.in → EIP) ---
+
+resource "aws_route53_record" "app" {
+  count = var.create_dns_record ? 1 : 0
+
+  zone_id = var.route53_zone_id
+  name    = "${var.dns_subdomain}.52patta.in"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.app.public_ip]
+}
