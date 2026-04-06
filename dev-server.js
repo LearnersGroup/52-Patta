@@ -11,9 +11,8 @@ async function start() {
     const mongoUri = mongoServer.getUri();
 
     // 2. Inject required env vars before any app code reads them
-    process.env.JWT_SECRET   = process.env.JWT_SECRET   || 'dev-secret-change-in-prod';
-    process.env.MONGO_HOST   = process.env.MONGO_HOST   || mongoUri;
-    process.env.MONGO_DB_NAME = process.env.MONGO_DB_NAME || 'patta_dev';
+    process.env.JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-prod';
+    process.env.MONGO_HOST = process.env.MONGO_HOST || mongoUri;
 
     console.log('[dev-server] MongoMemoryServer started at', mongoUri);
 
