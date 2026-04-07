@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
 import { Provider } from 'react-redux';
@@ -19,12 +19,13 @@ import {
   Lato_700Bold,
 } from '@expo-google-fonts/lato';
 import ToastOverlay from '../src/components/shared/ToastOverlay';
+import AppLoadingScreen from '../src/components/shared/AppLoadingScreen';
 import { AuthProvider } from '../src/hooks/useAuth';
 import useAppState from '../src/hooks/useAppState';
 import store from '../src/redux/store';
 import { colors } from '../src/styles/theme';
 
-// Prevent the splash screen from auto-hiding until fonts are loaded
+// Hand off from the native splash to our JS loading screen as fast as possible
 SplashScreen.preventAutoHideAsync();
 
 /** Global foreground handler — reconnects socket & refreshes token */
@@ -43,19 +44,10 @@ export default function RootLayout() {
     Lato_700Bold,
   });
 
-  const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded || fontError) {
-      await SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, fontError]);
-
+  // Hide the native splash immediately — AppLoadingScreen takes over from here
   useEffect(() => {
-    onLayoutRootView();
-  }, [onLayoutRootView]);
-
-  if (!fontsLoaded && !fontError) {
-    return null;
-  }
+    SplashScreen.hideAsync();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -71,6 +63,8 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: colors.bgDeep },
               }}
             />
+            {/* Overlay: studio logo → app title, fades out once fonts are ready */}
+            <AppLoadingScreen isReady={fontsLoaded || !!fontError} />
           </AuthProvider>
         </SafeAreaProvider>
       </Provider>
