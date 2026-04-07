@@ -2,6 +2,9 @@
 
 ## 1.0.9 — 2026-04-06
 
+### Added
+- **Branded loading screen**: replaced the bare native splash with a two-phase JS loading screen — 1 s "Narsinh Creations" studio card (black bg, serif text) fades into the "52 Patta" app title (deep green, gold) with a pulsing dot indicator; screen fades out once fonts are ready (`AppLoadingScreen.js`)
+
 ### Infrastructure
 - Added GitHub Actions workflow (`.github/workflows/ship-ios.yml`) for manual iOS builds and TestFlight submission via EAS — trigger anytime from the GitHub Actions tab with a choice of build profile and optional release notes
 - **Versioning source of truth moved to git** (2026-04-05): `appVersionSource` switched from `"remote"` to `"local"` — version in `app.json` is now authoritative; bumping it in `app.json` + this changelog is required before triggering `ship-ios`
