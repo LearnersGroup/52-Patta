@@ -3,7 +3,11 @@
 ## 1.0.9 — 2026-04-06
 
 ### Added
-- **Branded loading screen**: replaced the bare native splash with a two-phase JS loading screen — 1 s "Narsinh Creations" studio card (black bg, serif text) fades into the "52 Patta" app title (deep green, gold) with a pulsing dot indicator; screen fades out once fonts are ready (`AppLoadingScreen.js`)
+- **Branded loading screen** (`AppLoadingScreen.js`): two-phase JS overlay replaces the bare native splash
+  - Phase 1 (1.5 s): "Narsinh Creations" studio card — black bg, serif text, fade-in/hold/fade-out
+  - Phase 2 (1.5 s min): "52 Patta" app title with card-suits logo and gold progress bar (0→100% in 1 s), using the same layered background as the lobby (dark base + green gradient + diagonal gold lines); gold glow radiates behind the logo
+  - Crossfade between phases eliminates any flash of the underlying app
+  - Screen fades out once fonts are loaded and minimum hold time has elapsed
 
 ### Infrastructure
 - Added GitHub Actions workflow (`.github/workflows/ship-ios.yml`) for manual iOS builds and TestFlight submission via EAS — trigger anytime from the GitHub Actions tab with a choice of build profile and optional release notes
