@@ -1,5 +1,11 @@
 # Changelog — 52 Patta Mobile
 
+## 1.0.10 — 2026-04-07
+
+### Infrastructure
+- **Android release setup**: added `versionCode: 1` to `app.json` (Play Store requires an integer build number); added Android submit config to `eas.json` for `internal` (preview) and `production` Play tracks
+- **GitHub Actions workflow** (`.github/workflows/ship-android.yml`): manual trigger to build and submit Android app to Google Play — mirrors `ship-ios.yml` with choice of `preview`/`production` profile; requires `PLAY_SERVICE_ACCOUNT_KEY` secret (base64-encoded Google Play service account JSON)
+
 ## 1.0.9 — 2026-04-06
 
 ### Added

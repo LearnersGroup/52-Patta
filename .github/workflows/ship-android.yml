@@ -1,0 +1,85 @@
+name: 🤖 Ship Android to Google Play
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
+          - preview
+      notes:
+        description: "Release notes (shown in job summary)"
+        required: false
+        default: ""
+
+jobs:
+  build-and-submit:
+    name: Build & Submit to Google Play
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: 📦 Install dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: 🔧 Setup EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🔑 Decode Google Play service account key
+        run: |
+          echo "${{ secrets.PLAY_SERVICE_ACCOUNT_KEY }}" | base64 --decode > /tmp/play-service-account.json
+
+      - name: 🏗️ Build Android app via EAS
+        working-directory: mobile
+        run: |
+          eas build \
+            --platform android \
+            --profile ${{ inputs.profile }} \
+            --non-interactive \
+            --wait
+
+      - name: 📤 Submit to Google Play
+        working-directory: mobile
+        run: |
+          eas submit \
+            --platform android \
+            --profile ${{ inputs.profile }} \
+            --latest \
+            --non-interactive
+
+      - name: 🧹 Clean up service account key
+        if: always()
+        run: rm -f /tmp/play-service-account.json
+
+      - name: 📋 Job Summary
+        if: success()
+        working-directory: mobile
+        run: |
+          APP_VERSION=$(node -p "require('./package.json').version")
+          echo "## ✅ Android Ship Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Profile** | ${{ inputs.profile }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | $APP_VERSION |" >> $GITHUB_STEP_SUMMARY
+          echo "| **App** | 52 Patta (in.patta52.app) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Play track** | ${{ inputs.profile == 'production' && 'production' || 'internal testing (staging backend)' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Triggered by** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Notes** | ${{ inputs.notes }} |" >> $GITHUB_STEP_SUMMARY
