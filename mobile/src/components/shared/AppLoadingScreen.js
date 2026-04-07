@@ -1,66 +1,70 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, Image, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import AppBackground from './AppBackground';
+
+const logo = require('../../../assets/logo.png');
 
 // Phase 1 timing (Narsinh Creations) — must total PHASE1_MS
-const PHASE1_MS  = 1000;
+const PHASE1_MS   = 1500;
 const FADE_IN_MS  = 250;
 const FADE_OUT_MS = 250;
-const HOLD_MS     = PHASE1_MS - FADE_IN_MS - FADE_OUT_MS; // 500 ms
+const HOLD_MS     = PHASE1_MS - FADE_IN_MS - FADE_OUT_MS; // 1000 ms
+
+// Minimum time phase 2 (52 Patta) must stay visible
+const PHASE2_MIN_MS = 1500;
+
+// Progress bar
+const BAR_H_PADDING = 40; // horizontal padding on each side
+const PROGRESS_DURATION = 1000; // 0 → 100% in 1 s
 
 // System serif — Cinzel may not be loaded yet during the loading screen
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 export default function AppLoadingScreen({ isReady }) {
-  const [phase, setPhase]   = useState(1);   // 1 = studio, 2 = app title
-  const [mounted, setMounted] = useState(true);
+  const { width } = useWindowDimensions();
+  const trackWidth = width - BAR_H_PADDING * 2;
+
+  const [phase, setPhase]           = useState(1);   // 1 = studio, 2 = app title
+  const [phase2Done, setPhase2Done] = useState(false);
+  const [mounted, setMounted]       = useState(true);
 
   const phase1Opacity = useRef(new Animated.Value(0)).current;
   const phase2Opacity = useRef(new Animated.Value(0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
+  const progressWidth = useRef(new Animated.Value(0)).current;
 
-  // Loading-dot pulse values
-  const dot1 = useRef(new Animated.Value(0.25)).current;
-  const dot2 = useRef(new Animated.Value(0.25)).current;
-  const dot3 = useRef(new Animated.Value(0.25)).current;
-
-  // ── Phase 1: fade in → hold → fade out → begin phase 2 ──────────────────
+  // ── Phase 1 out / Phase 2 in — crossfade so there is never a gap ─────────
   useEffect(() => {
     Animated.sequence([
-      Animated.timing(phase1Opacity, { toValue: 1, duration: FADE_IN_MS,  useNativeDriver: true }),
+      Animated.timing(phase1Opacity, { toValue: 1, duration: FADE_IN_MS, useNativeDriver: true }),
       Animated.delay(HOLD_MS),
-      Animated.timing(phase1Opacity, { toValue: 0, duration: FADE_OUT_MS, useNativeDriver: true }),
+      // Both animate simultaneously: no moment where neither has a background
+      Animated.parallel([
+        Animated.timing(phase1Opacity, { toValue: 0, duration: FADE_OUT_MS, useNativeDriver: true }),
+        Animated.timing(phase2Opacity, { toValue: 1, duration: FADE_OUT_MS, useNativeDriver: true }),
+      ]),
     ]).start(() => {
       setPhase(2);
-      Animated.timing(phase2Opacity, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      setTimeout(() => setPhase2Done(true), PHASE2_MIN_MS);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Phase 2: staggered dot pulse loop ────────────────────────────────────
+  // ── Phase 2: fill progress bar 0 → 100% over 1 s ─────────────────────────
   useEffect(() => {
     if (phase !== 2) return;
+    Animated.timing(progressWidth, {
+      toValue: trackWidth,
+      duration: PROGRESS_DURATION,
+      useNativeDriver: false, // width cannot use native driver
+    }).start();
+  }, [phase, trackWidth]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const makePulse = (dot, delayMs) =>
-      Animated.loop(
-        Animated.sequence([
-          Animated.delay(delayMs),
-          Animated.timing(dot, { toValue: 1,    duration: 380, useNativeDriver: true }),
-          Animated.timing(dot, { toValue: 0.25, duration: 380, useNativeDriver: true }),
-        ])
-      );
-
-    const a1 = makePulse(dot1, 0);
-    const a2 = makePulse(dot2, 190);
-    const a3 = makePulse(dot3, 380);
-    a1.start(); a2.start(); a3.start();
-    return () => { a1.stop(); a2.stop(); a3.stop(); };
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Fade entire screen out once app is ready (phase 2 only) ──────────────
+  // ── Fade entire screen out once app is ready AND min hold has elapsed ─────
   useEffect(() => {
-    if (!isReady || phase !== 2) return;
+    if (!isReady || !phase2Done || phase !== 2) return;
     Animated.timing(screenOpacity, { toValue: 0, duration: 450, useNativeDriver: true })
       .start(() => setMounted(false));
-  }, [isReady, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isReady, phase2Done, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mounted) return null;
 
@@ -77,22 +81,27 @@ export default function AppLoadingScreen({ isReady }) {
         <Text style={styles.studioTagline}>PRODUCTION</Text>
       </Animated.View>
 
-      {/* ── Phase 2 — 52 Patta ──────────────────────────────────────────── */}
-      {phase === 2 && (
-        <Animated.View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFill, styles.phase2Container, { opacity: phase2Opacity }]}
-        >
-          <Text style={styles.appTitle}>52 Patta</Text>
-          <Text style={styles.appSuits}>♠  ♥  ♦  ♣</Text>
-
-          <View style={styles.dotsRow}>
-            <Animated.View style={[styles.dot, { opacity: dot1 }]} />
-            <Animated.View style={[styles.dot, { opacity: dot2 }]} />
-            <Animated.View style={[styles.dot, { opacity: dot3 }]} />
+      {/* ── Phase 2 — 52 Patta (always mounted, opacity starts at 0) ───── */}
+      <Animated.View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { opacity: phase2Opacity }]}
+      >
+        <AppBackground center>
+          <View style={styles.brandingCenter}>
+            <View style={styles.logoWrapper}>
+              <Image source={logo} style={styles.logo} resizeMode="contain" />
+            </View>
+            <Text style={styles.appTitle}>52 Patta</Text>
           </View>
-        </Animated.View>
-      )}
+        </AppBackground>
+
+        {/* Progress bar pinned to bottom, outside AppBackground so it stays absolute */}
+        <View style={[styles.progressContainer, { paddingHorizontal: BAR_H_PADDING }]}>
+          <View style={[styles.progressTrack, { width: trackWidth }]}>
+            <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+          </View>
+        </View>
+      </Animated.View>
 
     </Animated.View>
   );
@@ -102,6 +111,7 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 999,
+    backgroundColor: '#000000', // safety net — never shows through
   },
 
   // Phase 1 — clean black studio card
@@ -133,34 +143,50 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // Phase 2 — app branding on felt green
-  phase2Container: {
-    backgroundColor: '#080f0a',
+  brandingCenter: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  logoWrapper: {
+    width: 160,
+    height: 160,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
+    shadowColor: '#c9a227',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.9,
+    shadowRadius: 24,
+  },
+  logo: {
+    width: 160,
+    height: 160,
+    backgroundColor: 'transparent',
   },
   appTitle: {
     fontFamily: SERIF,
-    fontSize: 56,
+    fontSize: 48,
     color: '#c9a227',
     letterSpacing: 6,
     textAlign: 'center',
+    marginTop: 8,
   },
-  appSuits: {
-    fontSize: 20,
-    color: 'rgba(201, 162, 39, 0.45)',
-    letterSpacing: 10,
+
+  // Progress bar — pinned to bottom
+  progressContainer: {
+    position: 'absolute',
+    bottom: 60,
+    left: 0,
+    right: 0,
   },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 40,
+  progressTrack: {
+    height: 6,
+    backgroundColor: 'rgba(201, 162, 39, 0.2)',
+    borderRadius: 3,
+    overflow: 'hidden',
   },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
+  progressFill: {
+    height: '100%',
     backgroundColor: '#c9a227',
+    borderRadius: 3,
   },
 });
