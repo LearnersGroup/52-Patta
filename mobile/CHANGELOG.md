@@ -1,12 +1,13 @@
 # Changelog — 52 Patta Mobile
 
-## 1.0.9 — 2026-04-01
+## 1.0.9 — 2026-04-06
 
 ### Infrastructure
 - Added GitHub Actions workflow (`.github/workflows/ship-ios.yml`) for manual iOS builds and TestFlight submission via EAS — trigger anytime from the GitHub Actions tab with a choice of build profile and optional release notes
 - **Versioning source of truth moved to git** (2026-04-05): `appVersionSource` switched from `"remote"` to `"local"` — version in `app.json` is now authoritative; bumping it in `app.json` + this changelog is required before triggering `ship-ios`
 - **Preview builds now target staging** (2026-04-05): `preview` EAS profile connects to `https://staging.52patta.in`; `production` profile explicitly connects to `https://52patta.in` — test builds no longer hit the live backend
 - **Preview builds now go to TestFlight** (2026-04-05): `preview` profile submits to "Internal Testers" group; `production` submits to "External Testers" group
+- **Preview build number auto-increments** (2026-04-06): added `autoIncrement: true` to `preview` EAS profile — build numbers no longer need to be bumped manually between preview builds
 - Added Terraform support for `staging.52patta.in` DNS record (`aws_route53_record`) — staging EC2 can now be assigned a proper subdomain via `staging.tfvars`
 - **Terraform environment isolation** (2026-04-05): restructured into `terraform/environments/prod/` and `terraform/environments/staging/` with separate state files — `terraform destroy` on staging cannot affect production
 - **Staging server** (2026-04-05): `nginx/nginx.staging.conf` added for `staging.52patta.in`; deploy workflows sync `JWT_SECRET`, `MONGO_HOST`, and `CORS_ORIGINS` to the server on every deploy
