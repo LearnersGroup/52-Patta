@@ -1,6 +1,6 @@
 # Changelog — 52 Patta Mobile
 
-## 1.0.9 — 2026-04-09
+## 1.0.9 (build 3) — 2026-04-09
 
 ### Fixed
 - **NC logo screen not displaying**: Phase 1 (Narsinh Creations) now starts at full opacity so it is immediately visible when the native splash hides — previously it faded in from invisible, and mixing `Animated.delay` (JS thread) with native-driver animations inside `Animated.sequence` could cause the hold to stall, skipping Phase 1 entirely. Replaced the `Animated.sequence` + `Animated.delay` hold with a plain `setTimeout` to eliminate the cross-thread race.
