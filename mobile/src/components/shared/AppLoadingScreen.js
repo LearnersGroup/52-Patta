@@ -3,7 +3,7 @@ import { Animated, Image, Platform, StyleSheet, Text, useWindowDimensions, View 
 import AppBackground from './AppBackground';
 
 const logo = require('../../../assets/logo.png');
-const ncLogoScreen = require('../../../assets/NC_LOGO_SCREEN.png');
+const ncLogoScreen = require('../../../assets/NC_LOGO_SCREEN.jpeg');
 
 // Phase 1 timing (Narsinh Creations)
 const PHASE1_MS   = 1500;
@@ -78,7 +78,7 @@ export default function AppLoadingScreen({ isReady }) {
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, styles.phase1Container, { opacity: phase1Opacity }]}
       >
-        <Image source={ncLogoScreen} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <Image source={ncLogoScreen} style={styles.ncScreen} resizeMode="cover" />
       </Animated.View>
 
       {/* ── Phase 2 — 52 Patta (always mounted, opacity starts at 0) ───── */}
@@ -117,6 +117,11 @@ const styles = StyleSheet.create({
   // Phase 1 — Narsinh Creations full-screen image
   phase1Container: {
     backgroundColor: '#000000',
+    flex: 1,
+  },
+  ncScreen: {
+    flex: 1,
+    width: '100%',
   },
 
   brandingCenter: {
