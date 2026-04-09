@@ -5,11 +5,10 @@ import AppBackground from './AppBackground';
 const logo = require('../../../assets/logo.png');
 const ncLogoScreen = require('../../../assets/NC_LOGO_SCREEN.png');
 
-// Phase 1 timing (Narsinh Creations) — must total PHASE1_MS
+// Phase 1 timing (Narsinh Creations)
 const PHASE1_MS   = 1500;
-const FADE_IN_MS  = 250;
 const FADE_OUT_MS = 250;
-const HOLD_MS     = PHASE1_MS - FADE_IN_MS - FADE_OUT_MS; // 1000 ms
+const HOLD_MS     = PHASE1_MS - FADE_OUT_MS; // 1250 ms hold before crossfade
 
 // Minimum time phase 2 (52 Patta) must stay visible
 const PHASE2_MIN_MS = 1500;
@@ -29,25 +28,27 @@ export default function AppLoadingScreen({ isReady }) {
   const [phase2Done, setPhase2Done] = useState(false);
   const [mounted, setMounted]       = useState(true);
 
-  const phase1Opacity = useRef(new Animated.Value(0)).current;
+  const phase1Opacity = useRef(new Animated.Value(1)).current;
   const phase2Opacity = useRef(new Animated.Value(0)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const progressWidth = useRef(new Animated.Value(0)).current;
 
   // ── Phase 1 out / Phase 2 in — crossfade so there is never a gap ─────────
+  // Phase 1 starts at opacity 1 (immediately visible when native splash hides).
+  // A plain setTimeout avoids mixing Animated.delay (JS-thread) with native-driver
+  // animations inside Animated.sequence, which can cause the sequence to stall.
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(phase1Opacity, { toValue: 1, duration: FADE_IN_MS, useNativeDriver: true }),
-      Animated.delay(HOLD_MS),
+    const holdTimer = setTimeout(() => {
       // Both animate simultaneously: no moment where neither has a background
       Animated.parallel([
         Animated.timing(phase1Opacity, { toValue: 0, duration: FADE_OUT_MS, useNativeDriver: true }),
         Animated.timing(phase2Opacity, { toValue: 1, duration: FADE_OUT_MS, useNativeDriver: true }),
-      ]),
-    ]).start(() => {
-      setPhase(2);
-      setTimeout(() => setPhase2Done(true), PHASE2_MIN_MS);
-    });
+      ]).start(() => {
+        setPhase(2);
+        setTimeout(() => setPhase2Done(true), PHASE2_MIN_MS);
+      });
+    }, HOLD_MS);
+    return () => clearTimeout(holdTimer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Phase 2: fill progress bar 0 → 100% over 1 s ─────────────────────────
