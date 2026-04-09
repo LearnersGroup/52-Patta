@@ -3,7 +3,7 @@ import { Animated, Image, Platform, StyleSheet, Text, useWindowDimensions, View 
 import AppBackground from './AppBackground';
 
 const logo = require('../../../assets/logo.png');
-const ncLogoScreen = require('../../../assets/NC_LOGO_SCREEN.JPEG');
+const ncLogoScreen = require('../../../assets/NC_LOGO_SCREEN.jpeg');
 
 // Phase 1 timing (Narsinh Creations)
 const PHASE1_MS   = 1500;
