@@ -3,6 +3,7 @@ import { Animated, Image, Platform, StyleSheet, Text, useWindowDimensions, View 
 import AppBackground from './AppBackground';
 
 const logo = require('../../../assets/logo.png');
+const ncLogoScreen = require('../../../assets/NC_LOGO_SCREEN.png');
 
 // Phase 1 timing (Narsinh Creations)
 const PHASE1_MS   = 1500;
@@ -77,9 +78,7 @@ export default function AppLoadingScreen({ isReady }) {
         pointerEvents="none"
         style={[StyleSheet.absoluteFill, styles.phase1Container, { opacity: phase1Opacity }]}
       >
-        <Text style={styles.studioEyebrow}>A</Text>
-        <Text style={styles.studioName}>Narsinh Creations</Text>
-        <Text style={styles.studioTagline}>PRODUCTION</Text>
+        <Image source={ncLogoScreen} style={StyleSheet.absoluteFill} resizeMode="cover" />
       </Animated.View>
 
       {/* ── Phase 2 — 52 Patta (always mounted, opacity starts at 0) ───── */}
@@ -115,33 +114,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000', // safety net — never shows through
   },
 
-  // Phase 1 — clean black studio card
+  // Phase 1 — Narsinh Creations full-screen image
   phase1Container: {
     backgroundColor: '#000000',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  studioEyebrow: {
-    fontFamily: SERIF,
-    fontSize: 13,
-    color: '#666666',
-    letterSpacing: 5,
-    textTransform: 'uppercase',
-  },
-  studioName: {
-    fontFamily: SERIF,
-    fontSize: 28,
-    color: '#ffffff',
-    letterSpacing: 2,
-    textAlign: 'center',
-  },
-  studioTagline: {
-    fontFamily: SERIF,
-    fontSize: 11,
-    color: '#666666',
-    letterSpacing: 6,
-    textTransform: 'uppercase',
   },
 
   brandingCenter: {

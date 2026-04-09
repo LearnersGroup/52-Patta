@@ -29,11 +29,19 @@
       "ios": {
         "ascAppId": "0",
         "groups": ["Internal Testers"]
+      },
+      "android": {
+        "serviceAccountKeyPath": "/tmp/play-service-account.json",
+        "track": "internal"
       }
     },
     "production": {
       "ios": {
         "ascAppId": "0"
+      },
+      "android": {
+        "serviceAccountKeyPath": "/tmp/play-service-account.json",
+        "track": "production"
       }
     }
   }
