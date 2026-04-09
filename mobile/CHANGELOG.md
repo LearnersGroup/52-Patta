@@ -1,6 +1,9 @@
 # Changelog — 52 Patta Mobile
 
-## 1.0.10 — 2026-04-07
+## 1.0.10 — 2026-04-08
+
+### Changed
+- **NC loading screen**: replaced text-based "Narsinh Creations" Phase 1 with `NC_LOGO_SCREEN.png` full-screen image
 
 ### Infrastructure
 - **Android release setup**: added `versionCode: 1` to `app.json` (Play Store requires an integer build number); added Android submit config to `eas.json` for `internal` (preview) and `production` Play tracks
