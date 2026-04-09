@@ -1,6 +1,14 @@
 # Changelog — 52 Patta Mobile
 
-## 1.0.9 (build 3) — 2026-04-09
+## 1.0.10 — 2026-04-08
+
+### Changed
+- **NC loading screen**: replaced text-based "Narsinh Creations" Phase 1 with `NC_LOGO_SCREEN.png` full-screen image
+
+### Infrastructure
+- **Android release setup**: added `versionCode: 1` to `app.json` (Play Store requires an integer build number); added Android submit config to `eas.json` for `internal` (preview) and `production` Play tracks
+- **GitHub Actions workflow** (`.github/workflows/ship-android.yml`): manual trigger to build and submit Android app to Google Play — mirrors `ship-ios.yml` with choice of `preview`/`production` profile; requires `PLAY_SERVICE_ACCOUNT_KEY` secret (base64-encoded Google Play service account JSON)
+## 1.0.9 — 2026-04-09
 
 ### Fixed
 - **NC logo screen not displaying**: Phase 1 (Narsinh Creations) now starts at full opacity so it is immediately visible when the native splash hides — previously it faded in from invisible, and mixing `Animated.delay` (JS thread) with native-driver animations inside `Animated.sequence` could cause the hold to stall, skipping Phase 1 entirely. Replaced the `Animated.sequence` + `Animated.delay` hold with a plain `setTimeout` to eliminate the cross-thread race.
