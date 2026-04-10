@@ -48,13 +48,23 @@ jobs:
           echo "EXPO_APPLE_APP_STORE_CONNECT_API_KEY_PATH=/tmp/asc_api_key.p8" >> $GITHUB_ENV
 
       - name: 🏗️ Build iOS app via EAS
+        id: eas-build
         working-directory: mobile
         run: |
-          eas build \
+          BUILD_JSON=$(eas build \
             --platform ios \
             --profile ${{ inputs.profile }} \
             --non-interactive \
-            --wait
+            --wait \
+            --json)
+          BUILD_ID=$(echo "$BUILD_JSON" | jq -r '.[0].id')
+          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
+            echo "ERROR: Failed to extract build ID from EAS output"
+            echo "$BUILD_JSON"
+            exit 1
+          fi
+          echo "BUILD_ID=$BUILD_ID" >> "$GITHUB_OUTPUT"
+          echo "Build ID: $BUILD_ID"
         env:
           EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           EXPO_APPLE_APP_STORE_CONNECT_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
@@ -69,7 +79,7 @@ jobs:
           eas submit \
             --platform ios \
             --profile ${{ inputs.profile }} \
-            --latest \
+            --id ${{ steps.eas-build.outputs.BUILD_ID }} \
             --non-interactive
         env:
           EXPO_APPLE_APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
@@ -93,6 +103,7 @@ jobs:
           echo "|---|---|" >> $GITHUB_STEP_SUMMARY
           echo "| **Profile** | ${{ inputs.profile }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Version** | $APP_VERSION |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Build ID** | ${{ steps.eas-build.outputs.BUILD_ID }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **App** | 52 Patta (in.patta52.app) |" >> $GITHUB_STEP_SUMMARY
           echo "| **TestFlight group** | ${{ inputs.profile == 'production' && 'External Testers (production)' || 'Internal Testers (staging backend)' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Triggered by** | @${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
