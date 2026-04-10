@@ -14,7 +14,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "in.patta52.app",
-      "buildNumber": "3",
+      "buildNumber": "5",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
