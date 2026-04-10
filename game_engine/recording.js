@@ -515,10 +515,27 @@ function finalizeJudgementResult(gameState, roundEntry) {
 /**
  * Persist the current recording to MongoDB as a GameRecord document.
  * Returns the created document id, or null on failure.
+ * @param {object} gameState
+ * @param {object} [opts]
+ * @param {"completed"|"abandoned"} [opts.status="completed"]
+ * @param {string} [opts.abandonReason]
  */
-async function persistRecording(gameState) {
+async function persistRecording(gameState, opts = {}) {
     const rec = gameState?.recording;
     if (!rec) return null;
+    const status = opts.status || "completed";
+
+    // Guard: don't create a useless record for an abandoned deal that never
+    // got past the deal (no bids placed, no tricks played, no result). The
+    // hand metrics alone aren't worth a document for every lobby timeout.
+    if (status === "abandoned") {
+        const hasAnyBid =
+            (rec.bidding?.bidEvents?.length || 0) > 0 ||
+            Object.keys(rec.bidding?.judgementBids || {}).length > 0;
+        const hasAnyTrick = (rec.tricks?.length || 0) > 0;
+        if (!hasAnyBid && !hasAnyTrick) return null;
+    }
+
     try {
         // Lazy-require to avoid any model-load ordering issues.
         const GameRecord = require("../models/GameRecord");
@@ -543,9 +560,12 @@ async function persistRecording(gameState) {
             powerhouse: rec.powerhouse,
             tricks: rec.tricks,
             result: rec.result,
+            status,
+            abandonReason: opts.abandonReason || null,
+            abandonedAtPhase: status === "abandoned" ? (gameState.phase || null) : null,
             startedAt: new Date(rec.startedAt),
-            endedAt: rec.endedAt ? new Date(rec.endedAt) : null,
-            durationMs: rec.durationMs,
+            endedAt: rec.endedAt ? new Date(rec.endedAt) : (status === "abandoned" ? new Date() : null),
+            durationMs: rec.durationMs || (status === "abandoned" ? Date.now() - rec.startedAt : null),
         });
         return doc._id;
     } catch (err) {

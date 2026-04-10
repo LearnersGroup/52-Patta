@@ -2,6 +2,7 @@ const Game = require("../../models/Game");
 const User = require("../../models/User");
 const { getGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { scheduleLobbyDisconnect } = require("./lobbyGracePeriod");
+const { scheduleAbandonmentIfEmpty } = require("./abandonedGameCleanup");
 
 module.exports = (socket, io) => async () => {
     try {
@@ -32,6 +33,10 @@ module.exports = (socket, io) => async () => {
             if (gameState) {
                 await persistCheckpoint(gameId);
             }
+
+            // If every player has now dropped, start an abandonment timer.
+            // Re-checks liveness when it fires, so any reconnect cancels it.
+            scheduleAbandonmentIfEmpty(io, gameId, game.roomname);
             return;
         }
 

@@ -11,6 +11,9 @@ function getGameState(gameId) {
 }
 
 function setGameState(gameId, state) {
+    if (state && !state.lastActivityAt) {
+        state.lastActivityAt = Date.now();
+    }
     activeGames.set(gameId, state);
 }
 
@@ -20,6 +23,25 @@ function deleteGameState(gameId) {
 
 function hasActiveGame(gameId) {
     return activeGames.has(gameId);
+}
+
+/**
+ * Bump the lastActivityAt timestamp for a game. Called on every player action
+ * (bid, play card, shuffle, etc.) so the stale-eviction job can reliably tell
+ * which games are idle.
+ */
+function markActivity(gameId) {
+    const state = activeGames.get(gameId);
+    if (state) {
+        state.lastActivityAt = Date.now();
+    }
+}
+
+/**
+ * Iterate all active games. Yields [gameId, state] tuples.
+ */
+function listActiveGames() {
+    return Array.from(activeGames.entries());
 }
 
 /**
@@ -78,6 +100,8 @@ module.exports = {
     setGameState,
     deleteGameState,
     hasActiveGame,
+    markActivity,
+    listActiveGames,
     persistCheckpoint,
     rehydrateGame,
     getActiveGameCount,

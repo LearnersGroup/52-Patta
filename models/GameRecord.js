@@ -105,6 +105,25 @@ const GameRecordSchema = new mongoose.Schema({
         default: null,
     },
 
+    // ── Completion status ─────────────────────────────────────────────────
+    // "completed" — the deal finished normally (default, existing behaviour)
+    // "abandoned" — all players disconnected or stale eviction kicked in before
+    //               the deal finished. tricks/result may be partial or empty.
+    status: {
+        type: String,
+        enum: ["completed", "abandoned"],
+        default: "completed",
+        index: true,
+    },
+    abandonReason: {
+        type: String,   // "all-disconnected" | "stale-eviction" | null
+        default: null,
+    },
+    abandonedAtPhase: {
+        type: String,   // phase at time of abandonment (e.g. "playing")
+        default: null,
+    },
+
     // ── Player feedback (optional, filled post-game) ──────────────────────
     feedback: {
         type: [{
