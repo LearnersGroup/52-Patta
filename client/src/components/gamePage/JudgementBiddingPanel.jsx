@@ -13,34 +13,27 @@ const JudgementBiddingPanel = ({ bidding, userId, cardsInRound = 0, getName = (p
 
     const [amount, setAmount] = useState(0);
 
-    // Auto-skip forbidden bid when it's my turn
+    // When it becomes my turn, if the currently-selected amount happens to be
+    // forbidden, nudge it to the nearest valid value. Only runs on turn
+    // transitions — user can freely pick any valid bid after that.
     useEffect(() => {
         if (!isMyTurn) return;
-        if (forbiddenBid === 0) {
-            setAmount(1);
-        } else if (amount === forbiddenBid) {
-            setAmount((prev) => {
-                const next = prev + 1;
-                return next > cardsInRound ? Math.max(0, prev - 1) : next;
-            });
-        }
-    }, [forbiddenBid, isMyTurn]); // eslint-disable-line react-hooks/exhaustive-deps
+        setAmount((prev) => {
+            if (forbiddenBid !== null && prev === forbiddenBid) {
+                return forbiddenBid === 0 ? 1 : 0;
+            }
+            return prev;
+        });
+    }, [isMyTurn, forbiddenBid]);
 
     const adjustAmount = (delta) => {
-        setAmount((prev) => {
-            let next = Math.max(0, Math.min(cardsInRound, prev + delta));
-            // Jump over the forbidden bid
-            if (forbiddenBid !== null && next === forbiddenBid) {
-                next = Math.max(0, Math.min(cardsInRound, next + delta));
-                if (next === forbiddenBid) next = prev; // nowhere to move, stay put
-            }
-            return next;
-        });
+        setAmount((prev) => Math.max(0, Math.min(cardsInRound, prev + delta)));
     };
 
+    const isForbidden = forbiddenBid !== null && amount === forbiddenBid;
+
     const handleSubmit = () => {
-        if (!isMyTurn) return;
-        if (forbiddenBid !== null && amount === forbiddenBid) return;
+        if (!isMyTurn || isForbidden) return;
         WsJudgementBid(amount);
     };
 
@@ -72,7 +65,11 @@ const JudgementBiddingPanel = ({ bidding, userId, cardsInRound = 0, getName = (p
                             +
                         </button>
                     </div>
-                    <button className="btn-primary jdg-bid-submit" onClick={handleSubmit}>
+                    <button
+                        className="btn-primary jdg-bid-submit"
+                        onClick={handleSubmit}
+                        disabled={isForbidden}
+                    >
                         Bid {amount}
                     </button>
                 </div>
