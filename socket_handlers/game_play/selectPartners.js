@@ -3,6 +3,7 @@ const { initTrick } = require("../../game_engine/tricks");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
+const { recordPartnerSelection } = require("../../game_engine/recording");
 const wrapHandler = require('../wrapHandler');
 
 module.exports = wrapHandler('game-select-partners', async (socket, io, data, callback) => {
@@ -42,6 +43,10 @@ module.exports = wrapHandler('game-select-partners', async (socket, io, data, ca
             if (callback) callback(result.error);
             return;
         }
+
+        // Record partner selection using the post-engine partnerCards which
+        // are canonicalised (include `whichCopy` resolution for 2-deck games).
+        recordPartnerSelection(result.state, result.state.partnerCards || []);
 
         // Transition to playing phase
         const leader = gameState.leader;

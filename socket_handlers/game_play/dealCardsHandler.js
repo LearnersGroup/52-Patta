@@ -7,6 +7,7 @@ const { broadcastGameState } = require("./helpers/broadcastState");
 const { startBiddingTimer } = require("./helpers/biddingTimer");
 const { expireBidding } = require("./helpers/expireBidding");
 const { scheduleJudgementBidTimeout } = require("./helpers/judgementTimers");
+const { initRecording } = require("../../game_engine/recording");
 const wrapHandler = require('../wrapHandler');
 
 require("../../game_engine/strategies");
@@ -61,6 +62,10 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
         // Clear shuffle working data
         gameState.unshuffledDeck = [];
         gameState.shuffleQueue = [];
+
+        // Initialize recording for this deal (captures hands + hand metrics).
+        // Safe to call unconditionally: resets any prior recording for next round.
+        initRecording(gameState);
 
         setGameState(gameId, gameState);
 

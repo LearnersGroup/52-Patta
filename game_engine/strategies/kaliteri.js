@@ -10,6 +10,7 @@ const { createDeck, removeTwos } = require("../deck");
 const { dealFromDealer } = require("../shuffle");
 const { initBidding } = require("../bidding");
 const { calculateGameResult, applyScoring } = require("../scoring");
+const { finalizeKaliteriResult, persistRecording } = require("../recording");
 
 // ── Config ──────────────────────────────────────────────────────────────
 
@@ -145,17 +146,33 @@ function onRoundEnd(io, gameState, newState) {
     const scoringResult = calculateGameResult(newState);
     const newScores = applyScoring(newState.scores, scoringResult);
 
-    return {
+    const finalState = {
         ...newState,
         scores: newScores,
         scoringResult,
         phase: "finished",
     };
+
+    // Finalize the analytics record with the resolved outcome.
+    finalizeKaliteriResult(finalState, scoringResult);
+
+    return finalState;
 }
 
 function afterRoundEnd(io, gameState, finalState, { scheduleAutoNextGame }) {
     io.to(gameState.roomname).emit("game-phase-change", "finished");
     io.to(gameState.roomname).emit("game-result", finalState.scoringResult);
+
+    // Persist the completed game record (best-effort, never blocks gameplay).
+    persistRecording(finalState).then((recordId) => {
+        if (recordId) {
+            io.to(gameState.roomname).emit("game-record-saved", {
+                recordId: recordId.toString(),
+                gameType: "kaliteri",
+            });
+        }
+    }).catch(() => { /* logged inside persistRecording */ });
+
     scheduleAutoNextGame(io, gameState.gameId);
 }
 

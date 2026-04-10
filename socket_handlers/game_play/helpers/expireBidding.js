@@ -7,6 +7,7 @@
 const { createDeck, removeTwos } = require("../../../game_engine/deck");
 const { resolveBiddingExpiry } = require("../../../game_engine/bidding");
 const { getGameState, setGameState, persistCheckpoint } = require("../../../game_engine/stateManager");
+const { recordKaliteriBiddingComplete } = require("../../../game_engine/recording");
 const Game = require("../../../models/Game");
 const { broadcastGameState } = require("./broadcastState");
 
@@ -69,6 +70,12 @@ async function expireBidding(io, gameId) {
                 oppose: gameState.seatOrder.filter((id) => id !== winner),
             },
         };
+
+        recordKaliteriBiddingComplete(newState, {
+            winner,
+            amount: gameState.bidding?.currentBid,
+            endReason: "timer-expired",
+        });
 
         setGameState(gameId, newState);
         await Game.findByIdAndUpdate(gameId, { state: "powerhouse" });

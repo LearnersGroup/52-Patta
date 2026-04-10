@@ -5,6 +5,7 @@ const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
 const { startBiddingTimer, clearBiddingTimer } = require("./helpers/biddingTimer");
 const { expireBidding } = require("./helpers/expireBidding");
+const { recordKaliteriBidEvent, recordKaliteriBiddingComplete } = require("../../game_engine/recording");
 const wrapHandler = require("../wrapHandler");
 
 module.exports = wrapHandler('game-place-bid', async (socket, io, data, callback) => {
@@ -30,6 +31,15 @@ module.exports = wrapHandler('game-place-bid', async (socket, io, data, callback
         return;
     }
 
+    // Snapshot pre-bid context for recording (current high bid before this call).
+    const preBid = {
+        currentHighBid: gameState.bidding?.currentBid || 0,
+        currentHighBidder: gameState.bidding?.currentBidder || null,
+        minBid: (gameState.bidding?.currentBid || 0) === 0
+            ? gameState.bidding?.startingBid
+            : (gameState.bidding.currentBid + gameState.config.bidIncrement),
+    };
+
     const result = placeBidEngine(
         gameState.bidding,
         gameState.seatOrder,
@@ -43,6 +53,16 @@ module.exports = wrapHandler('game-place-bid', async (socket, io, data, callback
         return;
     }
 
+    // Record the accepted bid event.
+    recordKaliteriBidEvent(gameState, {
+        type: "bid",
+        playerId: socket.user.id,
+        amount,
+        currentHighBid: preBid.currentHighBid,
+        currentHighBidder: preBid.currentHighBidder,
+        minBid: preBid.minBid,
+    });
+
     const newState = { ...gameState, bidding: result.state };
 
     if (result.state.biddingComplete) {
@@ -55,6 +75,12 @@ module.exports = wrapHandler('game-place-bid', async (socket, io, data, callback
         newState.teams.oppose = gameState.seatOrder.filter(
             (id) => id !== result.state.currentBidder
         );
+
+        recordKaliteriBiddingComplete(newState, {
+            winner: result.state.currentBidder,
+            amount: result.state.currentBid,
+            endReason: "max-bid",
+        });
 
         setGameState(gameState.gameId, newState);
         await persistCheckpoint(gameState.gameId);

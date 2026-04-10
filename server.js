@@ -126,6 +126,7 @@ app.use("/api/auth", require("./routes/api/auth")); //auth user
 app.use("/api/games", require("./routes/api/games")); //create game-room
 app.use("/api/game-rooms", require("./routes/api/game-rooms")); //
 app.use("/api/mygame", require("./routes/api/mygame"));
+app.use("/api/game-records", require("./routes/api/game-records"));
 app.use("/api/oauth", require("./routes/api/oauth"));
 
 app.get('/', (req, res) => {

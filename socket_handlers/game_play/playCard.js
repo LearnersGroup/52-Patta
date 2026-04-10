@@ -1,10 +1,11 @@
-const { playCard: playCardEngine } = require("../../game_engine/tricks");
+const { playCard: playCardEngine, getValidPlays } = require("../../game_engine/tricks");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
 const { scheduleAutoNextGame } = require("./autoNextGame");
 const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
 const { autoNextJudgementRound } = require("./helpers/autoNextJudgementRound");
+const { recordPlay, recordTrickComplete } = require("../../game_engine/recording");
 const wrapHandler = require("../wrapHandler");
 
 require("../../game_engine/strategies");
@@ -32,6 +33,11 @@ module.exports = wrapHandler('game-play-card', async (socket, io, data, callback
     if (card.deckIndex === undefined) {
         card.deckIndex = 0;
     }
+
+    // Snapshot valid plays BEFORE the engine mutates state so we can
+    // record the counterfactual alternatives the player had.
+    const validPlaysBefore = getValidPlays(gameState, socket.user.id);
+    recordPlay(gameState, socket.user.id, card, validPlaysBefore);
 
     const result = playCardEngine(gameState, socket.user.id, card);
 
@@ -62,6 +68,7 @@ module.exports = wrapHandler('game-play-card', async (socket, io, data, callback
     const currentTricks = newState.tricks?.length || 0;
     if (currentTricks > previousTricks) {
         const lastTrick = newState.tricks[newState.tricks.length - 1];
+        recordTrickComplete(newState, lastTrick);
         io.to(gameState.roomname).emit("game-trick-result", {
             winner: lastTrick.winner,
             points: isJudgement ? undefined : lastTrick.points,
