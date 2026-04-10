@@ -31,8 +31,12 @@ async function persistCheckpoint(gameId) {
     if (!state) return;
 
     try {
+        // Strip the analytics recording blob before checkpointing — it is
+        // not needed for game rehydration and can be 50-100 KB by end-of-game.
+        // The final GameRecord document captures it separately.
+        const { recording: _recording, ...checkpointState } = state;
         await Game.findByIdAndUpdate(gameId, {
-            gameState: state,
+            gameState: checkpointState,
             state: state.phase,
         });
     } catch (error) {
