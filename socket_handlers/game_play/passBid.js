@@ -4,6 +4,7 @@ const { setGameState, persistCheckpoint } = require("../../game_engine/stateMana
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
 const { clearBiddingTimer } = require("./helpers/biddingTimer");
+const { recordKaliteriBidEvent, recordKaliteriBiddingComplete } = require("../../game_engine/recording");
 const Game = require("../../models/Game");
 const wrapHandler = require("../wrapHandler");
 
@@ -24,6 +25,11 @@ module.exports = wrapHandler('game-pass-bid', async (socket, io, data, callback)
         return;
     }
 
+    const preBid = {
+        currentHighBid: gameState.bidding?.currentBid || 0,
+        currentHighBidder: gameState.bidding?.currentBidder || null,
+    };
+
     const result = passBidEngine(
         gameState.bidding,
         gameState.seatOrder,
@@ -35,6 +41,14 @@ module.exports = wrapHandler('game-pass-bid', async (socket, io, data, callback)
         if (callback) callback(result.error);
         return;
     }
+
+    // Record the pass event regardless of outcome.
+    recordKaliteriBidEvent(gameState, {
+        type: "pass",
+        playerId: socket.user.id,
+        currentHighBid: preBid.currentHighBid,
+        currentHighBidder: preBid.currentHighBidder,
+    });
 
     // ── All players passed with no bids → reshuffle (same dealer) ─────
     if (result.redeal) {
@@ -97,6 +111,12 @@ module.exports = wrapHandler('game-pass-bid', async (socket, io, data, callback)
         newState.teams.oppose = gameState.seatOrder.filter(
             (id) => id !== result.state.currentBidder
         );
+
+        recordKaliteriBiddingComplete(newState, {
+            winner: result.state.currentBidder,
+            amount: result.state.currentBid,
+            endReason: "all-passed",
+        });
 
         setGameState(gameState.gameId, newState);
         await persistCheckpoint(gameState.gameId);

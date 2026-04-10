@@ -4,6 +4,7 @@ const { getGameState, setGameState, persistCheckpoint } = require("../../game_en
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
 const { scheduleJudgementBidTimeout, clearJudgementBidTimeout } = require("./helpers/judgementTimers");
+const { recordJudgementBid } = require("../../game_engine/recording");
 const wrapHandler = require("../wrapHandler");
 
 /**
@@ -11,6 +12,19 @@ const wrapHandler = require("../wrapHandler");
  * Shared by socket handler and auto-bid timer.
  */
 async function applyJudgementBid(io, gameState, playerId, amount) {
+    // Compute forbidden value for the last bidder (dealer restriction) so we
+    // can record the exact set of options the player had.
+    const biddingState = gameState.bidding;
+    const isLastBidder = biddingState &&
+        biddingState.currentBidderIndex === (biddingState.bidOrder?.length ?? 0) - 1 &&
+        biddingState.bidOrder?.[biddingState.currentBidderIndex] === playerId;
+    let forbidden = null;
+    if (isLastBidder) {
+        const runningTotal = Object.values(biddingState.bids || {}).reduce((s, v) => s + v, 0);
+        const f = gameState.currentCardsPerRound - runningTotal;
+        if (f >= 0 && f <= gameState.currentCardsPerRound) forbidden = f;
+    }
+
     const result = placeJudgementBid(
         gameState.bidding,
         playerId,
@@ -19,6 +33,12 @@ async function applyJudgementBid(io, gameState, playerId, amount) {
     );
 
     if (result.error) return { error: result.error };
+
+    // Record the accepted bid with its option space.
+    recordJudgementBid(gameState, playerId, amount, {
+        cardsInRound: gameState.currentCardsPerRound,
+        forbidden,
+    });
 
     const gameId = gameState.gameId;
     const newState = { ...gameState, bidding: result.state };

@@ -3,6 +3,7 @@ const { getGameState, rehydrateGame } = require("../../game_engine/stateManager"
 const { buildPublicView } = require("../game_play/helpers/broadcastState");
 const { getValidPlays } = require("../../game_engine/tricks");
 const { cancelLobbyDisconnect } = require("./lobbyGracePeriod");
+const { cancelPending: cancelAbandonment } = require("./abandonedGameCleanup");
 
 /**
  * Fires every time a socket authenticates and connects.
@@ -35,6 +36,10 @@ module.exports = (socket, io) => async () => {
 
         const roomname = user.gameroom.roomname;
         const gameId   = user.gameroom._id.toString();
+
+        // A player is rejoining an active game — cancel any pending
+        // abandonment timer so the room isn't wiped out from under them.
+        cancelAbandonment(gameId);
 
         // ── Step 1: join socket to the game room ─────────────────────────────
         // Without this, io.to(roomname).emit(…) never reaches this socket.

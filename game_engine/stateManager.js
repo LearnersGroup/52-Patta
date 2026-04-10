@@ -11,6 +11,9 @@ function getGameState(gameId) {
 }
 
 function setGameState(gameId, state) {
+    if (state && !state.lastActivityAt) {
+        state.lastActivityAt = Date.now();
+    }
     activeGames.set(gameId, state);
 }
 
@@ -23,6 +26,25 @@ function hasActiveGame(gameId) {
 }
 
 /**
+ * Bump the lastActivityAt timestamp for a game. Called on every player action
+ * (bid, play card, shuffle, etc.) so the stale-eviction job can reliably tell
+ * which games are idle.
+ */
+function markActivity(gameId) {
+    const state = activeGames.get(gameId);
+    if (state) {
+        state.lastActivityAt = Date.now();
+    }
+}
+
+/**
+ * Iterate all active games. Yields [gameId, state] tuples.
+ */
+function listActiveGames() {
+    return Array.from(activeGames.entries());
+}
+
+/**
  * Persist current game state to MongoDB as a checkpoint.
  * Called at phase transitions and on player disconnect.
  */
@@ -31,8 +53,12 @@ async function persistCheckpoint(gameId) {
     if (!state) return;
 
     try {
+        // Strip the analytics recording blob before checkpointing — it is
+        // not needed for game rehydration and can be 50-100 KB by end-of-game.
+        // The final GameRecord document captures it separately.
+        const { recording: _recording, ...checkpointState } = state;
         await Game.findByIdAndUpdate(gameId, {
-            gameState: state,
+            gameState: checkpointState,
             state: state.phase,
         });
     } catch (error) {
@@ -74,6 +100,8 @@ module.exports = {
     setGameState,
     deleteGameState,
     hasActiveGame,
+    markActivity,
+    listActiveGames,
     persistCheckpoint,
     rehydrateGame,
     getActiveGameCount,

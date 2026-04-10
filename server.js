@@ -22,6 +22,7 @@ const {
     adminKickPlayer,
 } = require("./socket_handlers/game_room/");
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
+const { startAbandonedGameSweeper, stopAbandonedGameSweeper } = require("./socket_handlers/extra/abandonedGameCleanup");
 const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame, shuffleAction, undoShuffle, dealCardsHandler, judgementBid, acknowledgeTrumpAnnounce, returnToLobby } = require("./socket_handlers/game_play/");
 
 // Initialize Sentry error tracking (only if DSN is configured)
@@ -126,6 +127,7 @@ app.use("/api/auth", require("./routes/api/auth")); //auth user
 app.use("/api/games", require("./routes/api/games")); //create game-room
 app.use("/api/game-rooms", require("./routes/api/game-rooms")); //
 app.use("/api/mygame", require("./routes/api/mygame"));
+app.use("/api/game-records", require("./routes/api/game-records"));
 app.use("/api/oauth", require("./routes/api/oauth"));
 
 app.get('/', (req, res) => {
@@ -182,9 +184,16 @@ if (require.main === module) {
     const PORT = process.env.PORT || 4000;
     server.listen(PORT, () => logger.info('Server started', { port: PORT }));
 
+    // Start the periodic stale-game sweeper. Rooms left idle for > 6 h are
+    // abandoned: a partial GameRecord is saved, in-memory state is freed,
+    // and the Game document is reset back to lobby.
+    startAbandonedGameSweeper(io);
+
     // Graceful shutdown
     const shutdown = async (signal) => {
         logger.info(`${signal} received, shutting down gracefully`);
+
+        stopAbandonedGameSweeper();
 
         server.close(() => {
             logger.info('HTTP server closed');

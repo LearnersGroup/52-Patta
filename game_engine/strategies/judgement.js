@@ -11,6 +11,7 @@ const { computeJudgementConfig } = require("../judgement/config");
 const { computeTrumpSuit, dealJudgementRound, getNextJudgementRound } = require("../judgement/rounds");
 const { initJudgementBidding } = require("../judgement/bidding");
 const { calculateJudgementRoundResult, applyJudgementScoring } = require("../judgement/scoring");
+const { finalizeJudgementResult, persistRecording } = require("../recording");
 
 // ── Config ──────────────────────────────────────────────────────────────
 
@@ -153,7 +154,7 @@ function onRoundEnd(io, gameState, newState) {
 
     const nextRound = getNextJudgementRound(newState);
 
-    return {
+    const finalState = {
         ...newState,
         scores: nextScores,
         scoringResult: null,
@@ -161,10 +162,25 @@ function onRoundEnd(io, gameState, newState) {
         phase: nextRound.done ? "series-finished" : "finished",
         nextRoundReady: [],
     };
+
+    // Finalize the analytics record for this round.
+    finalizeJudgementResult(finalState, roundEntry);
+
+    return finalState;
 }
 
 function afterRoundEnd(io, gameState, finalState, { scheduleJudgementAdvance, autoNextJudgementRound }) {
     io.to(gameState.roomname).emit("game-phase-change", finalState.phase);
+
+    // Persist the completed round record (best-effort).
+    persistRecording(finalState).then((recordId) => {
+        if (recordId) {
+            io.to(gameState.roomname).emit("game-record-saved", {
+                recordId: recordId.toString(),
+                gameType: "judgement",
+            });
+        }
+    }).catch(() => { /* logged inside persistRecording */ });
 
     if (finalState.phase === "finished") {
         const scoreboardTimeMs = finalState.config?.scoreboardTimeMs || 5000;

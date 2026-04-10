@@ -2,6 +2,7 @@ const { selectPowerHouse: selectPH } = require("../../game_engine/powerhouse");
 const { setGameState } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
+const { recordTrumpSelection } = require("../../game_engine/recording");
 const wrapHandler = require('../wrapHandler');
 
 module.exports = wrapHandler('game-select-powerhouse', async (socket, io, data, callback) => {
@@ -28,6 +29,8 @@ module.exports = wrapHandler('game-select-powerhouse', async (socket, io, data, 
             if (callback) callback(result.error);
             return;
         }
+
+        recordTrumpSelection(result.state, suit);
 
         setGameState(gameState.gameId, result.state);
         await broadcastGameState(io, result.state);
