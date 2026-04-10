@@ -28,29 +28,24 @@ export default function JudgementBiddingPanel({
 
   const [amount, setAmount] = useState(0);
 
-  // Auto-adjust away from forbidden bid
+  // When it becomes my turn, pick a valid starting value (0, or 1 if 0 is forbidden).
+  // Only re-runs on turn transitions — not on every amount change — so the user
+  // can freely pick any valid bid afterwards.
   useEffect(() => {
     if (!isMyTurn) return;
-    if (forbiddenBid === 0) {
-      setAmount(1);
-    } else if (amount === forbiddenBid) {
-      setAmount((prev) => {
-        const next = prev + 1;
-        return next > cardsInRound ? Math.max(0, prev - 1) : next;
-      });
-    }
-  }, [forbiddenBid, isMyTurn, cardsInRound, amount]);
+    setAmount((prev) => {
+      if (forbiddenBid !== null && prev === forbiddenBid) {
+        return forbiddenBid === 0 ? 1 : 0;
+      }
+      return prev;
+    });
+  }, [isMyTurn, forbiddenBid]);
 
   const adjust = (delta) => {
-    setAmount((prev) => {
-      let next = Math.max(0, Math.min(cardsInRound, prev + delta));
-      if (forbiddenBid !== null && next === forbiddenBid) {
-        next = Math.max(0, Math.min(cardsInRound, next + delta));
-        if (next === forbiddenBid) next = prev;
-      }
-      return next;
-    });
+    setAmount((prev) => Math.max(0, Math.min(cardsInRound, prev + delta)));
   };
+
+  const isForbidden = forbiddenBid !== null && amount === forbiddenBid;
 
   if (!bidding) return null;
 
@@ -108,11 +103,8 @@ export default function JudgementBiddingPanel({
           </View>
 
           <Pressable
-            style={[
-              styles.bidBtn,
-              forbiddenBid !== null && amount === forbiddenBid && styles.btnDisabled,
-            ]}
-            disabled={forbiddenBid !== null && amount === forbiddenBid}
+            style={[styles.bidBtn, isForbidden && styles.btnDisabled]}
+            disabled={isForbidden}
             onPress={() => WsJudgementBid(amount)}
           >
             <Text style={styles.bidBtnText}>Bid {amount}</Text>
