@@ -6,6 +6,8 @@ const { scheduleAutoNextGame } = require("./autoNextGame");
 const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
 const { autoNextJudgementRound } = require("./helpers/autoNextJudgementRound");
 const { recordPlay, recordTrickComplete } = require("../../game_engine/recording");
+const { deleteGameState } = require("../../game_engine/stateManager");
+const Game = require("../../models/Game");
 const wrapHandler = require("../wrapHandler");
 
 require("../../game_engine/strategies");
@@ -94,6 +96,8 @@ module.exports = wrapHandler('game-play-card', async (socket, io, data, callback
             scheduleAutoNextGame,
             scheduleJudgementAdvance,
             autoNextJudgementRound,
+            deleteGameState,
+            Game,
         });
     }
 

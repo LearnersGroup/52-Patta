@@ -20,10 +20,12 @@ const {
     userToggleReady,
     adminUpdateConfig,
     adminKickPlayer,
+    userSwitchTeam,
+    adminRandomizeTeams,
 } = require("./socket_handlers/game_room/");
 const { onConnect, setSocketUsername, onDisconnect, onMessage } = require("./socket_handlers/extra");
 const { startAbandonedGameSweeper, stopAbandonedGameSweeper } = require("./socket_handlers/extra/abandonedGameCleanup");
-const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame, shuffleAction, undoShuffle, dealCardsHandler, judgementBid, acknowledgeTrumpAnnounce, returnToLobby } = require("./socket_handlers/game_play/");
+const { startGame, placeBid, passBid, selectPowerHouse, selectPartners, playCard, requestGameState, nextRound, quitGame, shuffleAction, undoShuffle, dealCardsHandler, judgementBid, acknowledgeTrumpAnnounce, returnToLobby, pickClosedTrump, revealTrump } = require("./socket_handlers/game_play/");
 
 // Initialize Sentry error tracking (only if DSN is configured)
 if (process.env.SENTRY_DSN) {
@@ -49,6 +51,8 @@ function setupSocketHandlers(io) {
         socket.on("user-toggle-ready", userToggleReady(socket, io));
         socket.on("admin-update-config", adminUpdateConfig(socket, io));
         socket.on("admin-kick-player", adminKickPlayer(socket, io));
+        socket.on("user-switch-team", userSwitchTeam(socket, io));
+        socket.on("admin-randomize-teams", adminRandomizeTeams(socket, io));
 
         //game-play
         socket.on("game-start", startGame(socket, io));
@@ -68,6 +72,8 @@ function setupSocketHandlers(io) {
         socket.on("game-judgement-bid", judgementBid(socket, io));
         socket.on("game-proceed-to-shuffle", acknowledgeTrumpAnnounce(socket, io));
         socket.on("game-return-to-lobby", returnToLobby(socket, io));
+        socket.on("pick-closed-trump", pickClosedTrump(socket, io));
+        socket.on("reveal-trump", revealTrump(socket, io));
     });
 }
 

@@ -18,9 +18,18 @@ async function broadcastGameState(io, gameState) {
         const playerId = s.user?.id;
         if (!playerId) continue;
 
+        const rawHand = gameState.hands[playerId] || [];
+        const isBlindPicker =
+            gameState.game_type === "mendikot" &&
+            gameState.phase === "band-hukum-pick" &&
+            gameState.closed_trump_holder_id === playerId &&
+            gameState.config?.band_hukum_pick_phase === true;
+        const myHand = isBlindPicker
+            ? rawHand.map(() => ({ faceDown: true }))
+            : rawHand;
         const personalView = {
             ...publicView,
-            myHand: gameState.hands[playerId] || [],
+            myHand,
             validPlays: gameState.phase === "playing"
                 ? getValidPlays(gameState, playerId)
                 : [],

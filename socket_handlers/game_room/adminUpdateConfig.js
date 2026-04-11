@@ -31,7 +31,9 @@ module.exports = wrapHandler("admin-update-config", async (socket, io, data, cal
     const incomingGameType = data?.game_type;
     const normalizedGameType = incomingGameType === "judgement"
         ? "judgement"
-        : (incomingGameType === "kaliteri" ? "kaliteri" : game.game_type);
+        : (incomingGameType === "mendikot"
+            ? "mendikot"
+            : (incomingGameType === "kaliteri" ? "kaliteri" : game.game_type));
 
     const currentPlayersCount = game.players.length;
     const requestedPlayerCount = data?.player_count ?? game.player_count;
@@ -57,12 +59,19 @@ module.exports = wrapHandler("admin-update-config", async (socket, io, data, cal
         return;
     }
 
+    if (normalizedGameType === "mendikot" && ![4, 6, 8, 10, 12].includes(count)) {
+        callback("Mendikot player count must be one of 4, 6, 8, 10, or 12");
+        return;
+    }
+
     const deckCountRaw = data?.deck_count ?? game.deck_count;
     let deckCountParsed = parseNumber(deckCountRaw);
     if (deckCountParsed !== 1 && deckCountParsed !== 2) {
-        deckCountParsed = normalizedGameType === "judgement"
-            ? (count <= 6 ? 1 : 2)
-            : (count <= 5 ? 1 : 2);
+        deckCountParsed = normalizedGameType === "mendikot"
+            ? 1
+            : (normalizedGameType === "judgement"
+                ? (count <= 6 ? 1 : 2)
+                : (count <= 5 ? 1 : 2));
     }
 
     if (normalizedGameType === "kaliteri") {
@@ -71,7 +80,7 @@ module.exports = wrapHandler("admin-update-config", async (socket, io, data, cal
             callback(configCheck.reason);
             return;
         }
-    } else {
+    } else if (normalizedGameType === "judgement") {
         if (deckCountParsed === 1 && count > 6) {
             callback("Judgement with 1 deck supports up to 6 players");
             return;
@@ -139,7 +148,7 @@ module.exports = wrapHandler("admin-update-config", async (socket, io, data, cal
         updates.scoreboard_time = null;
         updates.judgement_bid_time = null;
         updates.card_reveal_time = null;
-    } else {
+    } else if (normalizedGameType === "judgement") {
         const maxPossible = Math.floor((52 * deckCountParsed) / count);
 
         const maxCardsRaw = data?.max_cards_per_round ?? game.max_cards_per_round ?? Math.min(7, maxPossible);
@@ -188,6 +197,81 @@ module.exports = wrapHandler("admin-update-config", async (socket, io, data, cal
         updates.judgement_bid_time = bidTimeValue;
         updates.card_reveal_time = cardRevealValue;
 
+        updates.bid_threshold = null;
+        updates.game_count = null;
+        updates.bid_window = null;
+        updates.inspect_time = null;
+        updates.band_hukum_pick_phase = null;
+        updates.rounds_count = null;
+        updates.team_a_players = [];
+        updates.team_b_players = [];
+    } else {
+        if (deckCountParsed !== 1 && deckCountParsed !== 2) {
+            callback("Mendikot deck count must be 1 or 2");
+            return;
+        }
+
+        const mendikotTrumpMode = data?.trump_mode ?? game.trump_mode ?? "band";
+        if (mendikotTrumpMode !== "band" && mendikotTrumpMode !== "cut") {
+            callback("Mendikot trump mode must be 'band' or 'cut'");
+            return;
+        }
+
+        const roundsCountValue = parseNumber(data?.rounds_count ?? game.rounds_count ?? 5);
+        if (roundsCountValue === null || roundsCountValue < 1 || roundsCountValue > 20) {
+            callback("Mendikot rounds count must be between 1 and 20");
+            return;
+        }
+
+        const pickPhaseValue = mendikotTrumpMode === "band"
+            ? (data?.band_hukum_pick_phase !== undefined
+                ? !!data.band_hukum_pick_phase
+                : (game.band_hukum_pick_phase !== undefined && game.band_hukum_pick_phase !== null
+                    ? !!game.band_hukum_pick_phase
+                    : true))
+            : false;
+
+        // Recompute lobby teams from currently joined players if payload omitted.
+        const currentPlayerIds = (game.players || []).map((p) => p.playerId.toString());
+        const payloadTeamA = Array.isArray(data?.team_a_players)
+            ? data.team_a_players.map((id) => id?.toString?.() || id).filter((id) => currentPlayerIds.includes(id))
+            : null;
+        const payloadTeamB = Array.isArray(data?.team_b_players)
+            ? data.team_b_players.map((id) => id?.toString?.() || id).filter((id) => currentPlayerIds.includes(id))
+            : null;
+
+        let teamA = payloadTeamA;
+        let teamB = payloadTeamB;
+        if (!teamA && !teamB) {
+            // Preserve existing DB assignments when payload omits teams.
+            teamA = (game.team_a_players || [])
+                .map((id) => id.toString())
+                .filter((id) => currentPlayerIds.includes(id));
+            teamB = (game.team_b_players || [])
+                .map((id) => id.toString())
+                .filter((id) => currentPlayerIds.includes(id));
+            // Auto-assign any unassigned joiners into the smaller team.
+            const assigned = new Set([...teamA, ...teamB]);
+            const unassigned = currentPlayerIds.filter((id) => !assigned.has(id));
+            for (const pid of unassigned) {
+                if (teamA.length <= teamB.length) teamA.push(pid);
+                else teamB.push(pid);
+            }
+        }
+        if (!teamA) teamA = [];
+        if (!teamB) teamB = [];
+
+        updates.trump_mode = mendikotTrumpMode;
+        updates.band_hukum_pick_phase = pickPhaseValue;
+        updates.rounds_count = roundsCountValue;
+        updates.team_a_players = teamA;
+        updates.team_b_players = teamB;
+
+        updates.max_cards_per_round = null;
+        updates.reverse_order = false;
+        updates.scoreboard_time = null;
+        updates.judgement_bid_time = null;
+        updates.card_reveal_time = null;
         updates.bid_threshold = null;
         updates.game_count = null;
         updates.bid_window = null;

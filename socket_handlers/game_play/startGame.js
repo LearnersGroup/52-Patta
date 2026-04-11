@@ -11,6 +11,21 @@ const wrapHandler = require('../wrapHandler');
 require("../../game_engine/strategies");
 const { getStrategy } = require("../../game_engine/gameRegistry");
 
+function toId(value) {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    return value.toString();
+}
+
+function buildAlternatingSeatOrder(teamA, teamB) {
+    const out = [];
+    for (let i = 0; i < teamA.length; i += 1) {
+        out.push(teamA[i]);
+        out.push(teamB[i]);
+    }
+    return out;
+}
+
 module.exports = wrapHandler('game-start', async (socket, io, data, callback) => {
         const user = await User.findOne({ _id: socket.user.id });
         if (!user || !user.gameroom) {
@@ -51,6 +66,28 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
         }
 
         const gameType = game.game_type || "kaliteri";
+
+        let reseatedSeatOrder = null;
+        if (gameType === "mendikot") {
+            const roomPlayerIds = game.players.map((p) => p.playerId._id.toString());
+            const roomPlayerSet = new Set(roomPlayerIds);
+            const teamA = (game.team_a_players || []).map((id) => id.toString()).filter((id) => roomPlayerSet.has(id));
+            const teamB = (game.team_b_players || []).map((id) => id.toString()).filter((id) => roomPlayerSet.has(id));
+
+            if (teamA.length === 0 || teamB.length === 0 || teamA.length !== teamB.length) {
+                if (callback) callback("Mendikot requires equal, non-empty Team A and Team B before start");
+                return;
+            }
+
+            const covered = new Set([...teamA, ...teamB]);
+            if (covered.size !== roomPlayerIds.length) {
+                if (callback) callback("All players must be assigned to exactly one Mendikot team");
+                return;
+            }
+
+            reseatedSeatOrder = buildAlternatingSeatOrder(teamA, teamB);
+        }
+
         const strategy = getStrategy(gameType);
 
         // Determine deck count
@@ -68,13 +105,23 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
             return;
         }
 
-        // Build seat order and player name map from player list (clockwise)
-        const seatOrder = game.players.map((p) => p.playerId._id.toString());
+        // Build seat order and player map from room list (clockwise)
+        const seatOrder = reseatedSeatOrder || game.players.map((p) => p.playerId._id.toString());
+        const playersById = {};
+        for (const p of game.players) {
+            playersById[toId(p.playerId._id)] = p;
+        }
+
         const playerNames = {};
         const playerAvatars = {};
-        for (const p of game.players) {
-            playerNames[p.playerId._id.toString()] = p.playerId.name;
-            playerAvatars[p.playerId._id.toString()] = p.playerId.avatar || "";
+        for (const pid of seatOrder) {
+            const p = playersById[pid];
+            if (!p) {
+                if (callback) callback("Unable to build Mendikot seat order from current players");
+                return;
+            }
+            playerNames[pid] = p.playerId.name;
+            playerAvatars[pid] = p.playerId.avatar || "";
         }
 
         // Initialize scores

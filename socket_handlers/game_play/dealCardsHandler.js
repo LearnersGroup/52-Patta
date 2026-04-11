@@ -93,11 +93,12 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
 
             setGameState(gameId, currentState);
 
-            await Game.findByIdAndUpdate(gameId, { state: "bidding" });
+            const nextDbState = transition.nextPhase || "bidding";
+            await Game.findByIdAndUpdate(gameId, { state: nextDbState });
             await persistCheckpoint(gameId);
 
             await broadcastGameState(io, currentState);
-            io.to(currentState.roomname).emit("game-phase-change", "bidding");
+            io.to(currentState.roomname).emit("game-phase-change", nextDbState);
 
             // Game-specific bidding timer setup
             if (transition.type === "judgement") {
@@ -115,7 +116,7 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
                         });
                     }
                 }
-            } else {
+            } else if (transition.type === "kaliteri") {
                 // Kaliteri: start the expiry timer (reveal window + bidding window)
                 startBiddingTimer(gameId, transition.timerDelayMs, () => expireBidding(io, gameId));
             }

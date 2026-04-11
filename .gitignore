@@ -26,6 +26,7 @@ env/prod.env
 
 # Claude Code worktrees
 .claude/worktrees/
+.claude/skills/
 
 # Terraform
 **/.terraform/

@@ -13,6 +13,8 @@ const dealCardsHandler = require("./dealCardsHandler");
 const judgementBid = require("./judgementBid");
 const acknowledgeTrumpAnnounce = require("./acknowledgeTrumpAnnounce");
 const returnToLobby = require("./returnToLobby");
+const pickClosedTrump = require("./pickClosedTrump");
+const revealTrump = require("./revealTrump");
 
 module.exports = {
     startGame,
@@ -30,4 +32,6 @@ module.exports = {
     judgementBid,
     acknowledgeTrumpAnnounce,
     returnToLobby,
+    pickClosedTrump,
+    revealTrump,
 };

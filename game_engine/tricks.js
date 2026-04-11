@@ -2,6 +2,7 @@ const { getCardPoints, compareRanks } = require("./config");
 const { cardsEqual, cardsMatch } = require("./deck");
 const { isPlayersTurn, findCardInHand, validateCardPlay, canFollowSuit } = require("./validators");
 const { checkPartnerReveal } = require("./powerhouse");
+const mendikotTricks = require("./mendikot/tricks");
 
 /**
  * Initialize a new trick (hand/round).
@@ -20,6 +21,10 @@ function initTrick(roundLeader, seatOrder) {
  * Returns { state } on success, or { error } on failure.
  */
 function playCard(gameState, playerId, card) {
+    if (gameState.game_type === "mendikot") {
+        return mendikotTricks.playCard(gameState, playerId, card);
+    }
+
     if (gameState.phase !== "playing") {
         return { error: "Game is not in playing phase" };
     }
@@ -215,6 +220,10 @@ function calculateTrickPoints(plays) {
  * Used for UI highlighting.
  */
 function getValidPlays(gameState, playerId) {
+    if (gameState.game_type === "mendikot") {
+        return mendikotTricks.getValidPlays(gameState, playerId);
+    }
+
     if (gameState.phase !== "playing") return [];
 
     const { seatOrder, currentTrick, hands, powerHouseSuit } = gameState;

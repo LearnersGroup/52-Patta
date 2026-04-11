@@ -33,7 +33,7 @@ const GameSchema = new mongoose.Schema({
     },
     game_type: {
         type: String,
-        enum: ["kaliteri", "judgement"],
+        enum: ["kaliteri", "judgement", "mendikot"],
         default: "kaliteri",
     },
     max_cards_per_round: {
@@ -46,8 +46,16 @@ const GameSchema = new mongoose.Schema({
     },
     trump_mode: {
         type: String,
-        enum: ["fixed", "random"],
+        enum: ["fixed", "random", "band", "cut"],
         default: "random",
+    },
+    band_hukum_pick_phase: {
+        type: Boolean,
+        default: null,
+    },
+    rounds_count: {
+        type: Number,
+        default: null,
     },
     scoreboard_time: {
         type: Number,
@@ -91,12 +99,33 @@ const GameSchema = new mongoose.Schema({
             default: false
         }
     }],
+    team_a_players: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+    }],
+    team_b_players: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+    }],
     messages: {
         type: [String],
         default: []
     },
     state: {
         type: String,
+        enum: [
+            "lobby",
+            "shuffling",
+            "dealing",
+            "bidding",
+            "powerhouse",
+            "trump-announce",
+            "band-hukum-pick",
+            "playing",
+            "scoring",
+            "finished",
+            "series-finished",
+        ],
         default: "lobby"
     },
     gameState: {

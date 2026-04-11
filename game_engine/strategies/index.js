@@ -4,3 +4,4 @@
  */
 require("./kaliteri");
 require("./judgement");
+require("./mendikot");

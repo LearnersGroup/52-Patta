@@ -7,6 +7,7 @@ const scoring = require("./scoring");
 const validators = require("./validators");
 const stateManager = require("./stateManager");
 const judgement = require("./judgement");
+const mendikot = require("./mendikot");
 const gameRegistry = require("./gameRegistry");
 
 // Auto-register all game strategies
@@ -22,5 +23,6 @@ module.exports = {
     validators,
     stateManager,
     judgement,
+    mendikot,
     gameRegistry,
 };
