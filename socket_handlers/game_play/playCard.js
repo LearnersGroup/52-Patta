@@ -34,17 +34,25 @@ module.exports = wrapHandler('game-play-card', async (socket, io, data, callback
         card.deckIndex = 0;
     }
 
-    // Snapshot valid plays BEFORE the engine mutates state so we can
-    // record the counterfactual alternatives the player had.
+    // Snapshot valid plays BEFORE the engine runs so we can record the
+    // counterfactual alternatives the player had. The engine returns a new
+    // state without mutating `gameState`, so this snapshot stays valid.
     const validPlaysBefore = getValidPlays(gameState, socket.user.id);
-    recordPlay(gameState, socket.user.id, card, validPlaysBefore);
 
     const result = playCardEngine(gameState, socket.user.id, card);
 
     if (result.error) {
+        // IMPORTANT: do NOT record rejected plays. A rejected play (wrong
+        // turn, card already played, invalid card) would otherwise leave a
+        // ghost entry in the trick log with handSizeBefore reflecting the
+        // post-previous-play hand and validPlays=[] because it's no longer
+        // the player's turn — producing duplicate/out-of-order records.
         if (callback) callback(result.error);
         return;
     }
+
+    // Record only after the engine has accepted the play.
+    recordPlay(gameState, socket.user.id, card, validPlaysBefore);
 
     let newState = result.state;
 
