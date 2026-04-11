@@ -4,6 +4,8 @@ const userLeaveRoom = require('./userLeaveRoom');
 const userToggleReady = require('./userToggleReady');
 const adminUpdateConfig = require('./adminUpdateConfig');
 const adminKickPlayer = require('./adminKickPlayer');
+const userSwitchTeam = require('./userSwitchTeam');
+const adminRandomizeTeams = require('./adminRandomizeTeams');
 
 module.exports = {
     userCreateRoom,
@@ -12,4 +14,6 @@ module.exports = {
     userToggleReady,
     adminUpdateConfig,
     adminKickPlayer,
+    userSwitchTeam,
+    adminRandomizeTeams,
 }

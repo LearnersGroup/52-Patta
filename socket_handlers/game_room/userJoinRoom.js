@@ -91,19 +91,46 @@ module.exports = wrapHandler('user-join-room', async (socket, io, data, callback
             return;
         }
 
+        // Mendikot team auto-assignment: place joiner into the smaller team.
+        if (updatedGame.game_type === "mendikot" && updatedGame.state === "lobby") {
+            const a = (updatedGame.team_a_players || []).map((id) => id.toString());
+            const b = (updatedGame.team_b_players || []).map((id) => id.toString());
+
+            if (!a.includes(socket.user.id) && !b.includes(socket.user.id)) {
+                if (a.length <= b.length) {
+                    await Game.findByIdAndUpdate(updatedGame.id, {
+                        $addToSet: { team_a_players: socket.user.id },
+                        $pull: { team_b_players: socket.user.id },
+                    });
+                } else {
+                    await Game.findByIdAndUpdate(updatedGame.id, {
+                        $addToSet: { team_b_players: socket.user.id },
+                        $pull: { team_a_players: socket.user.id },
+                    });
+                }
+            }
+        }
+
         //Update user game-room
         await User.findOneAndUpdate(
             { _id: socket.user.id },
             { gameroom: updatedGame.id }
         );
         await socket.join(roomname);
-        socket.emit("redirect-to-game-room", game.id, (res) => {
+        socket.emit("redirect-to-game-room", game.id, async (res) => {
             if (res.status === 200) {
                 io.to(roomname).emit(
                     "room-message",
                     `${socket.username} has joined!`
                 );
                 io.to(roomname).emit("fetch-users-in-room");
+                if (updatedGame.game_type === "mendikot") {
+                    const refreshed = await Game.findById(updatedGame.id).select("team_a_players team_b_players");
+                    io.to(roomname).emit("mendikot-team-update", {
+                        team_a_players: refreshed?.team_a_players || [],
+                        team_b_players: refreshed?.team_b_players || [],
+                    });
+                }
             }
         });
 });
