@@ -46,6 +46,16 @@ export function registerGameListeners() {
         store.dispatch(resetGame());
     };
 
+    // Mendikot: real-time team update during lobby
+    const onMendikotTeamUpdate = (data) => {
+        store.dispatch(updateGameState(data));
+    };
+
+    // Mendikot: trump revealed mid-game
+    const onMendikotTrumpRevealed = (data) => {
+        store.dispatch(updateGameState(data));
+    };
+
     socket.on("game-state-update", onGameStateUpdate);
     socket.on("game-error", onGameError);
     socket.on("game-over", onGameOver);
@@ -53,6 +63,8 @@ export function registerGameListeners() {
     socket.on("game-quit", onGameQuit);
     socket.on("game-shuffle-status", onShuffleStatus);
     socket.on("game-series-complete", onSeriesComplete);
+    socket.on("mendikot-team-update", onMendikotTeamUpdate);
+    socket.on("mendikot-trump-revealed", onMendikotTrumpRevealed);
 
     return () => {
         socket.off("game-state-update", onGameStateUpdate);
@@ -62,6 +74,8 @@ export function registerGameListeners() {
         socket.off("game-quit", onGameQuit);
         socket.off("game-shuffle-status", onShuffleStatus);
         socket.off("game-series-complete", onSeriesComplete);
+        socket.off("mendikot-team-update", onMendikotTeamUpdate);
+        socket.off("mendikot-trump-revealed", onMendikotTrumpRevealed);
     };
 }
 

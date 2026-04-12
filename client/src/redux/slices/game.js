@@ -17,7 +17,7 @@ const readCachedAvatars = (gameId) => {
 const initialState = {
     gameId: null,
     game_type: null,
-    phase: null, // null | "trump-announce" | "shuffling" | "dealing" | "bidding" | "powerhouse" | "playing" | "scoring" | "finished" | "series-finished"
+    phase: null, // null | "trump-announce" | "shuffling" | "dealing" | "bidding" | "powerhouse" | "playing" | "band-hukum-pick" | "scoring" | "finished" | "series-finished"
     configKey: null,
     config: null,
     seatOrder: [],
@@ -70,6 +70,23 @@ const initialState = {
     seriesRoundIndex: 0,
     totalRoundsInSeries: 0,
     roundResults: [],
+
+    // Mendikot-specific
+    closed_trump_holder_id: null,
+    closed_trump_revealed: false,
+    closed_trump_placeholder: null,
+    trump_suit: null,
+    trump_revealed_at_trick: null,
+    trump_asker_id: null,
+    pending_trump_reveal_decision: null,
+    tens_by_team: { A: 0, B: 0 },
+    tens_cards_by_team: { A: [], B: [] },
+    tricks_by_team: { A: 0, B: 0 },
+    first_to_n_tricks: null,
+    currentRoundNumber: 1,
+    totalRounds: 1,
+    round_results: [],
+    session_totals: { A: {}, B: {} },
 
     // Client-side per-game score history (accumulated from scoringResult events)
     // Each entry: { gameNumber, playerDeltas, bidTeamSuccess }
@@ -153,6 +170,23 @@ const gameSlice = createSlice({
             state.seriesRoundIndex = data.seriesRoundIndex || 0;
             state.totalRoundsInSeries = data.totalRoundsInSeries || 0;
             state.roundResults = data.roundResults || [];
+
+            // Mendikot-specific payload
+            state.closed_trump_holder_id = data.closed_trump_holder_id ?? null;
+            state.closed_trump_revealed = data.closed_trump_revealed ?? false;
+            state.closed_trump_placeholder = data.closed_trump_placeholder ?? null;
+            state.trump_suit = data.trump_suit ?? null;
+            state.trump_revealed_at_trick = data.trump_revealed_at_trick ?? null;
+            state.trump_asker_id = data.trump_asker_id ?? null;
+            state.pending_trump_reveal_decision = data.pending_trump_reveal_decision ?? null;
+            state.tens_by_team = data.tens_by_team || { A: 0, B: 0 };
+            state.tens_cards_by_team = data.tens_cards_by_team || { A: [], B: [] };
+            state.tricks_by_team = data.tricks_by_team || { A: 0, B: 0 };
+            state.first_to_n_tricks = data.first_to_n_tricks ?? null;
+            state.currentRoundNumber = data.currentRoundNumber || 1;
+            state.totalRounds = data.totalRounds || 1;
+            state.round_results = data.round_results || [];
+            state.session_totals = data.session_totals || { A: {}, B: {} };
 
             // Accumulate per-game score history when a game finishes
             if (data.scoringResult && data.phase === "finished") {
