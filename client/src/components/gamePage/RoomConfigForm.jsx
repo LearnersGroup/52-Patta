@@ -56,6 +56,14 @@ function computeJudgementPreview(playerCount, deckCount, maxCardsPerRound, rever
     };
 }
 
+const mendikotPlayerStep = (current, delta) => {
+    const valid = [4, 6, 8, 10, 12];
+    const idx = valid.indexOf(current);
+    const safeIdx = idx === -1 ? 0 : idx;
+    const nextIdx = Math.max(0, Math.min(valid.length - 1, safeIdx + delta));
+    return valid[nextIdx];
+};
+
 const RoomConfigForm = ({
     gameType,
     setGameType,
@@ -77,6 +85,8 @@ const RoomConfigForm = ({
     setReverseOrder,
     trumpMode,
     setTrumpMode,
+    mendikotTrumpMode,
+    setMendikotTrumpMode,
     scoreboardTime,
     setScoreboardTime,
     bidTimeEnabled,
@@ -85,6 +95,10 @@ const RoomConfigForm = ({
     setBidTime,
     cardRevealTime,
     setCardRevealTime,
+    roundsCount,
+    setRoundsCount,
+    bandHukumPickPhase,
+    setBandHukumPickPhase,
     minPlayerCount,
     showRoomName,
     roomName,
@@ -109,6 +123,14 @@ const RoomConfigForm = ({
             setPlayerCount(effectiveMinPlayers);
         }
     }, [effectiveMinPlayers, playerCount, setPlayerCount]);
+
+    useEffect(() => {
+        if (gameType !== "mendikot") return;
+        const valid = [4, 6, 8, 10, 12];
+        if (!valid.includes(playerCount)) {
+            setPlayerCount(mendikotPlayerStep(playerCount, 0));
+        }
+    }, [gameType, playerCount, setPlayerCount]);
 
     useEffect(() => {
         if (gameType === "judgement") {
@@ -157,6 +179,12 @@ const RoomConfigForm = ({
     ]);
 
     const adjustPlayerCount = (delta) => {
+        if (gameType === "mendikot") {
+            const next = mendikotPlayerStep(playerCount, delta);
+            setPlayerCount(next);
+            setGameCount(next);
+            return;
+        }
         const next = Math.max(effectiveMinPlayers, Math.min(13, playerCount + delta));
         setPlayerCount(next);
         setGameCount(next);
@@ -205,6 +233,12 @@ const RoomConfigForm = ({
                     >
                         Judgement
                     </button>
+                    <button
+                        className={`deck-btn ${gameType === "mendikot" ? "active" : ""}`}
+                        onClick={() => setGameType("mendikot")}
+                    >
+                        Mendikot
+                    </button>
                 </div>
             </div>
 
@@ -218,21 +252,43 @@ const RoomConfigForm = ({
             <div className="form-group">
                 <label>Players</label>
                 <div className="game-count-widget">
-                    <button
-                        className="bid-adjust"
-                        onClick={() => adjustPlayerCount(-1)}
-                        disabled={playerCount <= effectiveMinPlayers}
-                    >
-                        &minus;
-                    </button>
-                    <span className="threshold-value">{playerCount}</span>
-                    <button
-                        className="bid-adjust"
-                        onClick={() => adjustPlayerCount(1)}
-                        disabled={playerCount >= 13}
-                    >
-                        +
-                    </button>
+                    {gameType === "mendikot" ? (
+                        <>
+                            <button
+                                className="bid-adjust"
+                                onClick={() => adjustPlayerCount(-1)}
+                                disabled={playerCount <= 4}
+                            >
+                                &minus;
+                            </button>
+                            <span className="threshold-value">{playerCount}</span>
+                            <button
+                                className="bid-adjust"
+                                onClick={() => adjustPlayerCount(1)}
+                                disabled={playerCount >= 12}
+                            >
+                                +
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                className="bid-adjust"
+                                onClick={() => adjustPlayerCount(-1)}
+                                disabled={playerCount <= effectiveMinPlayers}
+                            >
+                                &minus;
+                            </button>
+                            <span className="threshold-value">{playerCount}</span>
+                            <button
+                                className="bid-adjust"
+                                onClick={() => adjustPlayerCount(1)}
+                                disabled={playerCount >= 13}
+                            >
+                                +
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -293,6 +349,64 @@ const RoomConfigForm = ({
                     <span className="game-info-dot">&middot;</span>
                     <span>sequence: {judgementPreview.roundSequence.join(", ")}</span>
                 </div>
+            )}
+
+            {gameType === "mendikot" && (
+                <>
+                    <div className="form-group">
+                        <label>Trump Mode</label>
+                        <div className="deck-toggle">
+                            <button
+                                className={`deck-btn ${mendikotTrumpMode === "band" ? "active" : ""}`}
+                                onClick={() => setMendikotTrumpMode("band")}
+                            >
+                                Band Hukum
+                            </button>
+                            <button
+                                className={`deck-btn ${mendikotTrumpMode === "cut" ? "active" : ""}`}
+                                onClick={() => setMendikotTrumpMode("cut")}
+                            >
+                                Cut Hukum
+                            </button>
+                        </div>
+                    </div>
+
+                    {mendikotTrumpMode === "band" && (
+                        <div className="form-group">
+                            <label>Pick Phase</label>
+                            <div className="deck-toggle">
+                                <button
+                                    className={`deck-btn ${bandHukumPickPhase ? "active" : ""}`}
+                                    onClick={() => setBandHukumPickPhase(true)}
+                                >
+                                    Enabled
+                                </button>
+                                <button
+                                    className={`deck-btn ${!bandHukumPickPhase ? "active" : ""}`}
+                                    onClick={() => setBandHukumPickPhase(false)}
+                                >
+                                    Disabled
+                                </button>
+                            </div>
+                            <div className="game-count-info">
+                                When enabled, picker selects their trump card from a face-down hand
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="form-group">
+                        <label>Rounds</label>
+                        <div className="game-count-widget">
+                            <button className="bid-adjust" onClick={() => setRoundsCount(Math.max(1, roundsCount - 1))}>
+                                &minus;
+                            </button>
+                            <span className="threshold-value">{roundsCount}</span>
+                            <button className="bid-adjust" onClick={() => setRoundsCount(Math.min(10, roundsCount + 1))}>
+                                +
+                            </button>
+                        </div>
+                    </div>
+                </>
             )}
 
             {gameType === "kaliteri" && config?.isOdd && (
