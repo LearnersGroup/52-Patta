@@ -36,6 +36,13 @@ export const WsDeal = () => emitWithCallback("game-deal", { dealType: "deal" });
 export const WsQuitGame = () => emitWithCallback("game-quit", {});
 export const WsReturnToLobby = () => emitWithCallback("game-return-to-lobby", {});
 
+// --- Mendikot Emitters ---
+
+export const WsPickClosedTrump = (position) => emitWithCallback("pick-closed-trump", { position });
+export const WsRevealTrump = () => emitWithCallback("reveal-trump", {});
+export const WsUserSwitchTeam = () => emitWithCallback("user-switch-team", {});
+export const WsAdminRandomizeTeams = () => emitWithCallback("admin-randomize-teams", {});
+
 // --- Username ---
 
 export const WsSendUserName = (username) => {

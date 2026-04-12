@@ -10,6 +10,7 @@ import Animated, {
 import { useSelector } from 'react-redux';
 import { cardTokens } from '../../styles/theme';
 import { hapticSelection } from '../../utils/haptics';
+import CardBack from './CardBack';
 import CardFace from './CardFace';
 import { cardKey, isCardInList, sortCardsBySuit } from './utils/cardMapper';
 
@@ -37,9 +38,11 @@ export default function PlayerHand({
 }) {
   const { width: screenW } = useWindowDimensions();
   const handSorted = useSelector((state) => state.game.handSorted);
+  // Don't sort face-down hands (band-hukum-pick) — position is meaningful
+  const hasFaceDown = cards.some((c) => c?.faceDown);
   const displayCards = useMemo(
-    () => (handSorted ? sortCardsBySuit(cards) : cards),
-    [cards, handSorted],
+    () => (handSorted && !hasFaceDown ? sortCardsBySuit(cards) : cards),
+    [cards, handSorted, hasFaceDown],
   );
 
   // Compute card step dynamically so all cards fit on screen
@@ -65,12 +68,13 @@ export default function PlayerHand({
   // Shared value: index of the card currently being hovered (-1 = none)
   const hoveredIndex = useSharedValue(-1);
 
-  // JS-thread: handle card selection
+  // JS-thread: handle card selection — passes (card, originalIndex) to support
+  // face-down pick-by-position (band-hukum-pick phase needs the original index).
   const selectCardAtIndex = useCallback((idx) => {
     const cards = cardsRef.current;
     if (idx >= 0 && idx < cards.length) {
       hapticSelection();
-      onSelectCardRef.current?.(cards[idx]);
+      onSelectCardRef.current?.(cards[idx], idx);
     }
   }, []);
 
@@ -142,8 +146,8 @@ export default function PlayerHand({
       <Animated.View>
         <View style={[styles.listContent, { paddingLeft: PAD_H, paddingRight: PAD_H + overlap }]}>
           {displayCards.map((card, i) => {
-            const key = cardKey(card);
-            const playable = !isMyTurn || isCardInList(card, validPlays);
+            const key = card?.faceDown ? `facedown_${i}` : cardKey(card);
+            const playable = !isMyTurn || card?.faceDown || isCardInList(card, validPlays);
             const isIntended = key === intendedKey;
 
             return (
@@ -181,13 +185,17 @@ function AnimatedCard({ index, card, playable, isMyTurn, isIntended, hoveredInde
 
   return (
     <Animated.View style={[{ marginRight: -overlap }, isIntended && styles.cardWrapIntended, animStyle]}>
-      <CardFace
-        card={card}
-        width={CARD_W}
-        disabled={!playable}
-        selected={isIntended}
-        playable={playable && isMyTurn}
-      />
+      {card?.faceDown ? (
+        <CardBack width={CARD_W} />
+      ) : (
+        <CardFace
+          card={card}
+          width={CARD_W}
+          disabled={!playable}
+          selected={isIntended}
+          playable={playable && isMyTurn}
+        />
+      )}
     </Animated.View>
   );
 }

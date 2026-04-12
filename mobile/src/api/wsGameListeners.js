@@ -15,6 +15,7 @@ const PHASE_LABELS = {
     dealing: "Dealing cards",
     bidding: "Bidding started",
     powerhouse: "Powerhouse selection",
+    "band-hukum-pick": "Pick trump card",
     playing: "Playing phase",
     scoring: "Scoring",
     finished: "Round finished",
@@ -106,6 +107,15 @@ export function registerGameListeners() {
         store.dispatch(notify(`${name} has been revealed as partner`, "success", 2600));
     };
 
+    const onMendikotTeamUpdate = (data) => {
+        store.dispatch(updateGameState(data));
+    };
+
+    const onMendikotTrumpRevealed = (data) => {
+        store.dispatch(updateGameState(data));
+        store.dispatch(notify("Trump revealed!", "info", 2200));
+    };
+
     socket.on("game-state-update", onGameStateUpdate);
     socket.on("game-error", onGameError);
     socket.on("game-over", onGameOver);
@@ -115,6 +125,8 @@ export function registerGameListeners() {
     socket.on("game-series-complete", onSeriesComplete);
     socket.on("game-trick-result", onTrickResult);
     socket.on("game-partner-revealed", onPartnerRevealed);
+    socket.on("mendikot-team-update", onMendikotTeamUpdate);
+    socket.on("mendikot-trump-revealed", onMendikotTrumpRevealed);
 
     return () => {
         socket.off("game-state-update", onGameStateUpdate);
@@ -126,6 +138,8 @@ export function registerGameListeners() {
         socket.off("game-series-complete", onSeriesComplete);
         socket.off("game-trick-result", onTrickResult);
         socket.off("game-partner-revealed", onPartnerRevealed);
+        socket.off("mendikot-team-update", onMendikotTeamUpdate);
+        socket.off("mendikot-trump-revealed", onMendikotTrumpRevealed);
     };
 }
 

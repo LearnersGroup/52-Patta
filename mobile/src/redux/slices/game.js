@@ -74,6 +74,23 @@ const initialState = {
     // Client-side per-game score history (accumulated from scoringResult events)
     // Each entry: { gameNumber, playerDeltas, bidTeamSuccess }
     gameHistory: [],
+
+    // Mendikot-specific
+    // phase can also be "band-hukum-pick"
+    closed_trump_holder_id: null,
+    closed_trump_revealed: false,
+    closed_trump_placeholder: null,
+    trump_suit: null,
+    trump_revealed_at_trick: null,
+    trump_asker_id: null,
+    pending_trump_reveal_decision: false,
+    tens_by_team: { A: 0, B: 0 },
+    tens_cards_by_team: { A: [], B: [] },
+    tricks_by_team: { A: 0, B: 0 },
+    currentRoundNumber: 1,
+    totalRounds: 1,
+    round_results: [],
+    session_totals: { A: {}, B: {} },
 };
 
 const gameSlice = createSlice({
@@ -180,6 +197,23 @@ const gameSlice = createSlice({
             if (data.phase !== "finished") {
                 state.nextRoundReady = { readyPlayers: [], totalPlayers: 0 };
             }
+
+            // Mendikot-specific fields
+            if (data.closed_trump_holder_id !== undefined) state.closed_trump_holder_id = data.closed_trump_holder_id;
+            if (data.closed_trump_revealed !== undefined) state.closed_trump_revealed = data.closed_trump_revealed;
+            if (data.closed_trump_placeholder !== undefined) state.closed_trump_placeholder = data.closed_trump_placeholder;
+            if (data.trump_suit !== undefined) state.trump_suit = data.trump_suit;
+            if (data.trump_revealed_at_trick !== undefined) state.trump_revealed_at_trick = data.trump_revealed_at_trick;
+            if (data.trump_asker_id !== undefined) state.trump_asker_id = data.trump_asker_id;
+            if (data.pending_trump_reveal_decision !== undefined) state.pending_trump_reveal_decision = data.pending_trump_reveal_decision;
+            if (data.tens_by_team !== undefined) state.tens_by_team = data.tens_by_team;
+            if (data.tens_cards_by_team !== undefined) state.tens_cards_by_team = data.tens_cards_by_team;
+            if (data.tricks_by_team !== undefined) state.tricks_by_team = data.tricks_by_team;
+            if (data.currentRoundNumber !== undefined) state.currentRoundNumber = data.currentRoundNumber;
+            if (data.totalRounds !== undefined) state.totalRounds = data.totalRounds;
+            if (data.round_results !== undefined) state.round_results = data.round_results;
+            if (data.session_totals !== undefined) state.session_totals = data.session_totals;
+
             state.error = null;
         },
         updateShuffleQueue: (state, action) => {

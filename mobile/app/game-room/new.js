@@ -122,10 +122,16 @@ export default function NewGameRoomScreen() {
   const [bidTime,          setBidTime]          = useState(15);
   const [cardRevealTime,   setCardRevealTime]   = useState(10);
 
+  // Mendikot settings
+  const [mendikotTrumpMode,    setMendikotTrumpMode]    = useState('band');
+  const [mendikotRounds,       setMendikotRounds]       = useState(1);
+  const [mendikotPickPhase,    setMendikotPickPhase]    = useState(true);
+
   const [creating, setCreating] = useState(false);
   const [error,    setError]    = useState('');
 
   const minPlayers      = gameType === 'judgement' ? 3 : 4;
+  const mendikotPlayerStep = gameType === 'mendikot' ? 2 : 1;
   const isOddPlayers    = playerCount % 2 === 1;
   const maxPossibleCards = useMemo(
     () => Math.max(1, Math.floor((52 * deckCount) / playerCount)),
@@ -162,6 +168,12 @@ export default function NewGameRoomScreen() {
     ];
   }, [maxPossibleCards, maxCardsPerRound, reverseOrder]);
 
+  const mendikotInfo = useMemo(() => [
+    `${playerCount} players`,
+    mendikotTrumpMode === 'band' ? 'Band Hukum' : 'Cut Hukum',
+    `${mendikotRounds} round${mendikotRounds !== 1 ? 's' : ''}`,
+  ], [playerCount, mendikotTrumpMode, mendikotRounds]);
+
   // ── socket / lifecycle ───────────────────────────────────────────────────
   useEffect(() => {
     const onRedirect = (roomId, cb) => {
@@ -197,6 +209,11 @@ export default function NewGameRoomScreen() {
     setGameType(value);
     if (value === 'judgement' && playerCount < 3) setPlayerCount(3);
     if (value === 'kaliteri'  && playerCount < 4) setPlayerCount(4);
+    if (value === 'mendikot') {
+      // Mendikot requires even player count >= 4
+      const next = playerCount < 4 ? 4 : playerCount % 2 === 1 ? playerCount + 1 : playerCount;
+      setPlayerCount(next);
+    }
   };
 
   const onCreateRoom = () => {
@@ -213,6 +230,10 @@ export default function NewGameRoomScreen() {
       payload.bid_window   = bidWindow;
       payload.inspect_time = inspectTime;
       if (isOddPlayers) payload.bid_threshold = bidThreshold;
+    } else if (gameType === 'mendikot') {
+      payload.mendikot_trump_mode    = mendikotTrumpMode;
+      payload.rounds_count           = mendikotRounds;
+      payload.band_hukum_pick_phase  = mendikotPickPhase;
     } else {
       payload.max_cards_per_round = maxCardsPerRound;
       payload.reverse_order       = reverseOrder;
@@ -232,6 +253,8 @@ export default function NewGameRoomScreen() {
   // ── disabled deck values ─────────────────────────────────────────────────
   const disabledDecks = gameType === 'judgement'
     ? (playerCount <= 6 ? [2] : [1])
+    : gameType === 'mendikot'
+    ? [2]   // mendikot always uses 1 deck
     : (!isDeckCountValid(playerCount, 1) ? [1] : []);
 
   // ── render ───────────────────────────────────────────────────────────────
@@ -283,10 +306,26 @@ export default function NewGameRoomScreen() {
             </Text>
           </Pressable>
 
+          {/* Mendikot card */}
+          <Pressable
+            style={[styles.gameTypeCard, gameType === 'mendikot' && styles.gameTypeCardActive]}
+            onPress={() => toggleGameType('mendikot')}
+          >
+            <Text style={styles.gameTypeSuits}>
+              <Text style={styles.suitBlack}>♣</Text>
+              <Text style={styles.suitRed}> ♦</Text>
+              <Text style={styles.suitRed}> ♥</Text>
+              <Text style={styles.suitBlack}> ♠</Text>
+            </Text>
+            <Text style={[styles.gameTypeName, gameType === 'mendikot' && styles.gameTypeNameActive]}>
+              Mendikot
+            </Text>
+          </Pressable>
+
         </View>
 
         {/* ── info row ── */}
-        <InfoRow items={gameType === 'kaliteri' ? kaliteriInfo : judgementInfo} />
+        <InfoRow items={gameType === 'kaliteri' ? kaliteriInfo : gameType === 'mendikot' ? mendikotInfo : judgementInfo} />
 
         {/* ── players & decks panel ── */}
         <View style={styles.panel}>
@@ -298,7 +337,8 @@ export default function NewGameRoomScreen() {
               <NumberStepper
                 value={playerCount}
                 min={minPlayers}
-                max={13}
+                max={gameType === 'mendikot' ? 12 : 13}
+                step={mendikotPlayerStep}
                 onChange={setPlayerCount}
               />
             </View>
@@ -321,10 +361,38 @@ export default function NewGameRoomScreen() {
         {/* ── game settings panel ── */}
         <View style={styles.panel}>
           <Text style={styles.panelTitle}>
-            {gameType === 'kaliteri' ? 'Kaliteri Settings' : 'Judgement Settings'}
+            {gameType === 'kaliteri' ? 'Kaliteri Settings' : gameType === 'mendikot' ? 'Mendikot Settings' : 'Judgement Settings'}
           </Text>
 
-          {gameType === 'kaliteri' ? (
+          {gameType === 'mendikot' ? (
+            <>
+              <Row label="Trump Mode">
+                <ChipGroup
+                  options={[
+                    { label: 'Band Hukum', value: 'band' },
+                    { label: 'Cut Hukum', value: 'cut' },
+                  ]}
+                  value={mendikotTrumpMode}
+                  onChange={setMendikotTrumpMode}
+                />
+              </Row>
+              {mendikotTrumpMode === 'band' && (
+                <Row label="Pick Phase">
+                  <ChipGroup
+                    options={[
+                      { label: 'On', value: true },
+                      { label: 'Off', value: false },
+                    ]}
+                    value={mendikotPickPhase}
+                    onChange={setMendikotPickPhase}
+                  />
+                </Row>
+              )}
+              <Row label="Rounds">
+                <NumberStepper value={mendikotRounds} min={1} max={20} onChange={setMendikotRounds} />
+              </Row>
+            </>
+          ) : gameType === 'kaliteri' ? (
             <>
               {isOddPlayers && (
                 <Row label="Bid Threshold">

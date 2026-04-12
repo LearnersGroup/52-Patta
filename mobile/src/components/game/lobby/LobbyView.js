@@ -2,9 +2,11 @@ import { useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   WsAdminKickPlayer,
+  WsAdminRandomizeTeams,
   WsAdminUpdateConfig,
   WsGameStart,
   WsUserLeaveRoom,
+  WsUserSwitchTeam,
   WsUserToggleReady,
 } from '../../../api/wsEmitters';
 import {
@@ -18,6 +20,7 @@ import {
 } from '../../../styles/theme';
 import LobbyConfigEditor from './LobbyConfigEditor';
 import LobbyPlayerList from './LobbyPlayerList';
+import MendikotTeamLobby from './MendikotTeamLobby';
 
 function getPlayerId(player) {
   return player?.playerId?._id?.toString?.() || player?.playerId?.toString?.() || '';
@@ -126,7 +129,7 @@ export default function LobbyView({
       <View style={styles.headerCard}>
         <View style={styles.headerRow}>
           <Text style={styles.gameTitle}>
-            {gameType === 'judgement' ? 'Judgement' : 'Kaliteri'}
+            {gameType === 'judgement' ? 'Judgement' : gameType === 'mendikot' ? 'Mendikot' : 'Kaliteri'}
           </Text>
           {isAdmin ? (
             <Pressable
@@ -175,6 +178,18 @@ export default function LobbyView({
           </>
         ) : null}
       </View>
+
+      {/* ── Mendikot team lobby ── */}
+      {gameType === 'mendikot' ? (
+        <MendikotTeamLobby
+          roomData={roomData}
+          players={players}
+          userId={userId}
+          isAdmin={isAdmin}
+          onSwitchTeam={() => WsUserSwitchTeam()}
+          onRandomizeTeams={() => WsAdminRandomizeTeams()}
+        />
+      ) : null}
 
       {/* ── Ready & Leave actions ── */}
       <View style={styles.actionsCard}>
