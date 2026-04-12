@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { WsPlayCard } from "../../api/wsEmitters";
-import { getCardComponent, cardKey, isCardInList } from "./utils/cardMapper";
+import { getCardComponent, getCardBackComponent, cardKey, isCardInList } from "./utils/cardMapper";
 import { toggleHandSort } from "../../redux/slices/game";
 
 // ── Mobile-aware layout constants ────────────────────────────────────────────
@@ -25,13 +25,17 @@ const CARD_H = _mobile ? 64 : 84;
 // Scale factor when hand area is hovered
 const HAND_HOVER_SCALE = 1.08;
 
-const PlayerHand = memo(({ cards = [], validPlays = [], isMyTurn }) => {
+const PlayerHand = memo(({ cards = [], validPlays = [], isMyTurn, onCardClick }) => {
     const [hoveredIndex, setHoveredIndex] = useState(-1);
     const dispatch = useDispatch();
     const handSorted = useSelector((state) => state.game.handSorted);
 
-    const handleCardClick = (card) => {
+    const handleCardClick = (card, index) => {
         if (!isMyTurn) return;
+        if (onCardClick) {
+            onCardClick(card, index);
+            return;
+        }
         if (!isCardInList(card, validPlays)) return;
         WsPlayCard(card);
     };
@@ -43,7 +47,7 @@ const PlayerHand = memo(({ cards = [], validPlays = [], isMyTurn }) => {
         "8": 8, "9": 9, "10": 10, J: 11, Q: 12, K: 13, A: 14,
     };
 
-    const displayCards = handSorted
+    const displayCards = handSorted && cards.every((c) => !c.faceDown)
         ? [...cards].sort((a, b) => {
             const sd = suitOrder[a.suit] - suitOrder[b.suit];
             if (sd !== 0) return sd;
@@ -87,9 +91,10 @@ const PlayerHand = memo(({ cards = [], validPlays = [], isMyTurn }) => {
                     style={{ width: `${containerW}px`, height: `${containerH}px` }}
                 >
                     {displayCards.map((card, i) => {
-                        const CardSvg = getCardComponent(card);
-                        const isValid = isMyTurn && isCardInList(card, validPlays);
-                        const isDisabled = isMyTurn && !isValid;
+                        const isFaceDown = card?.faceDown === true;
+                        const CardSvg = isFaceDown ? getCardBackComponent() : getCardComponent(card);
+                        const isValid = isFaceDown ? isMyTurn : (isMyTurn && isCardInList(card, validPlays));
+                        const isDisabled = isFaceDown ? false : (isMyTurn && !isValid);
                         const isHovered = i === hoveredIndex;
                         // Disabled cards: no pop-out — suppress lift, expose-shift, and right-spread
                         const hoveredIsDisabled =
@@ -124,10 +129,10 @@ const PlayerHand = memo(({ cards = [], validPlays = [], isMyTurn }) => {
                                     transform: `translateX(${spreadX + hoverShiftX}px) translateY(${translateY}px) rotate(${arcRotate}deg)`,
                                     transformOrigin: "bottom center",
                                 }}
-                                onClick={() => handleCardClick(card)}
+                                onClick={() => handleCardClick(card, i)}
                                 onMouseEnter={() => setHoveredIndex(i)}
                                 onMouseLeave={() => setHoveredIndex(-1)}
-                                title={`${card.rank} of ${card.suit}`}
+                                title={isFaceDown ? "Click to pick as trump" : `${card.rank} of ${card.suit}`}
                             >
                                 {CardSvg && (
                                     <CardSvg style={{ height: "100%", width: "100%" }} />
