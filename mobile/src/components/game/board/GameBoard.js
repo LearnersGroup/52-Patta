@@ -202,16 +202,28 @@ export default function GameBoard({ userId, isAdmin = false }) {
   useEffect(() => {
     const prev = prevPhaseRef.current;
 
+    // Kaliteri / Judgement: reveal overlay fires when phase enters bidding
     if (prev !== 'bidding' && phase === 'bidding' && Array.isArray(myHand) && myHand.length > 0) {
       setShowDealReveal(true);
     }
-    // band-hukum-pick: never show deal reveal overlay
-    if (phase === 'lobby' || phase === null || phase === 'shuffling' || phase === 'band-hukum-pick') {
+
+    // Mendikot: reveal overlay fires on dealing → band-hukum-pick or playing
+    // so players can inspect their hand before picking / playing begins.
+    if (
+      prev === 'dealing' &&
+      (phase === 'band-hukum-pick' || phase === 'playing') &&
+      isMendikot &&
+      Array.isArray(myHand) && myHand.length > 0
+    ) {
+      setShowDealReveal(true);
+    }
+
+    if (phase === 'lobby' || phase === null || phase === 'shuffling') {
       setShowDealReveal(false);
     }
 
     prevPhaseRef.current = phase;
-  }, [phase, myHand]);
+  }, [phase, myHand, isMendikot]);
 
   // ── Partner reveal announcements ──────────────────────────────────────
   useEffect(() => {
