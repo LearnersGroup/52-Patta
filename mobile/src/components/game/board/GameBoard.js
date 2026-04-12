@@ -202,19 +202,11 @@ export default function GameBoard({ userId, isAdmin = false }) {
   useEffect(() => {
     const prev = prevPhaseRef.current;
 
-    // Kaliteri / Judgement: reveal overlay fires when phase enters bidding
+    // Kaliteri / Judgement: reveal overlay fires when phase enters bidding.
+    // Mendikot does NOT use DealRevealOverlay — there is no server-side inspect
+    // window; players see their hand directly in band-hukum-pick (face-down)
+    // or start playing immediately (Cut Hukum).
     if (prev !== 'bidding' && phase === 'bidding' && Array.isArray(myHand) && myHand.length > 0) {
-      setShowDealReveal(true);
-    }
-
-    // Mendikot: reveal overlay fires on dealing → band-hukum-pick or playing
-    // so players can inspect their hand before picking / playing begins.
-    if (
-      prev === 'dealing' &&
-      (phase === 'band-hukum-pick' || phase === 'playing') &&
-      isMendikot &&
-      Array.isArray(myHand) && myHand.length > 0
-    ) {
       setShowDealReveal(true);
     }
 
@@ -223,7 +215,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
     }
 
     prevPhaseRef.current = phase;
-  }, [phase, myHand, isMendikot]);
+  }, [phase, myHand]);
 
   // ── Partner reveal announcements ──────────────────────────────────────
   useEffect(() => {
