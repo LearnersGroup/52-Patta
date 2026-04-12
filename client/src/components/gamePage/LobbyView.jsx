@@ -5,8 +5,11 @@ import {
     WsGameStart,
     WsAdminUpdateConfig,
     WsAdminKickPlayer,
+    WsUserSwitchTeam,
+    WsAdminRandomizeTeams,
 } from "../../api/wsEmitters";
 import RoomConfigForm from "./RoomConfigForm";
+import MendikotTeamLobby from "./MendikotTeamLobby";
 
 const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
     const lastToggleRef = useRef(0);
@@ -28,10 +31,13 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
     const [localMaxCardsPerRound, setLocalMaxCardsPerRound] = useState(7);
     const [localReverseOrder, setLocalReverseOrder] = useState(true);
     const [localTrumpMode, setLocalTrumpMode] = useState("fixed");
+    const [localMendikotTrumpMode, setLocalMendikotTrumpMode] = useState("band");
     const [localScoreboardTime, setLocalScoreboardTime] = useState(5);
     const [localBidTimeEnabled, setLocalBidTimeEnabled] = useState(false);
     const [localBidTime, setLocalBidTime] = useState(15);
     const [localCardRevealTime, setLocalCardRevealTime] = useState(10);
+    const [localRoundsCount, setLocalRoundsCount] = useState(5);
+    const [localBandHukumPickPhase, setLocalBandHukumPickPhase] = useState(true);
 
     const players = roomData?.players ?? [];
 
@@ -50,10 +56,13 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
         setLocalMaxCardsPerRound(roomData?.max_cards_per_round ?? 7);
         setLocalReverseOrder(roomData?.reverse_order ?? true);
         setLocalTrumpMode(roomData?.trump_mode || "fixed");
+        setLocalMendikotTrumpMode(roomData?.trump_mode || "band");
         setLocalScoreboardTime(roomData?.scoreboard_time ?? 5);
         setLocalBidTimeEnabled(roomData?.judgement_bid_time !== null && roomData?.judgement_bid_time !== undefined);
         setLocalBidTime(roomData?.judgement_bid_time ?? 15);
         setLocalCardRevealTime(roomData?.card_reveal_time ?? 10);
+        setLocalRoundsCount(roomData?.rounds_count ?? 5);
+        setLocalBandHukumPickPhase(roomData?.band_hukum_pick_phase !== false);
     };
 
     useEffect(() => {
@@ -94,7 +103,9 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
 
     const requiredPlayers = roomData?.player_count || 4;
     const gameType = roomData?.game_type || "kaliteri";
-    const gameTypeLabel = gameType === "judgement" ? "Judgement" : "Kaliteri";
+    const gameTypeLabel = gameType === "judgement" ? "Judgement"
+        : gameType === "mendikot" ? "Mendikot"
+        : "Kaliteri";
     const allReady = players.length >= requiredPlayers && players.every((p) => p.ready);
 
     const myEntry = players.find((p) => p.playerId?._id === userId || p.playerId?.toString() === userId);
@@ -112,10 +123,16 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                 inspect_time: localInspectTime,
                 max_cards_per_round: localMaxCardsPerRound,
                 reverse_order: localReverseOrder,
-                trump_mode: localTrumpMode,
+                trump_mode: localGameType === "mendikot"
+                    ? localMendikotTrumpMode
+                    : localGameType === "judgement"
+                    ? localTrumpMode
+                    : undefined,
                 scoreboard_time: localScoreboardTime,
                 judgement_bid_time: localBidTimeEnabled ? localBidTime : null,
                 card_reveal_time: localCardRevealTime,
+                rounds_count: localRoundsCount,
+                band_hukum_pick_phase: localBandHukumPickPhase,
             });
             setSettingsOpen(false);
         } catch (e) {
@@ -236,6 +253,8 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                                 setReverseOrder={setLocalReverseOrder}
                                 trumpMode={localTrumpMode}
                                 setTrumpMode={setLocalTrumpMode}
+                                mendikotTrumpMode={localMendikotTrumpMode}
+                                setMendikotTrumpMode={setLocalMendikotTrumpMode}
                                 scoreboardTime={localScoreboardTime}
                                 setScoreboardTime={setLocalScoreboardTime}
                                 bidTimeEnabled={localBidTimeEnabled}
@@ -244,6 +263,10 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                                 setBidTime={setLocalBidTime}
                                 cardRevealTime={localCardRevealTime}
                                 setCardRevealTime={setLocalCardRevealTime}
+                                roundsCount={localRoundsCount}
+                                setRoundsCount={setLocalRoundsCount}
+                                bandHukumPickPhase={localBandHukumPickPhase}
+                                setBandHukumPickPhase={setLocalBandHukumPickPhase}
                                 minPlayerCount={players.length}
                                 showRoomName={false}
                             />
@@ -272,7 +295,16 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                     </span>
                 </div>
 
-                {players.length === 0 ? (
+                {gameType === "mendikot" ? (
+                    <MendikotTeamLobby
+                        roomData={roomData}
+                        players={players}
+                        userId={userId}
+                        isAdmin={isAdmin}
+                        onSwitchTeam={WsUserSwitchTeam}
+                        onRandomizeTeams={WsAdminRandomizeTeams}
+                    />
+                ) : players.length === 0 ? (
                     <div className="players-empty">
                         Waiting for players to join...
                     </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { WsRequestGameState, WsQuitGame, WsProceedToShuffle, WsReturnToLobby } from "../../api/wsEmitters";
+import { WsRequestGameState, WsQuitGame, WsProceedToShuffle, WsReturnToLobby, WsPickClosedTrump, WsRevealTrump } from "../../api/wsEmitters";
 import BidCenterDisplay from "./BidCenterDisplay";
 import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
@@ -15,6 +15,8 @@ import DealingOverlay from "./DealingOverlay";
 import SeriesFinishedPanel from "./SeriesFinishedPanel";
 import { getGameConfig } from "./gameRegistry";
 import { clearGameState } from "../../api/wsGameListeners";
+import ClosedTrumpDisplay from "./ClosedTrumpDisplay";
+import RevealTrumpPrompt from "./RevealTrumpPrompt";
 
 const GameBoard = ({ userId, isAdmin }) => {
     const gameType = useSelector((state) => state.game.game_type) || "kaliteri";
@@ -59,6 +61,17 @@ const GameBoard = ({ userId, isAdmin }) => {
     const trumpMode = useSelector((state) => state.game.trumpMode);
     const scoreboardTimeMs = useSelector((state) => state.game.scoreboardTimeMs);
     const cardRevealTimeMs = useSelector((state) => state.game.cardRevealTimeMs);
+
+    // Mendikot-specific selectors
+    const isMendikot = gameType === "mendikot";
+    const trump_suit = useSelector((state) => state.game.trump_suit);
+    const closedTrumpHolderId = useSelector((state) => state.game.closed_trump_holder_id);
+    const closedTrumpRevealed = useSelector((state) => state.game.closed_trump_revealed);
+    const closedTrumpPlaceholder = useSelector((state) => state.game.closed_trump_placeholder);
+    const pendingTrumpRevealDecision = useSelector((state) => state.game.pending_trump_reveal_decision);
+    const tricksByTeam = useSelector((state) => state.game.tricks_by_team);
+    const currentRoundNumber = useSelector((state) => state.game.currentRoundNumber);
+    const totalRounds = useSelector((state) => state.game.totalRounds);
 
     const [showQuitConfirm, setShowQuitConfirm] = useState(false);
     const [inspectMode, setInspectMode] = useState(false);
@@ -343,14 +356,16 @@ const GameBoard = ({ userId, isAdmin }) => {
     const getName = (pid) => playerNames[pid] || pid?.substring(0, 8);
     const isBidLeader = leader === userId;
     const isMyTurn =
-        phase === "bidding"
+        phase === "band-hukum-pick"
+            ? userId === closedTrumpHolderId
+        : phase === "bidding"
             ? (isJudgement
                 ? bidding?.bidOrder?.[bidding?.currentBidderIndex] === userId
                 // Open bidding: any non-passed active player "has a turn"
                 : !bidding?.passed?.includes(userId))
-            : phase === "playing"
+        : phase === "playing"
             ? currentTrick?.currentTurn === userId
-            : false;
+        : false;
 
     const handleQuitGame = () => {
         WsQuitGame();
@@ -368,6 +383,8 @@ const GameBoard = ({ userId, isAdmin }) => {
             case "shuffling":
             case "dealing":
                 return pid === dealer;
+            case "band-hukum-pick":
+                return pid === closedTrumpHolderId;
             case "bidding":
                 return pid === biddingCurrentTurn;
             case "powerhouse":
@@ -382,7 +399,12 @@ const GameBoard = ({ userId, isAdmin }) => {
     const getCardCount = (pid) => gameConfig.getCardCount(pid, cardCountCtx);
 
     const getTeamClass = (pid) => {
-        if (["shuffling", "dealing", "bidding", "powerhouse"].includes(phase)) return "";
+        if (["shuffling", "dealing", "bidding", "powerhouse", "band-hukum-pick"].includes(phase)) return "";
+        if (isMendikot) {
+            if ((teams?.A || []).includes(pid)) return "mendikot-team-a-seat";
+            if ((teams?.B || []).includes(pid)) return "mendikot-team-b-seat";
+            return "";
+        }
         const isBidTeam = teams?.bid?.includes(pid);
         const isOppose = teams?.oppose?.includes(pid);
         if (isBidTeam) return "team-bid";
@@ -390,7 +412,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         return "";
     };
 
-    const scoreCtx = { tricks, tricksWon };
+    const scoreCtx = { tricks, tricksWon, tricks_by_team: tricksByTeam, teams };
 
     // ── Relation resolver (per opponent seat) ─────────────────────────────
     // Returns "teammate" | "opponent" | "potential-teammate" | null
@@ -491,7 +513,7 @@ const GameBoard = ({ userId, isAdmin }) => {
     };
 
     // For Judgement, keep the table visible until the scorecard delay has elapsed
-    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing"].includes(phase)
+    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing", "band-hukum-pick"].includes(phase)
         || (isJudgement && (phase === "finished" || phase === "scoring" || phase === "series-finished") && !scorecardVisible);
     const isPlayingPhase = phase === "playing";
     const showPlayerHand =
@@ -499,7 +521,8 @@ const GameBoard = ({ userId, isAdmin }) => {
         phase !== "series-finished" &&
         phase !== "shuffling" &&
         phase !== "dealing" &&
-        !showDealReveal;
+        !showDealReveal &&
+        !(phase === "band-hukum-pick" && userId !== closedTrumpHolderId);
     const showMySeatWidget = isTablePhase && showPlayerHand;
 
     // Center content for CircularTable based on phase
@@ -535,8 +558,8 @@ const GameBoard = ({ userId, isAdmin }) => {
                     userId={userId}
                     shuffleQueue={shuffleQueue}
                     getName={getName}
-                    currentGameNumber={gameConfig.getSeriesInfo({ currentGameNumber, totalGames, seriesRoundIndex, totalRoundsInSeries }).current}
-                    totalGames={gameConfig.getSeriesInfo({ currentGameNumber, totalGames, seriesRoundIndex, totalRoundsInSeries }).total}
+                    currentGameNumber={gameConfig.getSeriesInfo({ currentGameNumber, totalGames, seriesRoundIndex, totalRoundsInSeries, currentRoundNumber, totalRounds }).current}
+                    totalGames={gameConfig.getSeriesInfo({ currentGameNumber, totalGames, seriesRoundIndex, totalRoundsInSeries, currentRoundNumber, totalRounds }).total}
                     gameLabel={gameConfig.gameLabel}
                 />
             );
@@ -617,7 +640,26 @@ const GameBoard = ({ userId, isAdmin }) => {
             );
         }
 
-        const activeTrumpSuit = gameConfig.getTrumpSuit({ powerHouseSuit, trumpSuit });
+        if (phase === "band-hukum-pick") {
+            const pickerName = playerNames?.[closedTrumpHolderId] || closedTrumpHolderId;
+            return (
+                <div className="band-hukum-pick-center">
+                    {userId === closedTrumpHolderId ? (
+                        <>
+                            <div className="band-hukum-pick-title">Pick a card to hide as trump</div>
+                            <div className="band-hukum-pick-sub">Your cards are face-down below — tap one to select it</div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="band-hukum-pick-title">Waiting for {pickerName}</div>
+                            <div className="band-hukum-pick-sub">to pick a hidden trump card</div>
+                        </>
+                    )}
+                </div>
+            );
+        }
+
+        const activeTrumpSuit = gameConfig.getTrumpSuit({ powerHouseSuit, trumpSuit, trump_suit });
         return (
             <>
                 {activeTrumpSuit && (
@@ -635,7 +677,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                     getName={getName}
                     seatPositionMap={seatPositionMap}
                     tableSize={tableSize}
-                    roundLabel={gameConfig.getRoundLabel({ currentRound, seriesRoundIndex, totalRoundsInSeries, currentCardsPerRound })}
+                    roundLabel={gameConfig.getRoundLabel({ currentRound, seriesRoundIndex, totalRoundsInSeries, currentCardsPerRound, currentRoundNumber, totalRounds })}
                     seatOrder={seatOrder}
                     tricksCount={tricks?.length || 0}
                     lastTrickWinner={tricks?.length > 0 ? tricks[tricks.length - 1].winner : null}
@@ -700,6 +742,18 @@ const GameBoard = ({ userId, isAdmin }) => {
                             powerHouseSuit={powerHouseSuit}
                             getName={getName}
                         />
+                    )}
+
+                    {/* Mendikot: hidden trump indicator */}
+                    {isMendikot && isPlayingPhase && closedTrumpPlaceholder && !closedTrumpRevealed && (
+                        <ClosedTrumpDisplay placeholder={closedTrumpPlaceholder} />
+                    )}
+
+                    {/* Mendikot: reveal trump prompt for void player */}
+                    {isMendikot && isPlayingPhase &&
+                        currentTrick?.currentTurn === userId &&
+                        pendingTrumpRevealDecision?.canReveal && (
+                        <RevealTrumpPrompt onReveal={WsRevealTrump} />
                     )}
 
                     {/* Teammate reveal announcement — 2-second toast */}
@@ -810,7 +864,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <JudgementScoreboardModal onClose={() => setShowJdgScoreboard(false)} />
             )}
 
-            {phase === "series-finished" && (!isJudgement || scorecardVisible) && (
+            {phase === "series-finished" && !isMendikot && (!isJudgement || scorecardVisible) && (
                 <SeriesFinishedPanel
                     finalRankings={finalRankings}
                     scores={scores}
@@ -854,14 +908,24 @@ const GameBoard = ({ userId, isAdmin }) => {
                         <PlayerHand
                             cards={myHand}
                             validPlays={validPlays}
-                            isMyTurn={isMyTurn && phase === "playing"}
+                            isMyTurn={isMyTurn && (phase === "playing" || phase === "band-hukum-pick")}
+                            onCardClick={
+                                phase === "band-hukum-pick" && userId === closedTrumpHolderId
+                                    ? (card, index) => WsPickClosedTrump(index)
+                                    : undefined
+                            }
                         />
                     </div>
                 ) : (
                     <PlayerHand
                         cards={myHand}
                         validPlays={validPlays}
-                        isMyTurn={isMyTurn && phase === "playing"}
+                        isMyTurn={isMyTurn && (phase === "playing" || phase === "band-hukum-pick")}
+                        onCardClick={
+                            phase === "band-hukum-pick" && userId === closedTrumpHolderId
+                                ? (card, index) => WsPickClosedTrump(index)
+                                : undefined
+                        }
                     />
                 )
             )}

@@ -10,6 +10,8 @@ import JudgementBiddingPanel from "./JudgementBiddingPanel";
 import ScoreBoard from "./ScoreBoard";
 import JudgementScoreBoard from "./JudgementScoreBoard";
 import TeamScoreHUD from "./TeamScoreHUD";
+import MendikotHUD from "./MendikotHUD";
+import MendikotScoreBoard from "./MendikotScoreBoard";
 
 // Cards per player for each game config (mirrors server config.js)
 const CARDS_PER_PLAYER = {
@@ -112,6 +114,44 @@ const registry = {
 
         getTrumpSuit({ trumpSuit }) {
             return trumpSuit;
+        },
+    },
+
+    mendikot: {
+        BiddingPanel: null,
+        ScoreBoard: MendikotScoreBoard,
+        HUD: MendikotHUD,
+
+        hasPowerhouse: false,
+        hasPartners: false,
+        hasTrumpAnnounce: false,
+        trickHasPoints: false,
+        gameLabel: "Round",
+        dealRevealFallbackMs: 3000,
+
+        getCardCount(pid, { handSizes }) {
+            return handSizes?.[pid] ?? 0;
+        },
+
+        getSeatScore(pid, { tricks_by_team, teams }) {
+            const team = (teams?.A || []).includes(pid)
+                ? "A"
+                : (teams?.B || []).includes(pid)
+                ? "B"
+                : null;
+            return team ? (tricks_by_team?.[team] ?? 0) : 0;
+        },
+
+        getRoundLabel({ currentRound }) {
+            return `Trick ${(currentRound || 0) + 1}`;
+        },
+
+        getSeriesInfo({ currentRoundNumber, totalRounds }) {
+            return { current: currentRoundNumber || 1, total: totalRounds || 1 };
+        },
+
+        getTrumpSuit({ trump_suit }) {
+            return trump_suit || null;
         },
     },
 };

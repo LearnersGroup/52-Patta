@@ -21,10 +21,13 @@ const CreateGamePage = () => {
     const [maxCardsPerRound, setMaxCardsPerRound] = useState(7);
     const [reverseOrder, setReverseOrder] = useState(true);
     const [trumpMode, setTrumpMode] = useState("fixed");
+    const [mendikotTrumpMode, setMendikotTrumpMode] = useState("band");
     const [scoreboardTime, setScoreboardTime] = useState(5);
     const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
     const [bidTime, setBidTime] = useState(15);
     const [cardRevealTime, setCardRevealTime] = useState(10);
+    const [roundsCount, setRoundsCount] = useState(5);
+    const [bandHukumPickPhase, setBandHukumPickPhase] = useState(true);
 
     useEffect(() => {
         const goToGamePage = (room_id, callback) => {
@@ -51,13 +54,17 @@ const CreateGamePage = () => {
             if (playerCount % 2 === 1 && bidThreshold) {
                 data.bid_threshold = bidThreshold;
             }
-        } else {
+        } else if (gameType === "judgement") {
             data.max_cards_per_round = maxCardsPerRound;
             data.reverse_order = reverseOrder;
             data.trump_mode = trumpMode;
             data.scoreboard_time = scoreboardTime;
             if (bidTimeEnabled) data.judgement_bid_time = bidTime;
             data.card_reveal_time = cardRevealTime;
+        } else if (gameType === "mendikot") {
+            data.trump_mode = mendikotTrumpMode;
+            data.rounds_count = roundsCount;
+            data.band_hukum_pick_phase = bandHukumPickPhase;
         }
 
         try {
@@ -98,6 +105,8 @@ const CreateGamePage = () => {
                     setReverseOrder={setReverseOrder}
                     trumpMode={trumpMode}
                     setTrumpMode={setTrumpMode}
+                    mendikotTrumpMode={mendikotTrumpMode}
+                    setMendikotTrumpMode={setMendikotTrumpMode}
                     scoreboardTime={scoreboardTime}
                     setScoreboardTime={setScoreboardTime}
                     bidTimeEnabled={bidTimeEnabled}
@@ -106,6 +115,10 @@ const CreateGamePage = () => {
                     setBidTime={setBidTime}
                     cardRevealTime={cardRevealTime}
                     setCardRevealTime={setCardRevealTime}
+                    roundsCount={roundsCount}
+                    setRoundsCount={setRoundsCount}
+                    bandHukumPickPhase={bandHukumPickPhase}
+                    setBandHukumPickPhase={setBandHukumPickPhase}
                     minPlayerCount={0}
                     showRoomName={true}
                     roomName={roomName}
