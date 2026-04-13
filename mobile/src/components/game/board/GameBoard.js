@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useDispatch, useSelector } from 'react-redux';
 import { resetGame } from '../../../redux/slices/game';
-import { WsPlayCard, WsQuitGame, WsReturnToLobby } from '../../../api/wsEmitters';
+import { WsPickClosedTrump, WsPlayCard, WsQuitGame, WsReturnToLobby, WsRevealTrump } from '../../../api/wsEmitters';
 import { cardTokens, colors, fonts, panelStyle, spacing, typography } from '../../../styles/theme';
 import CardFace from '../CardFace';
 import PlayerHand from '../PlayerHand';
@@ -20,6 +20,8 @@ import CircularTable from './CircularTable';
 import DealRevealOverlay from './DealRevealOverlay';
 import DealingOverlay from './DealingOverlay';
 import JudgementBiddingPanel from './JudgementBiddingPanel';
+import MendikotHUD from './MendikotHUD';
+import MendikotScoreBoard from './MendikotScoreBoard';
 import PlayArea from './PlayArea';
 import PlayerSeat from './PlayerSeat';
 import PowerHouseSelector from './PowerHouseSelector';
@@ -29,6 +31,8 @@ import ShufflingPanel from './ShufflingPanel';
 import TeamScoreHUD from './TeamScoreHUD';
 import InGameSettings from './InGameSettings';
 import TrumpAnnouncePanel from './TrumpAnnouncePanel';
+import ClosedTrumpDisplay from '../ClosedTrumpDisplay';
+import RevealTrumpPrompt from '../RevealTrumpPrompt';
 
 const INTENDED_W = Math.round(cardTokens.sizes.play.width * 0.8);  // 20% smaller
 
@@ -167,6 +171,17 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const gameHistory = useSelector((state) => state.game.gameHistory);
   const autoplay = useSelector((state) => state.preferences.autoplay);
 
+  // Mendikot-specific selectors
+  const isMendikot           = gameType === 'mendikot';
+  const closedTrumpHolderId  = useSelector((s) => s.game.closed_trump_holder_id);
+  const closedTrumpRevealed  = useSelector((s) => s.game.closed_trump_revealed);
+  const closedTrumpPlaceholder = useSelector((s) => s.game.closed_trump_placeholder);
+  const pendingTrumpReveal   = useSelector((s) => s.game.pending_trump_reveal_decision);
+  const trumpSuitMendikot    = useSelector((s) => s.game.trump_suit);
+  const tricksByTeam         = useSelector((s) => s.game.tricks_by_team);
+  const currentRoundNumber   = useSelector((s) => s.game.currentRoundNumber);
+  const totalRounds          = useSelector((s) => s.game.totalRounds);
+
   const tableShape = useSelector((state) => state.preferences.tableShape);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
@@ -187,6 +202,10 @@ export default function GameBoard({ userId, isAdmin = false }) {
   useEffect(() => {
     const prev = prevPhaseRef.current;
 
+    // Kaliteri / Judgement: reveal overlay fires when phase enters bidding.
+    // Mendikot does NOT use DealRevealOverlay — there is no server-side inspect
+    // window; players see their hand directly in band-hukum-pick (face-down)
+    // or start playing immediately (Cut Hukum).
     if (prev !== 'bidding' && phase === 'bidding' && Array.isArray(myHand) && myHand.length > 0) {
       setShowDealReveal(true);
     }
@@ -298,11 +317,12 @@ export default function GameBoard({ userId, isAdmin = false }) {
       }
       return bidding?.currentBidder || null;
     }
+    if (phase === 'band-hukum-pick') return closedTrumpHolderId || null;
     if (phase === 'playing') return currentTrick?.currentTurn || null;
     if (phase === 'powerhouse') return leader || null;
     if (phase === 'shuffling' || phase === 'dealing') return dealer || null;
     return null;
-  }, [phase, gameType, bidding, currentTrick, leader, dealer]);
+  }, [phase, gameType, bidding, currentTrick, leader, dealer, closedTrumpHolderId]);
 
   // ── Haptic feedback when it becomes the local player's turn ──────────
   const prevTurnRef = useRef(currentTurn);
@@ -435,12 +455,21 @@ export default function GameBoard({ userId, isAdmin = false }) {
     return null;
   }, [gameType, phase, userId, leader, teams, partnerCards, revealedPartners, allPartnersRevealed, myEffectiveTeam, myKnownRelation]);
 
+  // Mendikot: teams.bid = team A player ids, teams.oppose = team B player ids
+  // (server's mendikot strategy maps them this way in getPublicState)
+
   const tablePlayers = useMemo(() => {
     const ids = (seatOrder && seatOrder.length ? seatOrder : Object.keys(playerNames || {})) || [];
 
     return ids.map((pid) => {
       const isMe = pid === userId;
       const team = teams?.bid?.includes(pid) ? 'bid' : teams?.oppose?.includes(pid) ? 'oppose' : null;
+
+      // Mendikot: map team_a/team_b to ring colors (bid→A, oppose→B)
+      const mendikotTeamClass = isMendikot ? (
+        teams?.bid?.includes(pid) ? 'team-a' :
+        teams?.oppose?.includes(pid) ? 'team-b' : null
+      ) : null;
 
       // Judgement bid/tricks status chip
       let jdgStatus = null;
@@ -480,21 +509,25 @@ export default function GameBoard({ userId, isAdmin = false }) {
             team={phase === 'playing' || phase === 'series-finished' ? team : null}
             jdgStatus={jdgStatus}
             relation={relation}
+            mendikotTeam={mendikotTeamClass}
           />
         ),
       };
     });
-  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon, getRelation, leader]);
+  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon, getRelation, leader, isMendikot]);
 
-  const isMyTurn = phase === 'playing' && Array.isArray(validPlays) && validPlays.length > 0;
-  const activeTrump = trumpSuit || powerHouseSuit;
+  const isMyTurn =
+    (phase === 'playing' && Array.isArray(validPlays) && validPlays.length > 0) ||
+    (phase === 'band-hukum-pick' && userId === closedTrumpHolderId);
+  const activeTrump = isMendikot ? trumpSuitMendikot : (trumpSuit || powerHouseSuit);
   const isSeriesFinished = showSeriesFinished;
+  // For mendikot show table during band-hukum-pick phase too
   const showTable = !isSeriesFinished;
 
   // Clear intended card when it's no longer in hand or phase changes away from playing
   useEffect(() => {
     if (!intendedCard) return;
-    if (phase !== 'playing') { setIntendedCard(null); return; }
+    if (phase !== 'playing' && phase !== 'band-hukum-pick') { setIntendedCard(null); return; }
     if (!myHand?.some((c) => cardKey(c) === cardKey(intendedCard))) {
       setIntendedCard(null);
     }
@@ -505,9 +538,14 @@ export default function GameBoard({ userId, isAdmin = false }) {
     dispatch(resetGame());
   }, [dispatch]);
 
-  const handleSelectCard = useCallback((card) => {
+  const handleSelectCard = useCallback((card, index) => {
+    // During band-hukum-pick, clicking a face-down card emits pick immediately
+    if (phase === 'band-hukum-pick' && userId === closedTrumpHolderId) {
+      WsPickClosedTrump(index);
+      return;
+    }
     setIntendedCard(card);
-  }, []);
+  }, [phase, userId, closedTrumpHolderId]);
 
   const handlePlayIntended = useCallback(() => {
     if (!intendedCard || !isMyTurn) return;
@@ -539,7 +577,9 @@ export default function GameBoard({ userId, isAdmin = false }) {
   }, [autoplay, phase, currentTurn, userId, validPlays]);
 
   const roundText =
-    gameType === 'judgement'
+    isMendikot
+      ? `Rd ${currentRoundNumber || 1}/${totalRounds || 1}`
+      : gameType === 'judgement'
       ? `Round ${Number(seriesRoundIndex || 0) + 1}/${totalRoundsInSeries || 1} • Cards ${currentCardsPerRound || 0}`
       : `Round ${currentRound || 0}`;
 
@@ -547,22 +587,31 @@ export default function GameBoard({ userId, isAdmin = false }) {
     <View style={styles.wrap}>
       {/* ── Top rows (HUD) ─────────────────────────────────────────────── */}
       {!isSeriesFinished ? (
-        <TeamScoreHUD
-          roundText={roundText}
-          trumpText={activeTrump ? `Trump ${suitSymbol(activeTrump)}` : null}
-          onShowScoreboard={() => setShowScoreboard(true)}
-          onShowSettings={() => setShowSettings(true)}
-          isAdmin={isAdmin}
-          onQuit={() => setShowQuitConfirm(true)}
-          gameType={gameType}
-          phase={phase}
-          tricks={tricks || []}
-          teams={teams || {}}
-          leader={leader}
-          partnerCards={partnerCards || []}
-          getName={getName}
-          bidding={bidding}
-        />
+        isMendikot ? (
+          <MendikotHUD
+            phase={phase}
+            onShowSettings={() => setShowSettings(true)}
+            isAdmin={isAdmin}
+            onQuit={() => setShowQuitConfirm(true)}
+          />
+        ) : (
+          <TeamScoreHUD
+            roundText={roundText}
+            trumpText={activeTrump ? `Trump ${suitSymbol(activeTrump)}` : null}
+            onShowScoreboard={() => setShowScoreboard(true)}
+            onShowSettings={() => setShowSettings(true)}
+            isAdmin={isAdmin}
+            onQuit={() => setShowQuitConfirm(true)}
+            gameType={gameType}
+            phase={phase}
+            tricks={tricks || []}
+            teams={teams || {}}
+            leader={leader}
+            partnerCards={partnerCards || []}
+            getName={getName}
+            bidding={bidding}
+          />
+        )
       ) : null}
 
       {/* ── Table area — flex: 1 so it fills remaining space ────────── */}
@@ -572,6 +621,20 @@ export default function GameBoard({ userId, isAdmin = false }) {
             players={tablePlayers}
             tableShape={tableShape}
             centerContent={({ seatPositionMap, tableSize }) => {
+              if (phase === 'band-hukum-pick') {
+                const isMyPickTurn = userId === closedTrumpHolderId;
+                return (
+                  <View style={styles.centerInfo}>
+                    <Text style={styles.centerTitle}>Pick Your Trump</Text>
+                    <Text style={styles.centerText}>
+                      {isMyPickTurn
+                        ? 'Tap a face-down card to set as the hidden trump.'
+                        : `${getName(closedTrumpHolderId)} is picking the hidden trump…`}
+                    </Text>
+                  </View>
+                );
+              }
+
               if (phase === 'trump-announce') {
                 return (
                   <TrumpAnnouncePanel
@@ -667,7 +730,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
           />
         ) : null}
 
-        {isSeriesFinished ? (
+        {isSeriesFinished && !isMendikot ? (
           <SeriesFinishedPanel
             finalRankings={finalRankings || []}
             scores={scores || {}}
@@ -686,14 +749,18 @@ export default function GameBoard({ userId, isAdmin = false }) {
       </View>
 
       {/* ── Hand overlay — absolutely pinned to bottom, sits over the table ── */}
-      {showTable && phase !== 'dealing' && !showDealReveal ? (
+      {showTable && phase !== 'dealing' && !showDealReveal &&
+        // During band-hukum-pick only the picker sees their hand
+        !(phase === 'band-hukum-pick' && userId !== closedTrumpHolderId) ? (
         <View style={styles.handOverlay} pointerEvents="box-none">
-          {/* ── Intended card slot — always visible for affordance ── */}
-          <IntendedCardSlot
-            card={intendedCard}
-            shouldBounce={isMyTurn && intendedCard && isCardInList(intendedCard, validPlays)}
-            onPress={handlePlayIntended}
-          />
+          {/* During band-hukum-pick, no intended slot — tap goes straight to pick */}
+          {phase !== 'band-hukum-pick' ? (
+            <IntendedCardSlot
+              card={intendedCard}
+              shouldBounce={isMyTurn && intendedCard && isCardInList(intendedCard, validPlays)}
+              onPress={handlePlayIntended}
+            />
+          ) : null}
 
           <PlayerHand
             cards={myHand || []}
@@ -730,6 +797,26 @@ export default function GameBoard({ userId, isAdmin = false }) {
               />
             </ScrollView>
           </View>
+        </View>
+      ) : null}
+
+      {/* ── Mendikot: closed trump indicator ── */}
+      {isMendikot && closedTrumpPlaceholder && !closedTrumpRevealed && phase === 'playing' ? (
+        <ClosedTrumpDisplay placeholder={closedTrumpPlaceholder} />
+      ) : null}
+
+      {/* ── Mendikot: reveal trump prompt ── */}
+      {isMendikot && pendingTrumpReveal && userId === currentTrick?.currentTurn ? (
+        <RevealTrumpPrompt onReveal={() => WsRevealTrump()} />
+      ) : null}
+
+      {/* ── Mendikot: end-of-round/series scoreboard ── */}
+      {isMendikot && (phase === 'finished' || phase === 'series-finished') ? (
+        <View style={styles.mendikotScoreFull}>
+          <MendikotScoreBoard
+            phase={phase}
+            nextRoundReady={nextRoundReady}
+          />
         </View>
       ) : null}
 
@@ -810,6 +897,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+  },
+  mendikotScoreFull: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(8,15,10,0.93)',
+    zIndex: 50,
   },
   centerInfo: {
     alignItems: 'center',

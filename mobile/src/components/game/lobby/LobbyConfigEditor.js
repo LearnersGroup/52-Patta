@@ -50,6 +50,10 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
   const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
   const [bidTime, setBidTime] = useState(15);
   const [cardRevealTime, setCardRevealTime] = useState(10);
+  // Mendikot settings
+  const [mendikotTrumpMode, setMendikotTrumpMode] = useState('band');
+  const [mendikotRounds, setMendikotRounds] = useState(1);
+  const [mendikotPickPhase, setMendikotPickPhase] = useState(true);
 
   const minPlayers = gameType === 'judgement' ? 3 : 4;
   const maxPossibleCards = useMemo(
@@ -76,6 +80,10 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
     setBidTimeEnabled(roomData?.judgement_bid_time !== null && roomData?.judgement_bid_time !== undefined);
     setBidTime(roomData?.judgement_bid_time || 15);
     setCardRevealTime(roomData?.card_reveal_time || 10);
+    // Mendikot
+    setMendikotTrumpMode(roomData?.mendikot_trump_mode || 'band');
+    setMendikotRounds(roomData?.rounds_count || 1);
+    setMendikotPickPhase(roomData?.band_hukum_pick_phase ?? true);
   }, [roomData]);
 
   useEffect(() => {
@@ -99,6 +107,10 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
       payload.bid_window = bidWindow;
       payload.inspect_time = inspectTime;
       payload.bid_threshold = playerCount % 2 === 1 ? bidThreshold : null;
+    } else if (gameType === 'mendikot') {
+      payload.mendikot_trump_mode   = mendikotTrumpMode;
+      payload.rounds_count          = mendikotRounds;
+      payload.band_hukum_pick_phase = mendikotPickPhase;
     } else {
       payload.max_cards_per_round = maxCardsPerRound;
       payload.reverse_order = reverseOrder;
@@ -122,10 +134,20 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
           <Pressable style={[styles.chip, gameType === 'judgement' && styles.chipActive]} onPress={() => setGameType('judgement')}>
             <Text style={styles.chipText}>Judgement</Text>
           </Pressable>
+          <Pressable style={[styles.chip, gameType === 'mendikot' && styles.chipActive]} onPress={() => setGameType('mendikot')}>
+            <Text style={styles.chipText}>Mendikot</Text>
+          </Pressable>
         </View>
       </View>
 
-      <NumberStepper label="Players" value={playerCount} min={minPlayers} max={13} onChange={setPlayerCount} />
+      <NumberStepper
+        label="Players"
+        value={playerCount}
+        min={minPlayers}
+        max={gameType === 'mendikot' ? 12 : 13}
+        step={gameType === 'mendikot' ? 2 : 1}
+        onChange={setPlayerCount}
+      />
 
       <View style={styles.group}>
         <Text style={styles.label}>Decks</Text>
@@ -139,7 +161,35 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
         </View>
       </View>
 
-      {gameType === 'kaliteri' ? (
+      {gameType === 'mendikot' ? (
+        <>
+          <View style={styles.group}>
+            <Text style={styles.label}>Trump Mode</Text>
+            <View style={styles.row}>
+              <Pressable style={[styles.chip, mendikotTrumpMode === 'band' && styles.chipActive]} onPress={() => setMendikotTrumpMode('band')}>
+                <Text style={styles.chipText}>Band Hukum</Text>
+              </Pressable>
+              <Pressable style={[styles.chip, mendikotTrumpMode === 'cut' && styles.chipActive]} onPress={() => setMendikotTrumpMode('cut')}>
+                <Text style={styles.chipText}>Cut Hukum</Text>
+              </Pressable>
+            </View>
+          </View>
+          {mendikotTrumpMode === 'band' ? (
+            <View style={styles.group}>
+              <Text style={styles.label}>Pick Phase</Text>
+              <View style={styles.row}>
+                <Pressable style={[styles.chip, mendikotPickPhase && styles.chipActive]} onPress={() => setMendikotPickPhase(true)}>
+                  <Text style={styles.chipText}>On</Text>
+                </Pressable>
+                <Pressable style={[styles.chip, !mendikotPickPhase && styles.chipActive]} onPress={() => setMendikotPickPhase(false)}>
+                  <Text style={styles.chipText}>Off</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
+          <NumberStepper label="Rounds" value={mendikotRounds} min={1} max={20} onChange={setMendikotRounds} />
+        </>
+      ) : gameType === 'kaliteri' ? (
         <>
           {playerCount % 2 === 1 ? (
             <NumberStepper label="Bid Threshold for Extra Teammate" value={bidThreshold} min={155} max={500} step={5} onChange={setBidThreshold} />

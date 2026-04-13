@@ -16,6 +16,9 @@ import { colors, fonts, shadows } from '../../../styles/theme';
  *
  * relation: null | 'partner' | 'teammate' | 'opponent'
  */
+const MENDIKOT_TEAM_A_COLOR = '#38bdf8';
+const MENDIKOT_TEAM_B_COLOR = '#f472b6';
+
 const PlayerSeat = memo(function PlayerSeat({
   name,
   avatar,
@@ -26,6 +29,7 @@ const PlayerSeat = memo(function PlayerSeat({
   team = null,
   jdgStatus = null,
   relation = null,
+  mendikotTeam = null, // 'team-a' | 'team-b' | null
 }) {
   const glowOpacity = useSharedValue(0);
 
@@ -41,12 +45,13 @@ const PlayerSeat = memo(function PlayerSeat({
     }
   }, [isTurn, glowOpacity]);
 
-  // Ring color based on team
-  const baseColor = team === 'bid'
-    ? colors.gold
-    : team === 'oppose'
-    ? colors.redSuit
-    : colors.borderGold;
+  // Ring color based on team (or mendikot team override)
+  const baseColor =
+    mendikotTeam === 'team-a' ? MENDIKOT_TEAM_A_COLOR :
+    mendikotTeam === 'team-b' ? MENDIKOT_TEAM_B_COLOR :
+    team === 'bid'    ? colors.gold :
+    team === 'oppose' ? colors.redSuit :
+    colors.borderGold;
 
   // Active turn: full-width ring + pulsing glow in ring color
   // Inactive: half-width ring, no glow

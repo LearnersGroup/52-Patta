@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added — Mendikot game mode
+- **Create room**: Mendikot game type card in `new.js`; settings panel with Trump Mode (Band Hukum / Cut Hukum), Pick Phase toggle, and Rounds stepper; player stepper enforces even count ≥ 4
+- **Lobby config editor**: Mendikot chip and config section in `LobbyConfigEditor.js`; syncs `mendikot_trump_mode`, `rounds_count`, `band_hukum_pick_phase`
+- **Team lobby** (`MendikotTeamLobby.js`): Two-column sky-blue / pink team grid with player avatars, ready dots, Switch Team button (non-admin) and Randomize Teams button (admin)
+- **Band-hukum pick phase**: `PlayerHand` renders face-down cards (`CardBack`) for the picker; tapping emits `pick-closed-trump` with position index; `GameBoard` shows instruction text in the center
+- **Closed trump indicator** (`ClosedTrumpDisplay.js`): fixed top-right face-down card with holder name shown during playing when trump is still hidden
+- **Reveal trump prompt** (`RevealTrumpPrompt.js`): modal overlay when player is void in led suit — "Reveal Trump" or "Play without revealing"
+- **Mendikot HUD** (`MendikotHUD.js`): pill with Team A vs B trick counts, trump symbol, round counter; toggleable inline scoreboard with mini `CardFace` ten icons per team
+- **Mendikot scoreboard** (`MendikotScoreBoard.js`): result banner (win-by-tricks / win-by-mendi / mendikot / 52-card mendikot), round summary, session totals table, round history, Next Round button
+- **Team seat ring colors**: `PlayerSeat` now accepts `mendikotTeam` prop — sky-blue ring for Team A, pink for Team B
+- **Redux slice**: added 14 mendikot-specific fields to `initialState` and `updateGameState`
+- **Socket emitters**: `WsPickClosedTrump`, `WsRevealTrump`, `WsUserSwitchTeam`, `WsAdminRandomizeTeams`
+- **Socket listeners**: `mendikot-team-update`, `mendikot-trump-revealed`; `band-hukum-pick` phase label
+
 ### Fixed
 - **Judgement bidding: dealer trapped at 1**: when the dealer's forbidden bid was 0, the `JudgementBiddingPanel` useEffect re-ran on every `amount` change and force-reset the selection back to `1`, making it impossible to bid 2/3/4/5. The effect now only runs on turn/forbidden transitions; `+`/`-` freely move across 0–N and the submit button disables when the current selection is the forbidden value.
 
