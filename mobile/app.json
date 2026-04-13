@@ -2,7 +2,7 @@
   "expo": {
     "name": "52 Patta",
     "slug": "52-patta-mobile",
-    "version": "1.0.10",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",

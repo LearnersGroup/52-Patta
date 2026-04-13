@@ -1,6 +1,6 @@
 # Changelog — 52 Patta Mobile
 
-## Unreleased
+## 1.1.0 — 2026-04-12
 
 ### Added — Mendikot game mode
 - **Create room**: Mendikot game type card in `new.js`; settings panel with Trump Mode (Band Hukum / Cut Hukum), Pick Phase toggle, and Rounds stepper; player stepper enforces even count ≥ 4
@@ -17,6 +17,7 @@
 - **Socket listeners**: `mendikot-team-update`, `mendikot-trump-revealed`; `band-hukum-pick` phase label
 
 ### Fixed
+- **Avatar crash on login for email/OAuth accounts**: `SvgUri` was used for all avatar rendering, but Gravatar URLs (assigned to email sign-up accounts) and Google/Facebook OAuth profile picture URLs return JPEG — not SVG. Passing a JPEG URL to `SvgUri` crashes with `Cannot read property 'length' of undefined` inside the SVG XML parser. Created a shared `AvatarImage` component that detects whether the URI is SVG (`data:image/svg+xml` data URI or a URL containing `/svg`) and picks `SvgUri` vs React Native `Image` accordingly. All 6 avatar render sites updated: `HomeScreen`, `Profile`, `PlayerSeat`, `LobbyPlayerList`, `SeriesFinishedPanel` (×2).
 - **Judgement bidding: dealer trapped at 1**: when the dealer's forbidden bid was 0, the `JudgementBiddingPanel` useEffect re-ran on every `amount` change and force-reset the selection back to `1`, making it impossible to bid 2/3/4/5. The effect now only runs on turn/forbidden transitions; `+`/`-` freely move across 0–N and the submit button disables when the current selection is the forbidden value.
 
 ## 1.0.10 — 2026-04-08

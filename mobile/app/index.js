@@ -9,10 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SvgUri } from 'react-native-svg';
 import { socket } from '../src/api/socket';
 import { useAuth } from '../src/hooks/useAuth';
 import AppBackground from '../src/components/shared/AppBackground';
+import AvatarImage from '../src/components/shared/AvatarImage';
 import {
   buttonStyles,
   colors,
@@ -120,7 +120,7 @@ export default function HomeScreen() {
           <Text style={styles.playerName}>{playerName}</Text>
           <View style={styles.avatarCircle}>
             {avatarUri
-              ? <SvgUri uri={avatarUri} width="100%" height="100%" />
+              ? <AvatarImage uri={avatarUri} width="100%" height="100%" />
               : <Text style={styles.avatarInitial}>{playerName[0]?.toUpperCase()}</Text>}
           </View>
         </Pressable>

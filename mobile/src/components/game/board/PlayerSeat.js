@@ -1,6 +1,5 @@
 import { memo, useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { SvgUri } from 'react-native-svg';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -9,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { colors, fonts, shadows } from '../../../styles/theme';
+import AvatarImage from '../../shared/AvatarImage';
 
 /**
  * jdgStatus shape (Judgement only, null otherwise):
@@ -72,7 +72,7 @@ const PlayerSeat = memo(function PlayerSeat({
       <Animated.View style={[styles.avatarRing, ringStyle]}>
         <View style={styles.avatarInner}>
           {avatar ? (
-            <SvgUri uri={avatar} width="100%" height="100%" />
+            <AvatarImage uri={avatar} width="100%" height="100%" />
           ) : (
             <Text style={styles.avatarInitial}>{avatarInitial || '?'}</Text>
           )}
