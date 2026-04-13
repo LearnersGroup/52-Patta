@@ -10,8 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SvgUri } from 'react-native-svg';
 import { unlink_provider, update_profile } from '../src/api/apiHandler';
+import AvatarImage from '../src/components/shared/AvatarImage';
 import { useAuth } from '../src/hooks/useAuth';
 import { runOAuthSession } from '../src/utils/oauth';
 import AppBackground from '../src/components/shared/AppBackground';
@@ -149,7 +149,7 @@ export default function ProfileScreen() {
 
         {profile?.avatar ? (
           <View style={styles.avatarPreviewWrap}>
-            <SvgUri uri={profile.avatar} width="96" height="96" />
+            <AvatarImage uri={profile.avatar} width={96} height={96} />
           </View>
         ) : null}
 

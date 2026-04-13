@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SvgUri } from 'react-native-svg';
 import { buttonStyles, colors, fonts, panelStyle, shadows, spacing, typography } from '../../../styles/theme';
+import AvatarImage from '../../shared/AvatarImage';
 import ScoreTable from './ScoreTable';
 
 const BADGES = {
@@ -59,7 +59,7 @@ export default function SeriesFinishedPanel({
       <View style={[styles.avatarCircle, { width: size, height: size, borderRadius: size / 2 }]}>
         {avatarUrl ? (
           <View style={[styles.avatarInner, { width: size - 6, height: size - 6, borderRadius: (size - 6) / 2 }]}>
-            <SvgUri uri={avatarUrl} width="100%" height="100%" />
+            <AvatarImage uri={avatarUrl} width="100%" height="100%" />
           </View>
         ) : (
           <Text style={[styles.avatarInitial, { fontSize: Math.round(size * 0.4) }]}>{initial}</Text>
@@ -120,7 +120,7 @@ export default function SeriesFinishedPanel({
                   <View style={[styles.restAvatar]}>
                     {avatarUrl ? (
                       <View style={styles.restAvatarInner}>
-                        <SvgUri uri={avatarUrl} width="100%" height="100%" />
+                        <AvatarImage uri={avatarUrl} width="100%" height="100%" />
                       </View>
                     ) : (
                       <Text style={styles.restAvatarInitial}>{initial}</Text>

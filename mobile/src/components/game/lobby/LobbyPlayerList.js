@@ -1,6 +1,5 @@
 import { memo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { SvgUri } from 'react-native-svg';
 import {
   buttonStyles,
   colors,
@@ -9,6 +8,7 @@ import {
   spacing,
   typography,
 } from '../../../styles/theme';
+import AvatarImage from '../../shared/AvatarImage';
 
 // Avatar diameter (fixed — looks good at 3-per-row on any device)
 const AVATAR_SIZE = 62;
@@ -51,7 +51,7 @@ const LobbyPlayerList = memo(function LobbyPlayerList({ players = [], isAdmin = 
               <View style={[styles.avatarRing, ready ? styles.avatarRingReady : styles.avatarRingIdle]}>
                 <View style={styles.avatarInner}>
                   {avatar ? (
-                    <SvgUri uri={avatar} width="100%" height="100%" />
+                    <AvatarImage uri={avatar} width="100%" height="100%" />
                   ) : (
                     <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
                   )}
