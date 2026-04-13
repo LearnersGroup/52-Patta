@@ -1,6 +1,6 @@
 # Changelog — 52 Patta Mobile
 
-## Unreleased
+## 1.1.0 — 2026-04-12
 
 ### Fixed
 - **Avatar crash on login for email/OAuth accounts**: `SvgUri` was used for all avatar rendering, but Gravatar URLs (assigned to email sign-up accounts) and Google/Facebook OAuth profile picture URLs return JPEG — not SVG. Passing a JPEG URL to `SvgUri` crashes with `Cannot read property 'length' of undefined` inside the SVG XML parser. Created a shared `AvatarImage` component that detects whether the URI is SVG (`data:image/svg+xml` data URI or a URL containing `/svg`) and picks `SvgUri` vs React Native `Image` accordingly. All 6 avatar render sites updated: `HomeScreen`, `Profile`, `PlayerSeat`, `LobbyPlayerList`, `SeriesFinishedPanel` (×2).
