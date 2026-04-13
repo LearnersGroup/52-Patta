@@ -46,15 +46,16 @@ export function registerGameListeners() {
         store.dispatch(resetGame());
     };
 
-    // Mendikot: real-time team update during lobby
-    const onMendikotTeamUpdate = (data) => {
-        store.dispatch(updateGameState(data));
-    };
+    // Mendikot: real-time team update during lobby.
+    // The web lobby already refreshes via fetch-users-in-room → getRoomDetails().
+    // Do NOT dispatch updateGameState here — the partial payload (only team_a/b_players)
+    // would overwrite every Redux field with undefined and crash the GameBoard.
+    const onMendikotTeamUpdate = () => {}; // handled by fetch-users-in-room
 
-    // Mendikot: trump revealed mid-game
-    const onMendikotTrumpRevealed = (data) => {
-        store.dispatch(updateGameState(data));
-    };
+    // Mendikot: trump revealed mid-game.
+    // A full game-state-update is broadcast immediately after this event.
+    // Do NOT dispatch updateGameState here — the partial payload would corrupt Redux state.
+    const onMendikotTrumpRevealed = () => {}; // trump_suit arrives via game-state-update
 
     socket.on("game-state-update", onGameStateUpdate);
     socket.on("game-error", onGameError);

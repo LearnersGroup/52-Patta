@@ -102,10 +102,10 @@ const gameSlice = createSlice({
             const previousGameId = state.gameId;
             state.gameId = data.gameId || state.gameId;
             state.game_type = data.game_type || state.game_type || "kaliteri";
-            state.phase = data.phase;
+            state.phase = data.phase !== undefined ? data.phase : state.phase;
             state.configKey = data.configKey;
             state.config = data.config || null;
-            state.seatOrder = data.seatOrder;
+            state.seatOrder = data.seatOrder ?? state.seatOrder ?? [];
             state.playerNames = data.playerNames || {};
 
             // Avatars arrive via the separate "game-avatars" socket event.
@@ -125,22 +125,22 @@ const gameSlice = createSlice({
                 state.playerAvatars = {};
             }
 
-            state.removedTwos = data.removedTwos;
-            state.myHand = data.myHand;
-            state.validPlays = data.validPlays;
+            state.removedTwos = data.removedTwos ?? state.removedTwos ?? [];
+            state.myHand = data.myHand ?? state.myHand ?? [];
+            state.validPlays = data.validPlays ?? state.validPlays ?? [];
             state.bidding = data.bidding;
             state.leader = data.leader;
             state.powerHouseSuit = data.powerHouseSuit;
             state.partnerCards = data.partnerCards || [];
             state.partnerCardCount = data.partnerCardCount || null;
             state.teams = data.teams || { bid: [], oppose: [] };
-            state.revealedPartners = data.revealedPartners;
-            state.currentRound = data.currentRound;
-            state.currentTrick = data.currentTrick;
-            state.tricks = data.tricks;
-            state.roundLeader = data.roundLeader;
-            state.handSizes = data.handSizes;
-            state.scores = data.scores;
+            state.revealedPartners = data.revealedPartners ?? state.revealedPartners ?? [];
+            state.currentRound = data.currentRound ?? state.currentRound ?? 0;
+            state.currentTrick = data.currentTrick !== undefined ? data.currentTrick : state.currentTrick;
+            state.tricks = data.tricks ?? state.tricks ?? [];
+            state.roundLeader = data.roundLeader !== undefined ? data.roundLeader : state.roundLeader;
+            state.handSizes = data.handSizes ?? state.handSizes ?? {};
+            state.scores = data.scores ?? state.scores ?? {};
             state.scoringResult = data.scoringResult || null;
 
             // Dealer & shuffling fields
