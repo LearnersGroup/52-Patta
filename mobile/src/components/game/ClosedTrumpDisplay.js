@@ -2,20 +2,25 @@ import { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { cardTokens, colors, fonts } from '../../styles/theme';
 import CardBack from './CardBack';
+import CardFace from './CardFace';
 
 /**
- * Small fixed indicator (top-right) showing a face-down trump card
- * during band-hukum mode while trump is still hidden.
+ * Small fixed indicator (top-right) showing the hidden trump card.
+ * When the trump is revealed, this flips to a face-up card.
  */
-const ClosedTrumpDisplay = memo(({ placeholder }) => {
+const ClosedTrumpDisplay = memo(({ placeholder, revealed = false, card = null }) => {
   const holderName = placeholder?.holderName || 'Player';
   const CARD_W = cardTokens.sizes.hand.width * 0.65; // ~36 px
 
   return (
     <View style={styles.wrap}>
-      <CardBack width={CARD_W} />
+      {revealed && card ? (
+        <CardFace card={card} width={CARD_W} />
+      ) : (
+        <CardBack width={CARD_W} />
+      )}
       <Text style={styles.label} numberOfLines={2}>
-        {holderName}{'\'s trump'}
+        {holderName}{revealed ? "'s revealed trump" : "'s trump"}
       </Text>
     </View>
   );

@@ -27,7 +27,10 @@ const RevealTrumpPrompt = memo(({ onReveal }) => {
           <View style={styles.actions}>
             <Pressable
               style={[buttonStyles.base, buttonStyles.primary, styles.btn]}
-              onPress={onReveal}
+              onPress={() => {
+                setDismissed(true);
+                onReveal?.();
+              }}
             >
               <Text style={buttonStyles.primaryText}>Reveal Trump</Text>
             </Pressable>

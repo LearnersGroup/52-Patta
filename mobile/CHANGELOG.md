@@ -17,6 +17,8 @@
 - **Socket listeners**: `mendikot-team-update`, `mendikot-trump-revealed`; `band-hukum-pick` phase label
 
 ### Fixed
+- **`game-request-state` error on room entry**: entering a lobby emitted `WsRequestGameState()` which the server rejected with "No active game found" (game state only exists after a game starts). Server now silently ignores this case instead of calling the error callback, preventing the noisy console error on every room entry.
+- **Mendikot trump mode ignored on room creation**: `new.js` was sending `mendikot_trump_mode` in the create-room payload but the server destructures `trump_mode`, so the selection was silently discarded and Band Hukum was always forced. Key corrected to `trump_mode`.
 - **Avatar crash on login for email/OAuth accounts**: `SvgUri` was used for all avatar rendering, but Gravatar URLs (assigned to email sign-up accounts) and Google/Facebook OAuth profile picture URLs return JPEG — not SVG. Passing a JPEG URL to `SvgUri` crashes with `Cannot read property 'length' of undefined` inside the SVG XML parser. Created a shared `AvatarImage` component that detects whether the URI is SVG (`data:image/svg+xml` data URI or a URL containing `/svg`) and picks `SvgUri` vs React Native `Image` accordingly. All 6 avatar render sites updated: `HomeScreen`, `Profile`, `PlayerSeat`, `LobbyPlayerList`, `SeriesFinishedPanel` (×2).
 - **Judgement bidding: dealer trapped at 1**: when the dealer's forbidden bid was 0, the `JudgementBiddingPanel` useEffect re-ran on every `amount` change and force-reset the selection back to `1`, making it impossible to bid 2/3/4/5. The effect now only runs on turn/forbidden transitions; `+`/`-` freely move across 0–N and the submit button disables when the current selection is the forbidden value.
 

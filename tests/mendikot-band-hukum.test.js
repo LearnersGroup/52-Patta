@@ -95,6 +95,10 @@ describe("mendikot band hukum", () => {
         const state = makeState({ phase: "playing" });
         const picked = state.hands.A0[0];
         pickClosedTrump(state, "A0", picked);
+        state.pending_trump_reveal_decision = {
+            playerId: "A1",
+            canReveal: true,
+        };
         state.currentTrick = {
             ledSuit: "H",
             plays: [{ playerId: "B0", card: c("H", "6"), order: 0, trickIndex: 0 }],
@@ -106,6 +110,7 @@ describe("mendikot band hukum", () => {
         expect(state.hands.A0).toContainEqual(picked);
         expect(state.trump_suit).toBe(picked.suit);
         expect(state.trump_asker_id).toBe("A1");
+        expect(state.pending_trump_reveal_decision).toBeNull();
     });
 
     test("reveal rejected when asker still has led suit", () => {
@@ -138,10 +143,15 @@ describe("mendikot band hukum", () => {
     test("auto-reveal fires on last trick for holder", () => {
         const state = makeState({ phase: "playing", currentRound: 3 });
         pickClosedTrump(state, "A0", state.hands.A0[0]);
+        state.pending_trump_reveal_decision = {
+            playerId: "A0",
+            canReveal: true,
+        };
 
         const fired = autoRevealIfNeeded(state, state.config.rounds - 1, "A0");
         expect(fired).toBe(true);
         expect(state.trump_suit).toBeTruthy();
+        expect(state.pending_trump_reveal_decision).toBeNull();
     });
 
     test("auto-reveal does not fire on earlier trick", () => {

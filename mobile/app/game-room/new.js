@@ -231,7 +231,7 @@ export default function NewGameRoomScreen() {
       payload.inspect_time = inspectTime;
       if (isOddPlayers) payload.bid_threshold = bidThreshold;
     } else if (gameType === 'mendikot') {
-      payload.mendikot_trump_mode    = mendikotTrumpMode;
+      payload.trump_mode             = mendikotTrumpMode;
       payload.rounds_count           = mendikotRounds;
       payload.band_hukum_pick_phase  = mendikotPickPhase;
     } else {

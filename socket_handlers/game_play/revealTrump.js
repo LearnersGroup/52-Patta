@@ -34,6 +34,7 @@ module.exports = wrapHandler("reveal-trump", async (socket, io, data, callback) 
     io.to(gameState.roomname).emit("mendikot-trump-revealed", {
         by: socket.user.id,
         suit: gameState.trump_suit,
+        card: gameState.closed_trump_card || null,
         forcedPlays: getValidPlays(gameState, socket.user.id),
     });
 

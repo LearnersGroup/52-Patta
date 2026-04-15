@@ -53,6 +53,13 @@ const PlayerSeat = memo(function PlayerSeat({
     team === 'oppose' ? colors.redSuit :
     colors.borderGold;
 
+  const mendikotNameStyle =
+    mendikotTeam === 'team-a'
+      ? styles.nameTeamA
+      : mendikotTeam === 'team-b'
+      ? styles.nameTeamB
+      : null;
+
   // Active turn: full-width ring + pulsing glow in ring color
   // Inactive: half-width ring, no glow
   const ringStyle = useAnimatedStyle(() => ({
@@ -93,7 +100,7 @@ const PlayerSeat = memo(function PlayerSeat({
         ) : null}
       </Animated.View>
 
-      <Text numberOfLines={1} style={styles.name}>{name || 'Player'}</Text>
+      <Text numberOfLines={1} style={[styles.name, mendikotNameStyle]}>{name || 'Player'}</Text>
 
       {/* ── Relation badge ── */}
       {relation === 'partner' ? (
@@ -226,6 +233,14 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  nameTeamA: {
+    color: MENDIKOT_TEAM_A_COLOR,
+    fontWeight: '700',
+  },
+  nameTeamB: {
+    color: MENDIKOT_TEAM_B_COLOR,
+    fontWeight: '700',
   },
 
   // ── Relation badges ─────────────────────────────────────────────────────

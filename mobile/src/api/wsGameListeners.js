@@ -6,6 +6,7 @@ import {
     setGameError,
     resetGame,
     updateNextRoundReady,
+    applyMendikotTrumpRevealed,
 } from "../redux/slices/game";
 import { notify } from "../redux/slices/alert";
 
@@ -112,7 +113,7 @@ export function registerGameListeners() {
     };
 
     const onMendikotTrumpRevealed = (data) => {
-        store.dispatch(updateGameState(data));
+        store.dispatch(applyMendikotTrumpRevealed(data));
         store.dispatch(notify("Trump revealed!", "info", 2200));
     };
 

@@ -24,14 +24,35 @@ module.exports = (socket, io) => async () => {
             .populate("gameroom", ["roomname", "state", "code"]);
 
         // If the player was in a lobby and reconnected within the grace period,
-        // rejoin them to the socket room so they keep receiving events.
+        // rejoin them to the socket room and re-emit rejoin metadata so clients
+        // landing on Home can auto-navigate back into the room.
         if (cancelledGameId && user?.gameroom && user.gameroom.state === "lobby") {
+            const gameId = user.gameroom._id.toString();
             await socket.join(user.gameroom.roomname);
+            socket.emit("rejoin-available", {
+                roomId:    gameId,
+                roomname:  user.gameroom.roomname,
+                code:      user.gameroom.code,
+                gamePhase: "lobby",
+            });
             return; // Still in lobby — no game state to push
         }
 
-        if (!user?.gameroom || !user.gameroom.state || user.gameroom.state === "lobby") {
-            return; // Nothing to do — user is not in an active game
+        if (!user?.gameroom || !user.gameroom.state) {
+            return; // No room at all
+        }
+
+        // If the player is in a lobby, redirect them straight back to it.
+        if (user.gameroom.state === "lobby") {
+            const gameId = user.gameroom._id.toString();
+            await socket.join(user.gameroom.roomname);
+            socket.emit("rejoin-available", {
+                roomId:    gameId,
+                roomname:  user.gameroom.roomname,
+                code:      user.gameroom.code,
+                gamePhase: "lobby",
+            });
+            return;
         }
 
         const roomname = user.gameroom.roomname;
