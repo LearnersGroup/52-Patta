@@ -45,11 +45,11 @@ export default function HomeScreen() {
     const onDisconnect = () => setIsConnected(false);
     const onRejoin     = (data) => {
       if (!data) return;
-      // Auto-navigate back into an active game without needing the user to tap.
-      // Use replace to avoid stacking duplicate game-room entries.
-      if (data.roomId) {
+      // Auto-navigate only for active (non-lobby) games.
+      // Lobby rooms show the rejoin banner instead so the user can choose to re-enter.
+      if (data.roomId && data.gamePhase && data.gamePhase !== 'lobby') {
         navigateToRoom(data.roomId);
-      } else {
+      } else if (data.roomId || data.code) {
         setRejoinInfo(data);
       }
     };
@@ -71,8 +71,11 @@ export default function HomeScreen() {
       if (!isAuthResolved || !user?.token || autoNavLockRef.current) return;
       try {
         const game = await get_current_game();
-        if (game?._id) {
+        // Only auto-navigate for active games; lobby rooms show the banner instead.
+        if (game?._id && game.state && game.state !== 'lobby') {
           navigateToRoom(game._id);
+        } else if (game?._id) {
+          setRejoinInfo({ roomId: game._id, roomname: game.roomname, code: game.code, gamePhase: 'lobby' });
         }
       } catch {
         // ignore fallback errors; socket path still handles rejoin

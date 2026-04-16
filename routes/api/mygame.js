@@ -12,7 +12,7 @@ router.get("/", [auth], async (req, res) => {
         //find the game room
         let user = await User.findOne({ _id: req.user.id }).populate(
             "gameroom",
-            ["roomname"]
+            ["roomname", "state", "code"]
         );
 
         if (!user?.gameroom) {

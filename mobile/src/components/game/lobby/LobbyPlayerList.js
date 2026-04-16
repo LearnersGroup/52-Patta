@@ -10,6 +10,13 @@ import {
 } from '../../../styles/theme';
 import AvatarImage from '../../shared/AvatarImage';
 
+const TEAM_A_COLOR  = '#38bdf8';
+const TEAM_B_COLOR  = '#f472b6';
+const TEAM_A_DIM    = 'rgba(56, 189, 248, 0.10)';
+const TEAM_B_DIM    = 'rgba(244, 114, 182, 0.10)';
+const TEAM_A_BORDER = 'rgba(56, 189, 248, 0.30)';
+const TEAM_B_BORDER = 'rgba(244, 114, 182, 0.30)';
+
 // Avatar diameter (fixed — looks good at 3-per-row on any device)
 const AVATAR_SIZE = 62;
 const RING_PAD    = 3;   // space between ring border and avatar
@@ -19,51 +26,131 @@ function getPlayerId(player) {
   return player?.playerId?._id?.toString?.() || player?.playerId?.toString?.() || '';
 }
 
-const LobbyPlayerList = memo(function LobbyPlayerList({ players = [], isAdmin = false, userId = '', onKick }) {
-  const [kickTarget, setKickTarget] = useState(null); // { pid, name }
+function PlayerGrid({ players, isAdmin, userId, onKickTarget }) {
+  const [width, setWidth] = useState(0);
+  const COL_GAP   = spacing.sm;
+  const cellWidth = width > 0 ? (width - COL_GAP * 2) / 3 : undefined;
+
+  if (!players.length) {
+    return <Text style={styles.emptyText}>No players yet</Text>;
+  }
+  return (
+    <View style={styles.grid} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {players.map((player, idx) => {
+        const pid    = getPlayerId(player);
+        const name   = player?.playerId?.name || 'Player';
+        const ready  = !!player?.ready;
+        const avatar = player?.playerId?.avatar || '';
+        const canTap = isAdmin && pid && pid !== userId;
+
+        return (
+          <Pressable
+            key={`${pid || name}_${idx}`}
+            style={[styles.cell, cellWidth ? { width: cellWidth } : null]}
+            onPress={() => canTap && onKickTarget({ pid, name })}
+          >
+            <View style={[styles.avatarRing, ready ? styles.avatarRingReady : styles.avatarRingIdle]}>
+              <View style={styles.avatarInner}>
+                {avatar ? (
+                  <AvatarImage uri={avatar} width="100%" height="100%" />
+                ) : (
+                  <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
+                )}
+              </View>
+            </View>
+            <Text numberOfLines={1} style={styles.name}>{name}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const LobbyPlayerList = memo(function LobbyPlayerList({
+  players = [],
+  isAdmin = false,
+  userId = '',
+  onKick,
+  // Mendikot team split — when provided renders two halves instead of one grid
+  teamAIds = null,
+  teamBIds = null,
+  onSwitchTeam,
+}) {
+  const [kickTarget, setKickTarget] = useState(null);
   const [gridWidth, setGridWidth] = useState(0);
 
-  // Derive cell width from the grid's measured width so no outer padding guessing is needed.
-  const COL_GAP   = spacing.sm;  // 8 — 2 gaps for 3 columns
-  const cellWidth = gridWidth > 0 ? (gridWidth - COL_GAP * 2) / 3 : undefined;
+  const COL_GAP    = spacing.sm;
+  const TEAM_PAD_H = spacing.sm * 2; // left + right paddingHorizontal on each teamSection
+  const isMendikot = teamAIds !== null && teamBIds !== null;
+
+  const cellWidth = gridWidth > 0
+    ? ((isMendikot ? gridWidth - TEAM_PAD_H : gridWidth) - COL_GAP * 2) / 3
+    : undefined;
+
+  const getTeamPlayers = (ids) =>
+    (ids || []).map((id) => {
+      const found = players.find((p) => getPlayerId(p) === id);
+      return found || { playerId: { _id: id, name: id?.slice(0, 8) || '?' }, ready: false };
+    });
+
+  const myTeam = isMendikot
+    ? (teamAIds || []).includes(userId) ? 'A' : (teamBIds || []).includes(userId) ? 'B' : null
+    : null;
+
+  const iAmReady = isMendikot
+    ? !!(players.find((p) => getPlayerId(p) === userId)?.ready)
+    : false;
 
   if (!players.length) {
     return <Text style={styles.emptyText}>Waiting for players to join...</Text>;
   }
 
+  const TeamSection = ({ team, ids, sectionStyle, color }) => {
+    const isOpponent = myTeam !== null && myTeam !== team;
+    const canSwitch = isOpponent && !iAmReady;
+    const Container = canSwitch ? Pressable : View;
+    return (
+      <Container
+        style={[styles.teamSection, sectionStyle, canSwitch && styles.teamSectionTappable]}
+        onPress={canSwitch ? () => onSwitchTeam?.() : undefined}
+      >
+        <View style={styles.teamHalfHeader}>
+          <View style={[styles.teamDot, { backgroundColor: color }]} />
+          <Text style={[styles.teamLabel, { color }]}>Team {team}</Text>
+          <Text style={styles.teamCount}>({getTeamPlayers(ids).length})</Text>
+          {canSwitch ? <Text style={styles.joinHint}>tap to join</Text> : null}
+        </View>
+        <PlayerGrid
+          players={getTeamPlayers(ids)}
+          isAdmin={isAdmin}
+          userId={userId}
+          cellWidth={cellWidth}
+          onKickTarget={setKickTarget}
+        />
+      </Container>
+    );
+  };
+
   return (
     <>
-      <View style={styles.grid} onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
-        {players.map((player, idx) => {
-          const pid    = getPlayerId(player);
-          const name   = player?.playerId?.name || 'Player';
-          const ready  = !!player?.ready;
-          const avatar = player?.playerId?.avatar || '';
-          const canTap = isAdmin && pid && pid !== userId;
+      <View onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
+        {isMendikot ? (
+          /* ── Team split layout ─────────────────────────────────────────── */
+          <View style={styles.teamSplit}>
+            <TeamSection team="A" ids={teamAIds} sectionStyle={styles.teamSectionA} color={TEAM_A_COLOR} />
+            <TeamSection team="B" ids={teamBIds} sectionStyle={styles.teamSectionB} color={TEAM_B_COLOR} />
+          </View>
+        ) : (
+          /* ── Standard single grid ──────────────────────────────────────── */
+          <PlayerGrid
+            players={players}
+            isAdmin={isAdmin}
+            userId={userId}
+            cellWidth={cellWidth}
+            onKickTarget={setKickTarget}
+          />
+        )}
 
-          return (
-            <Pressable
-              key={`${pid || name}_${idx}`}
-              style={[styles.cell, { width: cellWidth }]}
-              onPress={() => canTap && setKickTarget({ pid, name })}
-            >
-              {/* ── Avatar with ready ring ── */}
-              <View style={[styles.avatarRing, ready ? styles.avatarRingReady : styles.avatarRingIdle]}>
-                <View style={styles.avatarInner}>
-                  {avatar ? (
-                    <AvatarImage uri={avatar} width="100%" height="100%" />
-                  ) : (
-                    <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
-                  )}
-                </View>
-              </View>
-
-              {/* ── Name ── */}
-              <Text numberOfLines={1} style={styles.name}>{name}</Text>
-
-            </Pressable>
-          );
-        })}
       </View>
 
       {/* ── Kick confirmation modal ── */}
@@ -114,6 +201,63 @@ const styles = StyleSheet.create({
     fontSize: typography.bodySmall.fontSize,
   },
 
+  // ── Team split ─────────────────────────────────────────────────────────────
+  teamSplit: {
+    flexDirection: 'column',
+    gap: spacing.sm,
+  },
+  teamSection: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    gap: spacing.xs,
+  },
+  teamSectionA: {
+    backgroundColor: TEAM_A_DIM,
+    borderWidth: 1,
+    borderColor: TEAM_A_BORDER,
+  },
+  teamSectionB: {
+    backgroundColor: TEAM_B_DIM,
+    borderWidth: 1,
+    borderColor: TEAM_B_BORDER,
+  },
+  teamSectionTappable: {
+    opacity: 0.85,
+  },
+  teamHalfHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+    marginBottom: 2,
+  },
+  teamDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    flexShrink: 0,
+  },
+  teamLabel: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    flex: 1,
+    letterSpacing: 0.5,
+  },
+  teamCount: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.creamMuted,
+  },
+  joinHint: {
+    fontFamily: fonts.body,
+    fontSize: 10,
+    color: colors.creamMuted,
+    fontStyle: 'italic',
+    marginLeft: 'auto',
+  },
   // ── Grid ───────────────────────────────────────────────────────────────────
   grid: {
     flexDirection: 'row',

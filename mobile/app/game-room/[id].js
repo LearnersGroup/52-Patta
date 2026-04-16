@@ -127,6 +127,12 @@ export default function GameRoomScreen() {
         setRoomData(room);
         setInitialLoaded(true);
         setError('');
+        // If the room is in lobby state, clear any stale Redux game phase left
+        // over from a previous session — otherwise isGameActive stays true and
+        // the GameBoard renders instead of the lobby UI.
+        if (room?.state === 'lobby') {
+          dispatch(resetGame());
+        }
       } catch (e) {
         if (!mounted) return;
         setError(e?.errors?.[0]?.msg || 'Failed to load room');
