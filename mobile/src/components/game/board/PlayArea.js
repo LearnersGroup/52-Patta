@@ -143,7 +143,7 @@ function AnimatedTrickCard({
   );
 }
 
-function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 300, getName, trumpSuit, tableShape = 'rectangular' }) {
+function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 300, getName, trumpSuit }) {
   const keyFn = useCallback((play, index = 0) => {
     const c = play?.card || {};
     return `${play?.playerId || ''}_${c.suit || ''}${c.rank || ''}_${c.deckIndex ?? 0}_${index}`;
@@ -217,20 +217,7 @@ function PlayArea({ plays = [], tricks = [], seatPositionMap = {}, tableSize = 3
     const pos = seatPositionMap[playerId];
     if (!pos) return { x: 0, y: Math.min(130, tableSize * 0.38) };
     const scale = Math.min(140, tableSize * 0.44);
-    const angle = pos.angle;
-
-    if (tableShape === 'rectangular') {
-      // Project angle onto rectangle perimeter to match player sitting positions
-      const cosA = Math.cos(angle);
-      const sinA = Math.sin(angle);
-      const absCos = Math.abs(cosA) || 1e-9;
-      const absSin = Math.abs(sinA) || 1e-9;
-      const halfW = scale;
-      const halfH = scale * 0.75; // portrait aspect ratio
-      const rectScale = Math.min(halfW / absCos, halfH / absSin);
-      return { x: cosA * rectScale, y: sinA * rectScale };
-    }
-
+    const { angle } = pos;
     return {
       x: Math.cos(angle) * scale,
       y: Math.sin(angle) * scale,

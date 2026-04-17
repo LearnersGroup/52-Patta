@@ -237,7 +237,7 @@ export default function GameRoomScreen() {
   // ── Active game — full-screen, no chrome, hand fixed at bottom ──────────
   if (isGameActive) {
     return (
-      <AppBackground>
+      <AppBackground variant="textured">
         <View style={styles.gameScreen}>
           {loading ? (
             <View style={styles.loadingWrap}>
@@ -264,7 +264,7 @@ export default function GameRoomScreen() {
 
   // ── Lobby ─────────────────────────────────────────────────────────────────
   return (
-    <AppBackground>
+    <AppBackground variant="soft">
       {/* Header — consistent with profile / create-room */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={handleBack}>

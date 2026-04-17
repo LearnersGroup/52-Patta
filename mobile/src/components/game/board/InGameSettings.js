@@ -1,17 +1,11 @@
 import { memo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { setTableShape, setAutoplay } from '../../../redux/slices/preferences';
+import { setAutoplay } from '../../../redux/slices/preferences';
 import { colors, fonts, panelStyle, spacing } from '../../../styles/theme';
-
-const SHAPES = [
-  { key: 'rectangular', label: 'Rectangular' },
-  { key: 'elliptical', label: 'Elliptical' },
-];
 
 export default memo(function InGameSettings({ visible, onClose }) {
   const dispatch = useDispatch();
-  const tableShape = useSelector((s) => s.preferences.tableShape);
   const autoplay = useSelector((s) => s.preferences.autoplay);
 
   return (
@@ -19,24 +13,6 @@ export default memo(function InGameSettings({ visible, onClose }) {
       <Pressable style={styles.backdrop} onPress={onClose}>
         <View style={styles.panel} onStartShouldSetResponder={() => true}>
           <Text style={styles.title}>Settings</Text>
-
-          <Text style={styles.sectionLabel}>Table Shape</Text>
-          <View style={styles.optionRow}>
-            {SHAPES.map(({ key, label }) => {
-              const active = tableShape === key;
-              return (
-                <Pressable
-                  key={key}
-                  style={[styles.optionBtn, active && styles.optionBtnActive]}
-                  onPress={() => dispatch(setTableShape(key))}
-                >
-                  <Text style={[styles.optionText, active && styles.optionTextActive]}>
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
 
           <Text style={styles.sectionLabel}>Auto-Play</Text>
           <View style={styles.optionRow}>

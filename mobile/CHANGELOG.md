@@ -1,5 +1,16 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.4 — 2026-04-17
+
+### Changed
+- **App background**: switched to `background_soft.png` for all screens; active game screen retains `background_textured.png`; game lobby also uses `background_soft.png`. Added `variant` prop to `AppBackground` (`'soft'` | `'textured'`).
+- **App icon**: updated launcher icon to `52_Patta_Icon.png`; loading screen (phase 2) logo changed to `52_Patta_Icon_Suits.png` with a single gold glow blink animation on entry.
+- **Loading screen progress bar**: moved to bottom edge (15px margin), end-to-end width, height doubled to 12px. Added animated 0–100% label — white, bold (900 weight), 21px, black text shadow — centred on the bar and rendered above it.
+- **Table shape**: removed rectangular table option; elliptical is now the only layout. Removed table shape toggle from in-game settings and cleaned up all conditional logic in `CircularTable`, `PlayArea`, `GameBoard`, and `preferences` slice.
+- **Play table gold glow**: added gold shadow halo (`shadowRadius: 22`) beneath the elliptical felt table via a hidden glow layer in `CircularTable`.
+- **Mendikot HUD pill**: border width increased to 3px; shadow/glow removed.
+- **Trump placeholder**: when trump is not yet revealed, the table center shows `52_Patta_Icon_Suits_shadow.png` as a dark watermark (`tintColor: '#000'`, `opacity: 0.2`, 156×156) instead of being blank.
+
 ## 1.1.3 — 2026-04-16
 
 ### Changed
