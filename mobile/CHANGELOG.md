@@ -1,5 +1,21 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.2 — 2026-04-16
+
+### Changed
+- **Trump reveal announcement**: removed `TrumpRevealedSplash` full-screen modal overlay. The revealed card now floats above the table centre and the "{playerName} requested to reveal trump" message sits below the table centre, both visible for 3 seconds. Deleted orphaned `RevealTrumpPrompt.js`.
+- **Mendikot HUD layout**: removed A vs B trick count from the pill. Team scores now flank the pill — Team A left, Team B right. Each side shows a card-back with a coloured circular trick-count badge, plus stacked tens cards (20% peek per card). Trump chip now shows suit symbol + rank (e.g. ♠K, ♦7) once revealed.
+- **Server**: removed redundant `|| null` fallback on `closed_trump_card` in `revealTrump` socket handler — card is always set during the pick phase.
+
+## 1.1.1 — 2026-04-16
+
+### Changed
+- **Hidden trump positioning**: `ClosedTrumpDisplay` is now anchored to the trump holder's seat on the circular table instead of a fixed top-right overlay. The card is rotated so its head faces the table centre and straddles the avatar edge 50 % inside / 50 % outside.
+- **Hidden trump reveal UX**: removed the modal `RevealTrumpPrompt` dialog. When eligible to reveal, the hidden card bounces softly toward the table centre to signal interactivity. The player can tap either the hidden card or the holder's avatar to reveal, or simply play a card as usual.
+- **`CircularTable`**: added `overlayContent` prop — a callback receiving `{ seatPositionMap, geo }` rendered as absolutely-positioned children directly inside the table wrapper.
+- **`PlayerSeat`**: added `onPress` prop; wraps the seat in a `Pressable` when provided (used for the trump-holder avatar tap-to-reveal interaction).
+- **Trump revealed splash** (`TrumpRevealedSplash`): when any player reveals the hidden trump, the card disappears from under the avatar and a full-screen overlay appears for 3 seconds showing the revealed card (4× play-card size) above the "X requested to reveal trump" message. The existing `TrumpRevealRequestAnnouncement` toast is suppressed while the splash is visible.
+
 ## 1.1.0 — 2026-04-12
 
 ### Added — Mendikot game mode

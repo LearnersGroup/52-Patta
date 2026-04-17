@@ -41,7 +41,10 @@ module.exports = wrapHandler('user-leave-room', async (socket, io, data, callbac
 
         await Game.findOneAndUpdate(
             { _id: game.id },
-            { players: updatedPlayers }
+            {
+                $set: { players: updatedPlayers },
+                $pull: { team_a_players: socket.user.id, team_b_players: socket.user.id },
+            }
         );
 
         await socket.leave(game.roomname);

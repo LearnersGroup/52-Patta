@@ -235,6 +235,16 @@ const gameSlice = createSlice({
         updateNextRoundReady: (state, action) => {
             state.nextRoundReady = action.payload;
         },
+        applyMendikotTeamUpdate: (state, action) => {
+            const data = action.payload || {};
+            if (data.team_a_players !== undefined) {
+                state.teams = {
+                    ...state.teams,
+                    A: data.team_a_players.map((id) => id?._id?.toString?.() || id?.toString?.()),
+                    B: (data.team_b_players || []).map((id) => id?._id?.toString?.() || id?.toString?.()),
+                };
+            }
+        },
         applyMendikotTrumpRevealed: (state, action) => {
             const data = action.payload || {};
             const revealCard =
@@ -273,6 +283,7 @@ export const {
     setPlayerAvatars,
     toggleHandSort,
     updateNextRoundReady,
+    applyMendikotTeamUpdate,
     applyMendikotTrumpRevealed,
     setGameError,
     clearGameError,

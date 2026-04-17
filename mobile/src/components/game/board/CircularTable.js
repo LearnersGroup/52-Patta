@@ -33,7 +33,7 @@ function rectPerimeterPoint(angle, halfW, halfH) {
   return { x: cosA * scale, y: sinA * scale };
 }
 
-export default function CircularTable({ players = [], tableShape = 'rectangular', centerContent }) {
+export default function CircularTable({ players = [], tableShape = 'rectangular', centerContent, overlayContent }) {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
   const myIndex = useMemo(() => {
@@ -129,6 +129,11 @@ export default function CircularTable({ players = [], tableShape = 'rectangular'
           geo.tableBorderRadius,
         ]} />
 
+        {/* Under-seat overlay — rendered before seats so avatars appear on top */}
+        {typeof overlayContent === 'function'
+          ? overlayContent({ seatPositionMap, geo })
+          : overlayContent}
+
         {/* Seats — absolutely positioned on the table border */}
         {players.map((player, i) => {
           const pos = seatPositions[i];
@@ -166,6 +171,7 @@ export default function CircularTable({ players = [], tableShape = 'rectangular'
             ? centerContent({ seatPositionMap, tableSize: geo.tableW })
             : centerContent}
         </View>
+
       </View>
     </View>
   );

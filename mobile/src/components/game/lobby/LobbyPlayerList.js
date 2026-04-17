@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   buttonStyles,
@@ -26,7 +26,31 @@ function getPlayerId(player) {
   return player?.playerId?._id?.toString?.() || player?.playerId?.toString?.() || '';
 }
 
-function PlayerGrid({ players, isAdmin, userId, onKickTarget }) {
+const PlayerCell = memo(function PlayerCell({ pid, name, ready, avatar, canTap, cellWidth, onKickTarget, teamColor }) {
+  return (
+    <Pressable
+      style={[styles.cell, cellWidth ? { width: cellWidth } : null]}
+      onPress={() => canTap && onKickTarget({ pid, name })}
+    >
+      <View style={[
+          styles.avatarRing,
+          ready ? styles.avatarRingReady : styles.avatarRingIdle,
+          ready && teamColor ? { borderColor: teamColor, shadowColor: teamColor } : null,
+        ]}>
+        <View style={[styles.avatarInner, teamColor ? { backgroundColor: teamColor } : null]}>
+          {avatar ? (
+            <AvatarImage uri={avatar} width="100%" height="100%" />
+          ) : (
+            <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
+          )}
+        </View>
+      </View>
+      <Text numberOfLines={1} style={styles.name}>{name}</Text>
+    </Pressable>
+  );
+});
+
+const PlayerGrid = memo(function PlayerGrid({ players, isAdmin, userId, onKickTarget, teamColor }) {
   const [width, setWidth] = useState(0);
   const COL_GAP   = spacing.sm;
   const cellWidth = width > 0 ? (width - COL_GAP * 2) / 3 : undefined;
@@ -44,27 +68,51 @@ function PlayerGrid({ players, isAdmin, userId, onKickTarget }) {
         const canTap = isAdmin && pid && pid !== userId;
 
         return (
-          <Pressable
-            key={`${pid || name}_${idx}`}
-            style={[styles.cell, cellWidth ? { width: cellWidth } : null]}
-            onPress={() => canTap && onKickTarget({ pid, name })}
-          >
-            <View style={[styles.avatarRing, ready ? styles.avatarRingReady : styles.avatarRingIdle]}>
-              <View style={styles.avatarInner}>
-                {avatar ? (
-                  <AvatarImage uri={avatar} width="100%" height="100%" />
-                ) : (
-                  <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
-                )}
-              </View>
-            </View>
-            <Text numberOfLines={1} style={styles.name}>{name}</Text>
-          </Pressable>
+          <PlayerCell
+            key={pid || `${name}_${idx}`}
+            pid={pid}
+            name={name}
+            ready={ready}
+            avatar={avatar}
+            canTap={canTap}
+            cellWidth={cellWidth}
+            onKickTarget={onKickTarget}
+            teamColor={teamColor}
+          />
         );
       })}
     </View>
   );
-}
+});
+
+const TeamSection = memo(function TeamSection({
+  team, teamPlayers, sectionStyle, color,
+  myTeam, iAmReady, isAdmin, userId, onSwitchTeam, onKickTarget,
+}) {
+  const isOpponent = myTeam !== null && myTeam !== team;
+  const canSwitch = isOpponent && !iAmReady;
+  const Container = canSwitch ? Pressable : View;
+  return (
+    <Container
+      style={[styles.teamSection, sectionStyle, canSwitch && styles.teamSectionTappable]}
+      onPress={canSwitch ? onSwitchTeam : undefined}
+    >
+      <View style={styles.teamHalfHeader}>
+        <View style={[styles.teamDot, { backgroundColor: color }]} />
+        <Text style={[styles.teamLabel, { color }]}>Team {team}</Text>
+        <Text style={styles.teamCount}>({teamPlayers.length})</Text>
+        {canSwitch ? <Text style={styles.joinHint}>tap to join</Text> : null}
+      </View>
+      <PlayerGrid
+        players={teamPlayers}
+        isAdmin={isAdmin}
+        userId={userId}
+        onKickTarget={onKickTarget}
+        teamColor={color}
+      />
+    </Container>
+  );
+});
 
 const LobbyPlayerList = memo(function LobbyPlayerList({
   players = [],
@@ -87,11 +135,19 @@ const LobbyPlayerList = memo(function LobbyPlayerList({
     ? ((isMendikot ? gridWidth - TEAM_PAD_H : gridWidth) - COL_GAP * 2) / 3
     : undefined;
 
-  const getTeamPlayers = (ids) =>
-    (ids || []).map((id) => {
+  const teamAPlayers = useMemo(() =>
+    (teamAIds || []).flatMap((id) => {
       const found = players.find((p) => getPlayerId(p) === id);
-      return found || { playerId: { _id: id, name: id?.slice(0, 8) || '?' }, ready: false };
-    });
+      return found ? [found] : [];
+    }),
+  [teamAIds, players]);
+
+  const teamBPlayers = useMemo(() =>
+    (teamBIds || []).flatMap((id) => {
+      const found = players.find((p) => getPlayerId(p) === id);
+      return found ? [found] : [];
+    }),
+  [teamBIds, players]);
 
   const myTeam = isMendikot
     ? (teamAIds || []).includes(userId) ? 'A' : (teamBIds || []).includes(userId) ? 'B' : null
@@ -105,40 +161,36 @@ const LobbyPlayerList = memo(function LobbyPlayerList({
     return <Text style={styles.emptyText}>Waiting for players to join...</Text>;
   }
 
-  const TeamSection = ({ team, ids, sectionStyle, color }) => {
-    const isOpponent = myTeam !== null && myTeam !== team;
-    const canSwitch = isOpponent && !iAmReady;
-    const Container = canSwitch ? Pressable : View;
-    return (
-      <Container
-        style={[styles.teamSection, sectionStyle, canSwitch && styles.teamSectionTappable]}
-        onPress={canSwitch ? () => onSwitchTeam?.() : undefined}
-      >
-        <View style={styles.teamHalfHeader}>
-          <View style={[styles.teamDot, { backgroundColor: color }]} />
-          <Text style={[styles.teamLabel, { color }]}>Team {team}</Text>
-          <Text style={styles.teamCount}>({getTeamPlayers(ids).length})</Text>
-          {canSwitch ? <Text style={styles.joinHint}>tap to join</Text> : null}
-        </View>
-        <PlayerGrid
-          players={getTeamPlayers(ids)}
-          isAdmin={isAdmin}
-          userId={userId}
-          cellWidth={cellWidth}
-          onKickTarget={setKickTarget}
-        />
-      </Container>
-    );
-  };
-
   return (
     <>
       <View onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
         {isMendikot ? (
           /* ── Team split layout ─────────────────────────────────────────── */
           <View style={styles.teamSplit}>
-            <TeamSection team="A" ids={teamAIds} sectionStyle={styles.teamSectionA} color={TEAM_A_COLOR} />
-            <TeamSection team="B" ids={teamBIds} sectionStyle={styles.teamSectionB} color={TEAM_B_COLOR} />
+            <TeamSection
+              team="A"
+              teamPlayers={teamAPlayers}
+              sectionStyle={styles.teamSectionA}
+              color={TEAM_A_COLOR}
+              myTeam={myTeam}
+              iAmReady={iAmReady}
+              isAdmin={isAdmin}
+              userId={userId}
+              onSwitchTeam={onSwitchTeam}
+              onKickTarget={setKickTarget}
+            />
+            <TeamSection
+              team="B"
+              teamPlayers={teamBPlayers}
+              sectionStyle={styles.teamSectionB}
+              color={TEAM_B_COLOR}
+              myTeam={myTeam}
+              iAmReady={iAmReady}
+              isAdmin={isAdmin}
+              userId={userId}
+              onSwitchTeam={onSwitchTeam}
+              onKickTarget={setKickTarget}
+            />
           </View>
         ) : (
           /* ── Standard single grid ──────────────────────────────────────── */
@@ -146,11 +198,9 @@ const LobbyPlayerList = memo(function LobbyPlayerList({
             players={players}
             isAdmin={isAdmin}
             userId={userId}
-            cellWidth={cellWidth}
             onKickTarget={setKickTarget}
           />
         )}
-
       </View>
 
       {/* ── Kick confirmation modal ── */}

@@ -1,5 +1,5 @@
 import { memo, useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -30,6 +30,7 @@ const PlayerSeat = memo(function PlayerSeat({
   jdgStatus = null,
   relation = null,
   mendikotTeam = null, // 'team-a' | 'team-b' | null
+  onPress = null,      // tap handler (e.g. reveal hidden trump)
 }) {
   const glowOpacity = useSharedValue(0);
 
@@ -74,10 +75,10 @@ const PlayerSeat = memo(function PlayerSeat({
       : baseColor,
   }));
 
-  return (
-    <View style={styles.wrap}>
+  const inner = (
+    <>
       <Animated.View style={[styles.avatarRing, ringStyle]}>
-        <View style={styles.avatarInner}>
+        <View style={[styles.avatarInner, mendikotTeam ? { backgroundColor: baseColor } : null]}>
           {avatar ? (
             <AvatarImage uri={avatar} width="100%" height="100%" />
           ) : (
@@ -128,8 +129,18 @@ const PlayerSeat = memo(function PlayerSeat({
           </Text>
         </View>
       ) : null}
-    </View>
+    </>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={styles.wrap} hitSlop={10}>
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return <View style={styles.wrap}>{inner}</View>;
 });
 
 export default PlayerSeat;

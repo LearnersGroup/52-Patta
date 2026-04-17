@@ -55,5 +55,4 @@ module.exports = wrapHandler("user-switch-team", async (socket, io, data, callba
         team_a_players: refreshed?.team_a_players || [],
         team_b_players: refreshed?.team_b_players || [],
     });
-    io.to(game.roomname).emit("fetch-users-in-room");
 });

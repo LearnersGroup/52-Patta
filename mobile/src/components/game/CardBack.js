@@ -17,9 +17,10 @@ const CARD_BACK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" height="336" pres
  */
 export default function CardBack({ width = cardTokens.sizes.hand.width }) {
   const height = Math.round(width * cardTokens.ratio);
+  const borderRadius = Math.round(cardTokens.borderRadius * width / cardTokens.sizes.hand.width);
 
   return (
-    <View style={[styles.card, cardTokens.backShadow, { width, height }]}>
+    <View style={[styles.card, cardTokens.backShadow, { width, height, borderRadius }]}>
       <SvgXml xml={CARD_BACK_SVG} width={width} height={height} />
     </View>
   );

@@ -73,6 +73,20 @@ export default function LobbyView({
 
   const iAmReady = !!me?.ready;
 
+  const teamAIds = useMemo(() =>
+    gameType === 'mendikot'
+      ? (roomData?.team_a_players || []).map((id) => id?._id?.toString?.() || id?.toString?.())
+      : null,
+  [gameType, roomData?.team_a_players]);
+
+  const teamBIds = useMemo(() =>
+    gameType === 'mendikot'
+      ? (roomData?.team_b_players || []).map((id) => id?._id?.toString?.() || id?.toString?.())
+      : null,
+  [gameType, roomData?.team_b_players]);
+
+  const onSwitchTeam = useMemo(() => () => WsUserSwitchTeam(), []);
+
   // ── computed info row ──────────────────────────────────────────────────────
   const gameInfo = useMemo(() => {
     const totalCards   = 52 * deckCount - ((52 * deckCount) % requiredPlayers);
@@ -218,13 +232,9 @@ export default function LobbyView({
           isAdmin={isAdmin}
           userId={userId}
           onKick={kickPlayer}
-          teamAIds={gameType === 'mendikot'
-            ? (roomData?.team_a_players || []).map((id) => id?._id?.toString?.() || id?.toString?.())
-            : null}
-          teamBIds={gameType === 'mendikot'
-            ? (roomData?.team_b_players || []).map((id) => id?._id?.toString?.() || id?.toString?.())
-            : null}
-          onSwitchTeam={() => WsUserSwitchTeam()}
+          teamAIds={teamAIds}
+          teamBIds={teamBIds}
+          onSwitchTeam={onSwitchTeam}
         />
       </View>
 
