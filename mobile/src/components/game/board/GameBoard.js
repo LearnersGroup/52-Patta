@@ -1,5 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+const trumpPlaceholderImg = require('../../../../assets/Icons/52_Patta_Icon_Suits_shadow.png');
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -259,7 +261,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const currentRoundNumber   = useSelector((s) => s.game.currentRoundNumber);
   const totalRounds          = useSelector((s) => s.game.totalRounds);
 
-  const tableShape = useSelector((state) => state.preferences.tableShape);
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -749,7 +750,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
         {showTable ? (
           <CircularTable
             players={tablePlayers}
-            tableShape={tableShape}
             overlayContent={({ seatPositionMap }) => {
               if (!isMendikot || !closedTrumpPlaceholder || phase !== 'playing' || closedTrumpRevealed) return null;
               const holderSeatPos = seatPositionMap[closedTrumpHolderId];
@@ -863,7 +863,13 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     ]}>
                       {suitSymbol(activeTrump)}
                     </Text>
-                  ) : null}
+                  ) : (
+                    <Image
+                      source={trumpPlaceholderImg}
+                      style={styles.trumpPlaceholder}
+                      resizeMode="contain"
+                    />
+                  )}
                   <PlayArea
                     plays={currentTrick?.plays || []}
                     tricks={tricks || []}
@@ -871,7 +877,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     tableSize={tableSize}
                     getName={getName}
                     trumpSuit={activeTrump}
-                    tableShape={tableShape}
                   />
                 </View>
               );
@@ -1075,6 +1080,13 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  trumpPlaceholder: {
+    position: 'absolute',
+    width: 156,
+    height: 156,
+    tintColor: '#000',
+    opacity: 0.2,
   },
   trumpWatermark: {
     position: 'absolute',
