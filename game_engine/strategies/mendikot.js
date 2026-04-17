@@ -238,6 +238,10 @@ function onRoundEnd(io, gameState, newState) {
             ...result,
             tricks_by_team: { ...(newState.tricks_by_team || {}) },
             tens_by_team: { ...(newState.tens_by_team || {}) },
+            tens_cards_by_team: {
+                A: [...(newState.tens_cards_by_team?.A || [])],
+                B: [...(newState.tens_cards_by_team?.B || [])],
+            },
             first_to_n_tricks: newState.first_to_n_tricks || null,
         },
     ];

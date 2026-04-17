@@ -1,5 +1,10 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.3 — 2026-04-16
+
+### Changed
+- **Mendikot HUD menu**: replaced the inline scoreboard toggle (⊞) and admin quit (✕) buttons in the HUD pill with a single hamburger (☰) button. Tapping it opens a modal overlay with a round-history scoreboard table showing round #, Team A (tricks badge + tens count), Team B (tricks badge + tens count), and Result columns. Winning team's row has a faint team-colour background; the winning team's column is more opaque, the losing team's column is slightly transparent. Result shows "win by" in small text above the win type. Admin players see an END button (top-left of modal) and all players see an X close button (top-right); tapping outside the modal also closes it.
+
 ## 1.1.2 — 2026-04-16
 
 ### Changed

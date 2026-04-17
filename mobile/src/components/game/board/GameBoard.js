@@ -614,7 +614,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
         pendingTrumpReveal &&
         userId === currentTrick?.currentTurn;
       const holderOnPress =
-        canRevealNow && pid === closedTrumpHolderId ? () => WsRevealTrump() : null;
+        canRevealNow && !isMe && pid === closedTrumpHolderId ? () => WsRevealTrump() :
+        isMe ? () => setShowSettings(true) : null;
 
       return {
         id: pid,
