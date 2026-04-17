@@ -28,6 +28,7 @@ export default function CardFace({
   disabled = false,
   selected = false,
   playable = false,
+  square   = false,
 }) {
   const key    = card ? card.suit + (RANK_MAP[card.rank] ?? card.rank) : null;
   const xml    = key ? CARD_SVGS[key] : null;
@@ -41,6 +42,7 @@ export default function CardFace({
         styles.card,
         cardTokens.faceShadow,
         { width, height },
+        square                  && styles.cardSquare,
         playable                && styles.cardPlayable,
         selected && playable    && styles.cardPlayableActive,
         disabled                && styles.cardDisabled,
@@ -56,6 +58,10 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: cardTokens.borderRadius,
     overflow: 'hidden',
+  },
+  cardSquare: {
+    borderRadius: 0,
+    overflow: 'visible',
   },
   cardPlayable: {
     borderWidth: 2,

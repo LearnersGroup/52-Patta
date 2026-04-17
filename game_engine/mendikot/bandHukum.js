@@ -91,6 +91,7 @@ function revealTrump(state, askerId) {
         playOrder: state.currentTrick?.plays?.length || 0,
     };
     state.trump_asker_id = askerId;
+    state.pending_trump_reveal_decision = null;
 
     return { state };
 }
@@ -118,6 +119,7 @@ function autoRevealIfNeeded(state, currentTrickIndex, upcomingPlayerId) {
         playOrder: state.currentTrick?.plays?.length || 0,
     };
     state.trump_asker_id = null;
+    state.pending_trump_reveal_decision = null;
     return true;
 }
 

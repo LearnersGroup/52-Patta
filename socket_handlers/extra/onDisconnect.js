@@ -79,7 +79,10 @@ module.exports = (socket, io) => async () => {
                 );
                 await Game.findOneAndUpdate(
                     { _id: freshGame._id },
-                    { players: updatedPlayers }
+                    {
+                        $set: { players: updatedPlayers },
+                        $pull: { team_a_players: playerId, team_b_players: playerId },
+                    }
                 );
                 io.to(freshGame.roomname).emit("fetch-users-in-room");
             } catch (err) {

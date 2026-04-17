@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { WsUserCreateRoom } from "../../api/wsEmitters";
 import { socket } from "../../socket";
 import { useAuth } from "../hooks/useAuth";
 import RoomConfigForm from "./RoomConfigForm";
@@ -11,6 +10,7 @@ const CreateGamePage = () => {
     const roomName = `${user?.user_name || "Player"}'s Room`;
 
     const [errors, setErrors] = useState([]);
+    const [creating, setCreating] = useState(false);
     const [gameType, setGameType] = useState("kaliteri");
     const [playerCount, setPlayerCount] = useState(4);
     const [deckCount, setDeckCount] = useState(1);
@@ -67,12 +67,12 @@ const CreateGamePage = () => {
             data.band_hukum_pick_phase = bandHukumPickPhase;
         }
 
-        try {
-            WsUserCreateRoom(data);
-        } catch (error) {
-            console.log(error);
-            setErrors(error.errors || []);
-        }
+        setErrors([]);
+        setCreating(true);
+        socket.emit("user-create-room", data, (err) => {
+            setCreating(false);
+            if (err) setErrors([{ msg: String(err) }]);
+        });
     };
 
     return (
@@ -137,8 +137,8 @@ const CreateGamePage = () => {
                         <button className="btn-secondary" onClick={() => navigate("/")}>
                             Back
                         </button>
-                        <button className="btn-primary" onClick={handleCreateRoom}>
-                            Create Room
+                        <button className="btn-primary" onClick={handleCreateRoom} disabled={creating}>
+                            {creating ? "Creating…" : "Create Room"}
                         </button>
                     </div>
                 </div>

@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Image } from 'react-native';
 import { SvgUri } from 'react-native-svg';
 
@@ -24,21 +25,39 @@ const isSvgUri = (uri) =>
     uri.includes('/svg')                  // DiceBear: .../avataaars/svg?seed=...
   );
 
-const AvatarImage = ({ uri, width = '100%', height = '100%' }) => {
+const isDiceBear = (uri) =>
+  typeof uri === 'string' && uri.includes('dicebear.com');
+
+// Inject a backgroundColor into a DiceBear SVG URL (hex without #).
+const withBackground = (uri, hex) => {
+  if (!hex || !isDiceBear(uri)) return uri;
+  try {
+    const url = new URL(uri);
+    url.searchParams.set('backgroundColor', hex.replace('#', ''));
+    return url.toString();
+  } catch {
+    return uri;
+  }
+};
+
+const AvatarImage = memo(({ uri, width = '100%', height = '100%', teamColor = null }) => {
   if (!uri) return null;
 
-  if (isSvgUri(uri)) {
-    return <SvgUri uri={uri} width={width} height={height} />;
+  const resolvedUri = teamColor ? withBackground(uri, teamColor) : uri;
+
+  if (isSvgUri(resolvedUri)) {
+    return <SvgUri uri={resolvedUri} width={width} height={height} />;
   }
 
   // Regular image (Gravatar, Google/Facebook OAuth avatar, etc.)
   return (
     <Image
-      source={{ uri }}
+      source={{ uri: resolvedUri }}
       style={{ width, height }}
       resizeMode="cover"
     />
   );
-};
+});
 
+AvatarImage.displayName = 'AvatarImage';
 export default AvatarImage;

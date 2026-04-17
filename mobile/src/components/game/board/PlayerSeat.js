@@ -1,5 +1,5 @@
 import { memo, useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -30,6 +30,7 @@ const PlayerSeat = memo(function PlayerSeat({
   jdgStatus = null,
   relation = null,
   mendikotTeam = null, // 'team-a' | 'team-b' | null
+  onPress = null,      // tap handler (e.g. reveal hidden trump)
 }) {
   const glowOpacity = useSharedValue(0);
 
@@ -53,6 +54,13 @@ const PlayerSeat = memo(function PlayerSeat({
     team === 'oppose' ? colors.redSuit :
     colors.borderGold;
 
+  const mendikotNameStyle =
+    mendikotTeam === 'team-a'
+      ? styles.nameTeamA
+      : mendikotTeam === 'team-b'
+      ? styles.nameTeamB
+      : null;
+
   // Active turn: full-width ring + pulsing glow in ring color
   // Inactive: half-width ring, no glow
   const ringStyle = useAnimatedStyle(() => ({
@@ -67,10 +75,10 @@ const PlayerSeat = memo(function PlayerSeat({
       : baseColor,
   }));
 
-  return (
-    <View style={styles.wrap}>
+  const inner = (
+    <>
       <Animated.View style={[styles.avatarRing, ringStyle]}>
-        <View style={styles.avatarInner}>
+        <View style={[styles.avatarInner, mendikotTeam ? { backgroundColor: baseColor } : null]}>
           {avatar ? (
             <AvatarImage uri={avatar} width="100%" height="100%" />
           ) : (
@@ -93,7 +101,7 @@ const PlayerSeat = memo(function PlayerSeat({
         ) : null}
       </Animated.View>
 
-      <Text numberOfLines={1} style={styles.name}>{name || 'Player'}</Text>
+      <Text numberOfLines={1} style={[styles.name, mendikotNameStyle]}>{name || 'Player'}</Text>
 
       {/* ── Relation badge ── */}
       {relation === 'partner' ? (
@@ -121,8 +129,18 @@ const PlayerSeat = memo(function PlayerSeat({
           </Text>
         </View>
       ) : null}
-    </View>
+    </>
   );
+
+  if (onPress) {
+    return (
+      <Pressable onPress={onPress} style={styles.wrap} hitSlop={10}>
+        {inner}
+      </Pressable>
+    );
+  }
+
+  return <View style={styles.wrap}>{inner}</View>;
 });
 
 export default PlayerSeat;
@@ -226,6 +244,14 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  nameTeamA: {
+    color: MENDIKOT_TEAM_A_COLOR,
+    fontWeight: '700',
+  },
+  nameTeamB: {
+    color: MENDIKOT_TEAM_B_COLOR,
+    fontWeight: '700',
   },
 
   // ── Relation badges ─────────────────────────────────────────────────────

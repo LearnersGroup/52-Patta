@@ -6,6 +6,9 @@ const wrapHandler = require('../wrapHandler');
 module.exports = wrapHandler('game-request-state', async (socket, io, data, callback) => {
         const { gameState, error } = await findGameForSocket(socket);
         if (error) {
+            // Silently ignore if there's no active game yet (e.g. player just
+            // entered a lobby — game state only exists after the game starts).
+            if (error === 'No active game found') return;
             if (callback) callback(error);
             return;
         }

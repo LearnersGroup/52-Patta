@@ -1,5 +1,26 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.3 — 2026-04-16
+
+### Changed
+- **Mendikot HUD menu**: replaced the inline scoreboard toggle (⊞) and admin quit (✕) buttons in the HUD pill with a single hamburger (☰) button. Tapping it opens a modal overlay with a round-history scoreboard table showing round #, Team A (tricks badge + tens count), Team B (tricks badge + tens count), and Result columns. Winning team's row has a faint team-colour background; the winning team's column is more opaque, the losing team's column is slightly transparent. Result shows "win by" in small text above the win type. Admin players see an END button (top-left of modal) and all players see an X close button (top-right); tapping outside the modal also closes it.
+
+## 1.1.2 — 2026-04-16
+
+### Changed
+- **Trump reveal announcement**: removed `TrumpRevealedSplash` full-screen modal overlay. The revealed card now floats above the table centre and the "{playerName} requested to reveal trump" message sits below the table centre, both visible for 3 seconds. Deleted orphaned `RevealTrumpPrompt.js`.
+- **Mendikot HUD layout**: removed A vs B trick count from the pill. Team scores now flank the pill — Team A left, Team B right. Each side shows a card-back with a coloured circular trick-count badge, plus stacked tens cards (20% peek per card). Trump chip now shows suit symbol + rank (e.g. ♠K, ♦7) once revealed.
+- **Server**: removed redundant `|| null` fallback on `closed_trump_card` in `revealTrump` socket handler — card is always set during the pick phase.
+
+## 1.1.1 — 2026-04-16
+
+### Changed
+- **Hidden trump positioning**: `ClosedTrumpDisplay` is now anchored to the trump holder's seat on the circular table instead of a fixed top-right overlay. The card is rotated so its head faces the table centre and straddles the avatar edge 50 % inside / 50 % outside.
+- **Hidden trump reveal UX**: removed the modal `RevealTrumpPrompt` dialog. When eligible to reveal, the hidden card bounces softly toward the table centre to signal interactivity. The player can tap either the hidden card or the holder's avatar to reveal, or simply play a card as usual.
+- **`CircularTable`**: added `overlayContent` prop — a callback receiving `{ seatPositionMap, geo }` rendered as absolutely-positioned children directly inside the table wrapper.
+- **`PlayerSeat`**: added `onPress` prop; wraps the seat in a `Pressable` when provided (used for the trump-holder avatar tap-to-reveal interaction).
+- **Trump revealed splash** (`TrumpRevealedSplash`): when any player reveals the hidden trump, the card disappears from under the avatar and a full-screen overlay appears for 3 seconds showing the revealed card (4× play-card size) above the "X requested to reveal trump" message. The existing `TrumpRevealRequestAnnouncement` toast is suppressed while the splash is visible.
+
 ## 1.1.0 — 2026-04-12
 
 ### Added — Mendikot game mode
@@ -17,6 +38,8 @@
 - **Socket listeners**: `mendikot-team-update`, `mendikot-trump-revealed`; `band-hukum-pick` phase label
 
 ### Fixed
+- **`game-request-state` error on room entry**: entering a lobby emitted `WsRequestGameState()` which the server rejected with "No active game found" (game state only exists after a game starts). Server now silently ignores this case instead of calling the error callback, preventing the noisy console error on every room entry.
+- **Mendikot trump mode ignored on room creation**: `new.js` was sending `mendikot_trump_mode` in the create-room payload but the server destructures `trump_mode`, so the selection was silently discarded and Band Hukum was always forced. Key corrected to `trump_mode`.
 - **Avatar crash on login for email/OAuth accounts**: `SvgUri` was used for all avatar rendering, but Gravatar URLs (assigned to email sign-up accounts) and Google/Facebook OAuth profile picture URLs return JPEG — not SVG. Passing a JPEG URL to `SvgUri` crashes with `Cannot read property 'length' of undefined` inside the SVG XML parser. Created a shared `AvatarImage` component that detects whether the URI is SVG (`data:image/svg+xml` data URI or a URL containing `/svg`) and picks `SvgUri` vs React Native `Image` accordingly. All 6 avatar render sites updated: `HomeScreen`, `Profile`, `PlayerSeat`, `LobbyPlayerList`, `SeriesFinishedPanel` (×2).
 - **Judgement bidding: dealer trapped at 1**: when the dealer's forbidden bid was 0, the `JudgementBiddingPanel` useEffect re-ran on every `amount` change and force-reset the selection back to `1`, making it impossible to bid 2/3/4/5. The effect now only runs on turn/forbidden transitions; `+`/`-` freely move across 0–N and the submit button disables when the current selection is the forbidden value.
 

@@ -32,9 +32,10 @@ import TeamScoreHUD from './TeamScoreHUD';
 import InGameSettings from './InGameSettings';
 import TrumpAnnouncePanel from './TrumpAnnouncePanel';
 import ClosedTrumpDisplay from '../ClosedTrumpDisplay';
-import RevealTrumpPrompt from '../RevealTrumpPrompt';
 
 const INTENDED_W = Math.round(cardTokens.sizes.play.width * 0.8);  // 20% smaller
+const MENDIKOT_TEAM_A_COLOR = '#38bdf8';
+const MENDIKOT_TEAM_B_COLOR = '#f472b6';
 
 const IntendedCardSlot = memo(function IntendedCardSlot({ card, shouldBounce, onPress }) {
   const bounce = useSharedValue(0);
@@ -128,6 +129,80 @@ const RevealAnnouncement = memo(function RevealAnnouncement({ playerName, bidder
   );
 });
 
+const TrumpRevealRequestAnnouncement = memo(function TrumpRevealRequestAnnouncement({ playerName, playerColor, card }) {
+  return (
+    <>
+      {card ? (
+        <View style={styles.trumpRevealCardAboveTable}>
+          <TrumpRevealCard card={card} width={80} />
+        </View>
+      ) : null}
+      <View style={[styles.revealToast, styles.trumpRevealToast]}>
+        <Text style={styles.revealText}>
+          <Text style={[styles.revealPlayer, playerColor ? { color: playerColor } : null]}>{playerName}</Text>
+          {' requested to reveal trump'}
+        </Text>
+      </View>
+    </>
+  );
+});
+
+const TRUMP_REVEAL_SUITS = new Set(['S', 'H', 'D', 'C']);
+const TRUMP_REVEAL_RANKS = new Set(['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']);
+
+function normalizeTrumpRevealCard(card) {
+  if (!card || typeof card !== 'object') return null;
+
+  const suit = typeof card.suit === 'string' ? card.suit.toUpperCase() : null;
+  let rank = card.rank != null ? String(card.rank).toUpperCase() : null;
+
+  if (rank === '1' || rank === '14') rank = 'A';
+  if (rank === '11') rank = 'J';
+  if (rank === '12') rank = 'Q';
+  if (rank === '13') rank = 'K';
+
+  return {
+    ...card,
+    suit,
+    rank,
+  };
+}
+
+const TrumpRevealCard = memo(function TrumpRevealCard({ card, width }) {
+  const normalizedCard = useMemo(() => normalizeTrumpRevealCard(card), [card]);
+
+  if (!normalizedCard) return null;
+
+  const canRenderSvg = TRUMP_REVEAL_SUITS.has(normalizedCard.suit) && TRUMP_REVEAL_RANKS.has(normalizedCard.rank);
+  if (canRenderSvg) {
+    return <CardFace card={normalizedCard} width={width} />;
+  }
+
+  const cardHeight = Math.round(width * cardTokens.ratio);
+  const redSuit = normalizedCard.suit === 'H' || normalizedCard.suit === 'D';
+  const rankLabel = normalizedCard.rank || '?';
+  const suitLabel = normalizedCard.suit ? suitSymbol(normalizedCard.suit) : '?';
+
+  return (
+    <View style={[styles.revealFallbackCard, { width, height: cardHeight }]}>
+      <Text style={[styles.revealFallbackCorner, redSuit ? styles.revealFallbackRed : null]}>
+        {rankLabel}\n{suitLabel}
+      </Text>
+      <Text style={[styles.revealFallbackCenter, redSuit ? styles.revealFallbackRed : null]}>{suitLabel}</Text>
+      <Text
+        style={[
+          styles.revealFallbackCorner,
+          styles.revealFallbackCornerBottom,
+          redSuit ? styles.revealFallbackRed : null,
+        ]}
+      >
+        {rankLabel}\n{suitLabel}
+      </Text>
+    </View>
+  );
+});
+
+
 export default function GameBoard({ userId, isAdmin = false }) {
   const dispatch = useDispatch();
   const gameType = useSelector((state) => state.game.game_type) || 'kaliteri';
@@ -176,6 +251,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const closedTrumpHolderId  = useSelector((s) => s.game.closed_trump_holder_id);
   const closedTrumpRevealed  = useSelector((s) => s.game.closed_trump_revealed);
   const closedTrumpPlaceholder = useSelector((s) => s.game.closed_trump_placeholder);
+  const closedTrumpCard      = useSelector((s) => s.game.closed_trump_card);
+  const trumpAskerId         = useSelector((s) => s.game.trump_asker_id);
   const pendingTrumpReveal   = useSelector((s) => s.game.pending_trump_reveal_decision);
   const trumpSuitMendikot    = useSelector((s) => s.game.trump_suit);
   const tricksByTeam         = useSelector((s) => s.game.tricks_by_team);
@@ -190,12 +267,15 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
   const [intendedCard, setIntendedCard] = useState(null);
   const [revealAnnouncement, setRevealAnnouncement] = useState(null);
+  const [trumpRevealRequestAnnouncement, setTrumpRevealRequestAnnouncement] = useState(null);
   const [showRoundScore, setShowRoundScore] = useState(false);
   const [roundScoreCountdown, setRoundScoreCountdown] = useState(0);
   const [showSeriesFinished, setShowSeriesFinished] = useState(false);
   const prevPhaseRef = useRef(phase);
   const prevRevealedPartnersRef = useRef(revealedPartners || []);
+  const prevTrumpAskerIdRef = useRef(trumpAskerId || null);
   const revealAnnouncementTimerRef = useRef(null);
+  const trumpRevealRequestTimerRef = useRef(null);
   const roundScoreDelayRef = useRef(null);
   const roundScoreIntervalRef = useRef(null);
 
@@ -244,6 +324,38 @@ export default function GameBoard({ userId, isAdmin = false }) {
   useEffect(() => () => {
     if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
   }, []);
+
+  // ── Mendikot: trump reveal request announcements ───────────────────────
+  useEffect(() => {
+    if (!isMendikot) {
+      prevTrumpAskerIdRef.current = trumpAskerId || null;
+      return;
+    }
+
+    const prevAsker = prevTrumpAskerIdRef.current;
+    const currAsker = trumpAskerId || null;
+
+    if (currAsker && currAsker !== prevAsker) {
+      const askerName = playerNames?.[currAsker] || currAsker?.substring(0, 8) || 'Player';
+      const card = closedTrumpRevealed ? normalizeTrumpRevealCard(closedTrumpCard) : null;
+
+      if (trumpRevealRequestTimerRef.current) {
+        clearTimeout(trumpRevealRequestTimerRef.current);
+      }
+
+      setTrumpRevealRequestAnnouncement({ playerId: currAsker, playerName: askerName, card });
+      trumpRevealRequestTimerRef.current = setTimeout(() => {
+        setTrumpRevealRequestAnnouncement(null);
+      }, 3000);
+    }
+
+    prevTrumpAskerIdRef.current = currAsker;
+  }, [isMendikot, trumpAskerId, playerNames, closedTrumpRevealed, closedTrumpCard]);
+
+  useEffect(() => () => {
+    if (trumpRevealRequestTimerRef.current) clearTimeout(trumpRevealRequestTimerRef.current);
+  }, []);
+
 
   // ── Round scoreboard (both game types: show scores after trick animation) ──
   useEffect(() => {
@@ -467,8 +579,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
       // Mendikot: map team_a/team_b to ring colors (bid→A, oppose→B)
       const mendikotTeamClass = isMendikot ? (
-        teams?.bid?.includes(pid) ? 'team-a' :
-        teams?.oppose?.includes(pid) ? 'team-b' : null
+        (teams?.A || teams?.bid || []).includes(pid) ? 'team-a' :
+        (teams?.B || teams?.oppose || []).includes(pid) ? 'team-b' : null
       ) : null;
 
       // Judgement bid/tricks status chip
@@ -495,6 +607,16 @@ export default function GameBoard({ userId, isAdmin = false }) {
       const isBidder = gameType === 'kaliteri' && leader === pid &&
         (phase === 'playing' || phase === 'powerhouse' || phase === 'series-finished');
 
+      // Mendikot: trump holder's avatar is tappable to reveal when it's the
+      // local player's turn and a reveal decision is pending.
+      const canRevealNow =
+        isMendikot &&
+        pendingTrumpReveal &&
+        userId === currentTrick?.currentTurn;
+      const holderOnPress =
+        canRevealNow && !isMe && pid === closedTrumpHolderId ? () => WsRevealTrump() :
+        isMe ? () => setShowSettings(true) : null;
+
       return {
         id: pid,
         isMe,
@@ -510,11 +632,12 @@ export default function GameBoard({ userId, isAdmin = false }) {
             jdgStatus={jdgStatus}
             relation={relation}
             mendikotTeam={mendikotTeamClass}
+            onPress={holderOnPress}
           />
         ),
       };
     });
-  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon, getRelation, leader, isMendikot]);
+  }, [seatOrder, playerNames, userId, teams, playerAvatars, currentTurn, dealer, phase, gameType, bidding, tricksWon, getRelation, leader, isMendikot, pendingTrumpReveal, currentTrick, closedTrumpHolderId]);
 
   const isMyTurn =
     (phase === 'playing' && Array.isArray(validPlays) && validPlays.length > 0) ||
@@ -583,6 +706,13 @@ export default function GameBoard({ userId, isAdmin = false }) {
       ? `Round ${Number(seriesRoundIndex || 0) + 1}/${totalRoundsInSeries || 1} • Cards ${currentCardsPerRound || 0}`
       : `Round ${currentRound || 0}`;
 
+  const trumpRevealPlayerColor =
+    trumpRevealRequestAnnouncement?.playerId && (teams?.A || teams?.bid || []).includes(trumpRevealRequestAnnouncement.playerId)
+      ? MENDIKOT_TEAM_A_COLOR
+      : trumpRevealRequestAnnouncement?.playerId && (teams?.B || teams?.oppose || []).includes(trumpRevealRequestAnnouncement.playerId)
+      ? MENDIKOT_TEAM_B_COLOR
+      : null;
+
   return (
     <View style={styles.wrap}>
       {/* ── Top rows (HUD) ─────────────────────────────────────────────── */}
@@ -620,16 +750,35 @@ export default function GameBoard({ userId, isAdmin = false }) {
           <CircularTable
             players={tablePlayers}
             tableShape={tableShape}
+            overlayContent={({ seatPositionMap }) => {
+              if (!isMendikot || !closedTrumpPlaceholder || phase !== 'playing' || closedTrumpRevealed) return null;
+              const holderSeatPos = seatPositionMap[closedTrumpHolderId];
+              if (!holderSeatPos) return null;
+              const canReveal =
+                pendingTrumpReveal && userId === currentTrick?.currentTurn;
+              return (
+                <ClosedTrumpDisplay
+                  revealed={closedTrumpRevealed}
+                  card={closedTrumpCard}
+                  seatPos={holderSeatPos}
+                  pendingReveal={canReveal}
+                  onPress={canReveal ? () => WsRevealTrump() : null}
+                />
+              );
+            }}
             centerContent={({ seatPositionMap, tableSize }) => {
               if (phase === 'band-hukum-pick') {
                 const isMyPickTurn = userId === closedTrumpHolderId;
+                const pickerName = getName(closedTrumpHolderId);
                 return (
                   <View style={styles.centerInfo}>
-                    <Text style={styles.centerTitle}>Pick Your Trump</Text>
+                    <Text style={styles.centerTitle}>
+                      {isMyPickTurn ? 'Pick Your Trump' : `Waiting for ${pickerName}`}
+                    </Text>
                     <Text style={styles.centerText}>
                       {isMyPickTurn
                         ? 'Tap a face-down card to set as the hidden trump.'
-                        : `${getName(closedTrumpHolderId)} is picking the hidden trump…`}
+                        : 'to pick the hidden trump'}
                     </Text>
                   </View>
                 );
@@ -800,16 +949,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
         </View>
       ) : null}
 
-      {/* ── Mendikot: closed trump indicator ── */}
-      {isMendikot && closedTrumpPlaceholder && !closedTrumpRevealed && phase === 'playing' ? (
-        <ClosedTrumpDisplay placeholder={closedTrumpPlaceholder} />
-      ) : null}
-
-      {/* ── Mendikot: reveal trump prompt ── */}
-      {isMendikot && pendingTrumpReveal && userId === currentTrick?.currentTurn ? (
-        <RevealTrumpPrompt onReveal={() => WsRevealTrump()} />
-      ) : null}
-
       {/* ── Mendikot: end-of-round/series scoreboard ── */}
       {isMendikot && (phase === 'finished' || phase === 'series-finished') ? (
         <View style={styles.mendikotScoreFull}>
@@ -825,6 +964,14 @@ export default function GameBoard({ userId, isAdmin = false }) {
         <RevealAnnouncement
           playerName={revealAnnouncement.playerName}
           bidderName={revealAnnouncement.bidderName}
+        />
+      ) : null}
+
+      {trumpRevealRequestAnnouncement ? (
+        <TrumpRevealRequestAnnouncement
+          playerName={trumpRevealRequestAnnouncement.playerName}
+          playerColor={trumpRevealPlayerColor}
+          card={trumpRevealRequestAnnouncement.card}
         />
       ) : null}
 
@@ -1005,6 +1152,51 @@ const styles = StyleSheet.create({
   revealBidder: {
     color: colors.goldLight,
     fontWeight: '900',
+  },
+  trumpRevealCardAboveTable: {
+    position: 'absolute',
+    top: '28%',
+    alignSelf: 'center',
+    zIndex: 100,
+  },
+  trumpRevealToast: {
+    top: '62%',
+    borderColor: 'rgba(201,162,39,0.65)',
+    shadowColor: 'rgba(201,162,39,0.45)',
+  },
+  revealFallbackCard: {
+    backgroundColor: '#fffdf8',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'rgba(26, 26, 26, 0.12)',
+    padding: spacing.md,
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.24,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  revealFallbackCorner: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 24,
+    lineHeight: 26,
+    color: '#1a1a1a',
+  },
+  revealFallbackCornerBottom: {
+    alignSelf: 'flex-end',
+    textAlign: 'right',
+    transform: [{ rotate: '180deg' }],
+  },
+  revealFallbackCenter: {
+    fontSize: 72,
+    lineHeight: 78,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#1a1a1a',
+  },
+  revealFallbackRed: {
+    color: colors.redSuit,
   },
 
   // ── Scoreboard modal ──────────────────────────────────────────────────────

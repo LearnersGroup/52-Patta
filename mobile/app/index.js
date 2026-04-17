@@ -1,5 +1,5 @@
 import { Redirect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { socket } from '../src/api/socket';
+import { get_current_game } from '../src/api/apiHandler';
 import { useAuth } from '../src/hooks/useAuth';
 import AppBackground from '../src/components/shared/AppBackground';
 import AvatarImage from '../src/components/shared/AvatarImage';
@@ -26,28 +27,35 @@ import {
 export default function HomeScreen() {
   const router = useRouter();
   const { isAuthResolved, user, profile } = useAuth();
+  const autoNavLockRef = useRef(false);
   const [roomCode, setRoomCode] = useState('');
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [rejoinInfo, setRejoinInfo] = useState(null);
   const [joiningKey, setJoiningKey] = useState('');
   const [error, setError] = useState('');
 
+  const navigateToRoom = useCallback((roomId) => {
+    if (!roomId || autoNavLockRef.current) return;
+    autoNavLockRef.current = true;
+    router.replace({ pathname: '/game-room/[id]', params: { id: String(roomId) } });
+  }, [router]);
+
   useEffect(() => {
     const onConnect    = () => setIsConnected(true);
     const onDisconnect = () => setIsConnected(false);
     const onRejoin     = (data) => {
       if (!data) return;
-      // Auto-navigate back into an active game without needing the user to tap.
-      // Use replace to avoid stacking duplicate game-room entries.
-      if (data.roomId) {
-        router.replace(`/game-room/${data.roomId}`);
-      } else {
+      // Auto-navigate only for active (non-lobby) games.
+      // Lobby rooms show the rejoin banner instead so the user can choose to re-enter.
+      if (data.roomId && data.gamePhase && data.gamePhase !== 'lobby') {
+        navigateToRoom(data.roomId);
+      } else if (data.roomId || data.code) {
         setRejoinInfo(data);
       }
     };
     const onRedirect   = (roomId, callback) => {
       setJoiningKey('');
-      router.replace(`/game-room/${roomId}`);
+      navigateToRoom(roomId);
       if (typeof callback === 'function') callback({ status: 200 });
     };
 
@@ -56,12 +64,32 @@ export default function HomeScreen() {
     socket.on('rejoin-available',     onRejoin);
     socket.on('redirect-to-game-room', onRedirect);
 
-    // Reconnect so the server's onConnect fires and sends rejoin-available
-    // if the user navigated away from an active game without properly leaving.
-    if (socket.connected) {
+    // Reconnect so the server's onConnect fires and sends rejoin-available.
+    // Also perform a REST fallback lookup to avoid missing the socket event
+    // due to timing/race conditions during app bootstrap.
+    const checkCurrentRoom = async () => {
+      if (!isAuthResolved || !user?.token || autoNavLockRef.current) return;
+      try {
+        const game = await get_current_game();
+        // Only auto-navigate for active games; lobby rooms show the banner instead.
+        if (game?._id && game.state && game.state !== 'lobby') {
+          navigateToRoom(game._id);
+        } else if (game?._id) {
+          setRejoinInfo({ roomId: game._id, roomname: game.roomname, code: game.code, gamePhase: 'lobby' });
+        }
+      } catch {
+        // ignore fallback errors; socket path still handles rejoin
+      }
+    };
+
+    if (user?.token && socket.connected) {
       socket.disconnect();
       socket.connect();
+    } else if (user?.token && !socket.connected) {
+      socket.connect();
     }
+
+    checkCurrentRoom();
 
     return () => {
       socket.off('connect',              onConnect);
@@ -69,7 +97,7 @@ export default function HomeScreen() {
       socket.off('rejoin-available',     onRejoin);
       socket.off('redirect-to-game-room', onRedirect);
     };
-  }, [router]);
+  }, [router, navigateToRoom, isAuthResolved, user?.token]);
 
   const joinRoom = useCallback((payload, key) => {
     setError('');
@@ -88,7 +116,7 @@ export default function HomeScreen() {
   const onRejoin = () => {
     if (!rejoinInfo) return;
     if (rejoinInfo.code) { joinRoom({ code: rejoinInfo.code }, `rejoin:${rejoinInfo.code}`); return; }
-    if (rejoinInfo.roomId) router.replace(`/game-room/${rejoinInfo.roomId}`);
+    if (rejoinInfo.roomId) navigateToRoom(rejoinInfo.roomId);
   };
 
   if (!isAuthResolved) {

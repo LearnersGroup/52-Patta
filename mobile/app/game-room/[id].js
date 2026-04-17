@@ -127,6 +127,12 @@ export default function GameRoomScreen() {
         setRoomData(room);
         setInitialLoaded(true);
         setError('');
+        // If the room is in lobby state, clear any stale Redux game phase left
+        // over from a previous session — otherwise isGameActive stays true and
+        // the GameBoard renders instead of the lobby UI.
+        if (room?.state === 'lobby') {
+          dispatch(resetGame());
+        }
       } catch (e) {
         if (!mounted) return;
         setError(e?.errors?.[0]?.msg || 'Failed to load room');
@@ -138,6 +144,16 @@ export default function GameRoomScreen() {
     fetchRoom();
 
     const onFetchUsers   = () => fetchRoom();
+    // Patch team assignments in-place without a full REST round-trip so the
+    // lobby doesn't flicker when a player switches teams.
+    const onTeamUpdate = (data) => {
+      if (!data) return;
+      setRoomData((prev) => prev ? {
+        ...prev,
+        team_a_players: data.team_a_players ?? prev.team_a_players,
+        team_b_players: data.team_b_players ?? prev.team_b_players,
+      } : prev);
+    };
     const onRedirectHome = () => {
       // Server told us to go home (e.g. admin closed the room, or kicked)
       dispatch(notify('The room was closed by the host.', 'warning', 4000));
@@ -147,11 +163,13 @@ export default function GameRoomScreen() {
     };
 
     socket.on('fetch-users-in-room',   onFetchUsers);
+    socket.on('mendikot-team-update',  onTeamUpdate);
     socket.on('redirect-to-home-page', onRedirectHome);
 
     return () => {
       mounted = false;
       socket.off('fetch-users-in-room',   onFetchUsers);
+      socket.off('mendikot-team-update',  onTeamUpdate);
       socket.off('redirect-to-home-page', onRedirectHome);
     };
   }, [id, router, initialLoaded, dispatch]);

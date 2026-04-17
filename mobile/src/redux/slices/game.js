@@ -80,6 +80,7 @@ const initialState = {
     closed_trump_holder_id: null,
     closed_trump_revealed: false,
     closed_trump_placeholder: null,
+    closed_trump_card: null,
     trump_suit: null,
     trump_revealed_at_trick: null,
     trump_asker_id: null,
@@ -100,6 +101,11 @@ const gameSlice = createSlice({
         updateGameState: (state, action) => {
             const data = action.payload;
             const previousGameId = state.gameId;
+            const normalizedClosedTrumpCard =
+                data.closed_trump_card ??
+                data.closedTrumpCard ??
+                data.revealed_trump_card ??
+                data.revealedTrumpCard;
             state.gameId = data.gameId || state.gameId;
             state.game_type = data.game_type || state.game_type || "kaliteri";
             state.phase = data.phase;
@@ -202,6 +208,7 @@ const gameSlice = createSlice({
             if (data.closed_trump_holder_id !== undefined) state.closed_trump_holder_id = data.closed_trump_holder_id;
             if (data.closed_trump_revealed !== undefined) state.closed_trump_revealed = data.closed_trump_revealed;
             if (data.closed_trump_placeholder !== undefined) state.closed_trump_placeholder = data.closed_trump_placeholder;
+            if (normalizedClosedTrumpCard !== undefined) state.closed_trump_card = normalizedClosedTrumpCard;
             if (data.trump_suit !== undefined) state.trump_suit = data.trump_suit;
             if (data.trump_revealed_at_trick !== undefined) state.trump_revealed_at_trick = data.trump_revealed_at_trick;
             if (data.trump_asker_id !== undefined) state.trump_asker_id = data.trump_asker_id;
@@ -228,6 +235,38 @@ const gameSlice = createSlice({
         updateNextRoundReady: (state, action) => {
             state.nextRoundReady = action.payload;
         },
+        applyMendikotTeamUpdate: (state, action) => {
+            const data = action.payload || {};
+            if (data.team_a_players !== undefined) {
+                state.teams = {
+                    ...state.teams,
+                    A: data.team_a_players.map((id) => id?._id?.toString?.() || id?.toString?.()),
+                    B: (data.team_b_players || []).map((id) => id?._id?.toString?.() || id?.toString?.()),
+                };
+            }
+        },
+        applyMendikotTrumpRevealed: (state, action) => {
+            const data = action.payload || {};
+            const revealCard =
+                data.card ??
+                data.closed_trump_card ??
+                data.closedTrumpCard ??
+                data.revealed_trump_card ??
+                data.revealedTrumpCard;
+            const revealSuit =
+                data.suit ??
+                data.trump_suit ??
+                data.trumpSuit;
+            const revealBy =
+                data.by ??
+                data.trump_asker_id ??
+                data.trumpAskerId;
+            state.closed_trump_revealed = true;
+            if (revealCard !== undefined) state.closed_trump_card = revealCard;
+            if (revealSuit !== undefined) state.trump_suit = revealSuit;
+            if (revealBy !== undefined) state.trump_asker_id = revealBy;
+            state.pending_trump_reveal_decision = false;
+        },
         setGameError: (state, action) => {
             state.error = action.payload;
         },
@@ -244,6 +283,8 @@ export const {
     setPlayerAvatars,
     toggleHandSort,
     updateNextRoundReady,
+    applyMendikotTeamUpdate,
+    applyMendikotTrumpRevealed,
     setGameError,
     clearGameError,
     resetGame,

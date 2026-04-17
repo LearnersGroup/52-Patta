@@ -238,6 +238,10 @@ function onRoundEnd(io, gameState, newState) {
             ...result,
             tricks_by_team: { ...(newState.tricks_by_team || {}) },
             tens_by_team: { ...(newState.tens_by_team || {}) },
+            tens_cards_by_team: {
+                A: [...(newState.tens_cards_by_team?.A || [])],
+                B: [...(newState.tens_cards_by_team?.B || [])],
+            },
             first_to_n_tricks: newState.first_to_n_tricks || null,
         },
     ];
@@ -386,6 +390,7 @@ function buildPublicView(gameState, handSizes) {
         closed_trump_holder_id: gameState.closed_trump_holder_id || null,
         closed_trump_revealed: !!gameState.closed_trump_revealed,
         closed_trump_placeholder: gameState.closed_trump_placeholder || null,
+        closed_trump_card: gameState.closed_trump_revealed ? (gameState.closed_trump_card || null) : null,
         trump_suit: gameState.trump_suit || null,
         trump_revealed_at_trick: gameState.trump_revealed_at_trick,
         trump_asker_id: gameState.trump_asker_id || null,

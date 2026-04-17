@@ -20,7 +20,6 @@ import {
 } from '../../../styles/theme';
 import LobbyConfigEditor from './LobbyConfigEditor';
 import LobbyPlayerList from './LobbyPlayerList';
-import MendikotTeamLobby from './MendikotTeamLobby';
 
 function getPlayerId(player) {
   return player?.playerId?._id?.toString?.() || player?.playerId?.toString?.() || '';
@@ -73,6 +72,20 @@ export default function LobbyView({
   }, [players, userId, currentUserName]);
 
   const iAmReady = !!me?.ready;
+
+  const teamAIds = useMemo(() =>
+    gameType === 'mendikot'
+      ? (roomData?.team_a_players || []).map((id) => id?._id?.toString?.() || id?.toString?.())
+      : null,
+  [gameType, roomData?.team_a_players]);
+
+  const teamBIds = useMemo(() =>
+    gameType === 'mendikot'
+      ? (roomData?.team_b_players || []).map((id) => id?._id?.toString?.() || id?.toString?.())
+      : null,
+  [gameType, roomData?.team_b_players]);
+
+  const onSwitchTeam = useMemo(() => () => WsUserSwitchTeam(), []);
 
   // ── computed info row ──────────────────────────────────────────────────────
   const gameInfo = useMemo(() => {
@@ -179,18 +192,6 @@ export default function LobbyView({
         ) : null}
       </View>
 
-      {/* ── Mendikot team lobby ── */}
-      {gameType === 'mendikot' ? (
-        <MendikotTeamLobby
-          roomData={roomData}
-          players={players}
-          userId={userId}
-          isAdmin={isAdmin}
-          onSwitchTeam={() => WsUserSwitchTeam()}
-          onRandomizeTeams={() => WsAdminRandomizeTeams()}
-        />
-      ) : null}
-
       {/* ── Ready & Leave actions ── */}
       <View style={styles.actionsCard}>
         <Pressable
@@ -216,10 +217,25 @@ export default function LobbyView({
 
       {/* ── Players ── */}
       <View style={styles.playersCard}>
-        <Text style={styles.sectionTitle}>
-          Players ({players.length}/{requiredPlayers})
-        </Text>
-        <LobbyPlayerList players={players} isAdmin={isAdmin} userId={userId} onKick={kickPlayer} />
+        <View style={styles.playersTitleRow}>
+          <Text style={styles.sectionTitle}>
+            Players ({players.length}/{requiredPlayers})
+          </Text>
+          {gameType === 'mendikot' && isAdmin ? (
+            <Pressable onPress={() => WsAdminRandomizeTeams()} style={styles.randomizeBtn}>
+              <Text style={styles.randomizeIcon}>🔀</Text>
+            </Pressable>
+          ) : null}
+        </View>
+        <LobbyPlayerList
+          players={players}
+          isAdmin={isAdmin}
+          userId={userId}
+          onKick={kickPlayer}
+          teamAIds={teamAIds}
+          teamBIds={teamBIds}
+          onSwitchTeam={onSwitchTeam}
+        />
       </View>
 
     </View>
@@ -378,10 +394,24 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.sm,
   },
+  playersTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   sectionTitle: {
     ...typography.subtitle,
     fontFamily: fonts.heading,
     color: colors.gold,
     fontSize: 13,
+  },
+  randomizeBtn: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  randomizeIcon: {
+    fontSize: 16,
   },
 });
