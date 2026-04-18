@@ -80,15 +80,6 @@ module.exports = wrapHandler("admin-update-config", async (socket, io, data, cal
             callback(configCheck.reason);
             return;
         }
-    } else if (normalizedGameType === "judgement") {
-        if (deckCountParsed === 1 && count > 6) {
-            callback("Judgement with 1 deck supports up to 6 players");
-            return;
-        }
-        if (deckCountParsed === 2 && count < 7) {
-            callback("Judgement with 2 decks is for 7+ players");
-            return;
-        }
     }
 
     const autoplayValue = data?.autoplay !== undefined ? !!data.autoplay : (game.autoplay ?? true);

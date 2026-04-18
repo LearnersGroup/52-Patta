@@ -119,7 +119,6 @@ const GameSchema = new mongoose.Schema({
             "dealing",
             "bidding",
             "powerhouse",
-            "trump-announce",
             "band-hukum-pick",
             "playing",
             "scoring",

@@ -46,7 +46,6 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
   const [maxCardsPerRound, setMaxCardsPerRound] = useState(7);
   const [reverseOrder, setReverseOrder] = useState(true);
   const [trumpMode, setTrumpMode] = useState('fixed');
-  const [scoreboardTime, setScoreboardTime] = useState(5);
   const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
   const [bidTime, setBidTime] = useState(15);
   const [cardRevealTime, setCardRevealTime] = useState(10);
@@ -64,7 +63,7 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
   useEffect(() => {
     const gt = roomData?.game_type || 'kaliteri';
     const pc = roomData?.player_count || (gt === 'judgement' ? 3 : 4);
-    const dc = roomData?.deck_count || (gt === 'judgement' ? (pc <= 6 ? 1 : 2) : 1);
+    const dc = roomData?.deck_count || 1;
 
     setGameType(gt);
     setPlayerCount(pc);
@@ -75,25 +74,28 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
     setInspectTime(roomData?.inspect_time || 15);
     setMaxCardsPerRound(roomData?.max_cards_per_round || 7);
     setReverseOrder(roomData?.reverse_order ?? true);
-    setTrumpMode(roomData?.trump_mode || 'fixed');
-    setScoreboardTime(roomData?.scoreboard_time || 5);
+    setTrumpMode(gt === 'judgement' ? (roomData?.trump_mode || 'fixed') : 'fixed');
+
     setBidTimeEnabled(roomData?.judgement_bid_time !== null && roomData?.judgement_bid_time !== undefined);
     setBidTime(roomData?.judgement_bid_time || 15);
     setCardRevealTime(roomData?.card_reveal_time || 10);
     // Mendikot
-    setMendikotTrumpMode(roomData?.mendikot_trump_mode || 'band');
+    setMendikotTrumpMode(gt === 'mendikot' ? (roomData?.trump_mode || 'band') : 'band');
     setMendikotRounds(roomData?.rounds_count || 1);
     setMendikotPickPhase(roomData?.band_hukum_pick_phase ?? true);
   }, [roomData]);
 
   useEffect(() => {
-    if (gameType === 'judgement') {
-      if (playerCount <= 6) setDeckCount(1);
-      else setDeckCount(2);
-    } else if (!isDeckCountValid(playerCount, deckCount)) {
+    if (gameType === 'judgement') return;
+    if (!isDeckCountValid(playerCount, deckCount)) {
       setDeckCount(2);
     }
   }, [gameType, playerCount, deckCount]);
+
+  useEffect(() => {
+    if (gameType !== 'judgement') return;
+    setMaxCardsPerRound((prev) => Math.min(prev, maxPossibleCards));
+  }, [gameType, maxPossibleCards]);
 
   const submit = () => {
     const payload = {
@@ -108,14 +110,14 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
       payload.inspect_time = inspectTime;
       payload.bid_threshold = playerCount % 2 === 1 ? bidThreshold : null;
     } else if (gameType === 'mendikot') {
-      payload.mendikot_trump_mode   = mendikotTrumpMode;
+      payload.trump_mode            = mendikotTrumpMode;
       payload.rounds_count          = mendikotRounds;
       payload.band_hukum_pick_phase = mendikotPickPhase;
     } else {
       payload.max_cards_per_round = maxCardsPerRound;
       payload.reverse_order = reverseOrder;
       payload.trump_mode = trumpMode;
-      payload.scoreboard_time = scoreboardTime;
+
       payload.judgement_bid_time = bidTimeEnabled ? bidTime : null;
       payload.card_reveal_time = cardRevealTime;
     }
@@ -229,7 +231,6 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
               </Pressable>
             </View>
           </View>
-          <NumberStepper label="Scoreboard Display Time" value={scoreboardTime} min={3} max={30} suffix="s" onChange={setScoreboardTime} />
           <View style={styles.group}>
             <Text style={styles.label}>Bidding Time Limit</Text>
             <View style={styles.row}>

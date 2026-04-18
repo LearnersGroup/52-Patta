@@ -1,4 +1,4 @@
-import { memo, useState, useEffect } from "react";
+import { memo } from "react";
 import { suitSymbol, isRedSuit } from "./utils/cardMapper";
 
 const JudgementScoreBoard = memo(({
@@ -11,25 +11,10 @@ const JudgementScoreBoard = memo(({
     phase,
     nextRoundReady = { readyPlayers: [], totalPlayers: 0 },
     userId,
-    scoreboardTimeMs = 5000,
     seriesRoundIndex = 0,
     totalRoundsInSeries = 1,
 }) => {
-    const scoreboardSecs = Math.round(scoreboardTimeMs / 1000);
-    const [countdown, setCountdown] = useState(scoreboardSecs);
     const isFinished = phase === "finished";
-
-    useEffect(() => {
-        if (!isFinished) { setCountdown(scoreboardSecs); return; }
-        setCountdown(scoreboardSecs);
-        const timer = setInterval(() => {
-            setCountdown(prev => {
-                if (prev <= 1) { clearInterval(timer); return 0; }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => clearInterval(timer);
-    }, [phase, scoreboardSecs]); // eslint-disable-line
 
     const displaySuit = trumpCard?.suit || trumpSuit;
 
@@ -95,21 +80,6 @@ const JudgementScoreBoard = memo(({
                 </table>
             </div>
 
-            {isFinished && (
-                <div className="jdg-countdown-wrap">
-                    <div className="jdg-countdown-label">
-                        Next round in {countdown}s...
-                    </div>
-                    <div className="jdg-countdown-bar">
-                        <div
-                            className="jdg-countdown-fill"
-                            style={{
-                                width: `${(countdown / scoreboardSecs) * 100}%`,
-                            }}
-                        />
-                    </div>
-                </div>
-            )}
         </div>
     );
 });

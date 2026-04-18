@@ -37,7 +37,7 @@ const PlayerSeat = memo(function PlayerSeat({
   useEffect(() => {
     if (isTurn) {
       glowOpacity.value = withRepeat(
-        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.quad) }),
+        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.quad) }),
         -1,
         true,
       );
@@ -54,6 +54,13 @@ const PlayerSeat = memo(function PlayerSeat({
     team === 'oppose' ? colors.redSuit :
     colors.borderGold;
 
+  const activeBorderColor =
+    mendikotTeam === 'team-a' ? 'rgba(56,189,248,0.8)' :
+    mendikotTeam === 'team-b' ? 'rgba(244,114,182,0.8)' :
+    team === 'bid'    ? 'rgba(201,162,39,0.8)' :
+    team === 'oppose' ? 'rgba(204,41,54,0.8)' :
+    'rgba(232,209,106,0.8)';
+
   const mendikotNameStyle =
     mendikotTeam === 'team-a'
       ? styles.nameTeamA
@@ -64,15 +71,13 @@ const PlayerSeat = memo(function PlayerSeat({
   // Active turn: full-width ring + pulsing glow in ring color
   // Inactive: half-width ring, no glow
   const ringStyle = useAnimatedStyle(() => ({
-    borderWidth: isTurn ? 3 : 1.5,
-    shadowColor: isTurn ? baseColor : 'transparent',
+    borderWidth: isTurn ? 1.5 : 0.75,
+    shadowColor: isTurn ? activeBorderColor : 'transparent',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: glowOpacity.value * 0.8,
-    shadowRadius: 8 + glowOpacity.value * 4,
-    elevation: glowOpacity.value > 0.1 ? 5 : 0,
-    borderColor: isTurn
-      ? baseColor
-      : baseColor,
+    shadowOpacity: glowOpacity.value * 0.76,
+    shadowRadius: 10 + glowOpacity.value * 12,
+    elevation: glowOpacity.value > 0.1 ? 12 : 0,
+    borderColor: isTurn ? activeBorderColor : baseColor,
   }));
 
   const inner = (

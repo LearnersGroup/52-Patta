@@ -116,8 +116,8 @@ export default function NewGameRoomScreen() {
   // Judgement settings
   const [maxCardsPerRound, setMaxCardsPerRound] = useState(7);
   const [reverseOrder,     setReverseOrder]     = useState(true);
-  const [trumpMode,        setTrumpMode]        = useState('cyclic');
-  const [scoreboardTime,   setScoreboardTime]   = useState(5);
+  const [trumpMode,        setTrumpMode]        = useState('fixed');
+
   const [bidTimeEnabled,   setBidTimeEnabled]   = useState(false);
   const [bidTime,          setBidTime]          = useState(15);
   const [cardRevealTime,   setCardRevealTime]   = useState(10);
@@ -238,7 +238,7 @@ export default function NewGameRoomScreen() {
       payload.max_cards_per_round = maxCardsPerRound;
       payload.reverse_order       = reverseOrder;
       payload.trump_mode          = trumpMode;
-      payload.scoreboard_time     = scoreboardTime;
+
       payload.card_reveal_time    = cardRevealTime;
       if (bidTimeEnabled) payload.judgement_bid_time = bidTime;
     }
@@ -395,7 +395,7 @@ export default function NewGameRoomScreen() {
           ) : gameType === 'kaliteri' ? (
             <>
               {isOddPlayers && (
-                <Row label="Bid Threshold">
+                <Row label="Bid Threshold for Extra Teammate">
                   <NumberStepper value={bidThreshold} min={155} max={500} step={5} onChange={setBidThreshold} />
                 </Row>
               )}
@@ -416,24 +416,22 @@ export default function NewGameRoomScreen() {
               </Row>
               <Row label="Round Order">
                 <ChipGroup
-                  options={[{ label: 'Up & Down', value: true }, { label: 'Ascending', value: false }]}
+                  options={[{ label: 'Ascending Only', value: false }, { label: 'Up & Down', value: true }]}
                   value={reverseOrder}
                   onChange={setReverseOrder}
                 />
               </Row>
-              <Row label="Powerhouse Selection">
+              <Row label="Trump Mode">
                 <ChipGroup
-                  options={[{ label: 'Cyclic', value: 'cyclic' }, { label: 'Random', value: 'random' }]}
+                  options={[{ label: 'Random', value: 'random' }, { label: 'Fixed (S→D→C→H)', value: 'fixed' }]}
                   value={trumpMode}
                   onChange={setTrumpMode}
                 />
               </Row>
-              <Row label="Scoreboard Time">
-                <NumberStepper value={scoreboardTime} min={3} max={30} onChange={setScoreboardTime} suffix="s" />
-              </Row>
-              <Row label="Bid Timer">
+
+              <Row label="Bidding Time Limit">
                 <ChipGroup
-                  options={[{ label: 'No Limit', value: false }, { label: 'Timed', value: true }]}
+                  options={[{ label: 'No Limit', value: false }, { label: 'Time Limit', value: true }]}
                   value={bidTimeEnabled}
                   onChange={setBidTimeEnabled}
                 />
@@ -443,7 +441,7 @@ export default function NewGameRoomScreen() {
                   <NumberStepper value={bidTime} min={5} max={60} step={5} onChange={setBidTime} suffix="s" />
                 </Row>
               )}
-              <Row label="Card Inspect Time">
+              <Row label="Card Reveal Time">
                 <NumberStepper value={cardRevealTime} min={3} max={30} onChange={setCardRevealTime} suffix="s" />
               </Row>
             </>

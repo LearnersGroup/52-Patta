@@ -22,7 +22,6 @@ const CreateGamePage = () => {
     const [reverseOrder, setReverseOrder] = useState(true);
     const [trumpMode, setTrumpMode] = useState("fixed");
     const [mendikotTrumpMode, setMendikotTrumpMode] = useState("band");
-    const [scoreboardTime, setScoreboardTime] = useState(5);
     const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
     const [bidTime, setBidTime] = useState(15);
     const [cardRevealTime, setCardRevealTime] = useState(10);
@@ -58,7 +57,6 @@ const CreateGamePage = () => {
             data.max_cards_per_round = maxCardsPerRound;
             data.reverse_order = reverseOrder;
             data.trump_mode = trumpMode;
-            data.scoreboard_time = scoreboardTime;
             if (bidTimeEnabled) data.judgement_bid_time = bidTime;
             data.card_reveal_time = cardRevealTime;
         } else if (gameType === "mendikot") {
@@ -107,8 +105,6 @@ const CreateGamePage = () => {
                     setTrumpMode={setTrumpMode}
                     mendikotTrumpMode={mendikotTrumpMode}
                     setMendikotTrumpMode={setMendikotTrumpMode}
-                    scoreboardTime={scoreboardTime}
-                    setScoreboardTime={setScoreboardTime}
                     bidTimeEnabled={bidTimeEnabled}
                     setBidTimeEnabled={setBidTimeEnabled}
                     bidTime={bidTime}

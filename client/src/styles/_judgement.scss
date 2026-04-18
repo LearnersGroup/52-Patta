@@ -1,12 +1,22 @@
-// ─── JUDGEMENT GAME — TRUMP ANNOUNCE ────────────────────────
+// ─── JUDGEMENT GAME — TRUMP REVEAL OVERLAY (shown during shuffling) ─────────
 
-.trump-announce-center {
+.trump-overlay-backdrop {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.trump-overlay-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 24px 32px;
   text-align: center;
+  cursor: default;
 }
 
 .trump-announce-title {
@@ -19,10 +29,10 @@
 }
 
 .trump-announce-watermark {
-  font-size: 3.2rem;
+  font-size: 4rem;
   line-height: 1;
   filter: drop-shadow(0 0 18px currentColor);
-  animation: trump-pulse 2s ease-in-out infinite;
+  animation: trump-pulse 1.6s ease-in-out infinite;
 
   &.red  { color: $red-suit; }
   &.black { color: $cream; }
@@ -30,7 +40,7 @@
 
 @keyframes trump-pulse {
   0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 14px currentColor); }
-  50%       { transform: scale(1.08); filter: drop-shadow(0 0 28px currentColor); }
+  50%       { transform: scale(1.1);  filter: drop-shadow(0 0 30px currentColor); }
 }
 
 .trump-announce-sub {
@@ -40,20 +50,15 @@
   font-style: italic;
 }
 
-.trump-announce-countdown {
-  font-size: 0.72rem;
-  color: $gold;
-  font-family: $font-heading;
-  letter-spacing: 0.1em;
-  margin-top: 2px;
+.trump-dismiss-hint {
+  margin-top: 6px;
+  color: $cream-muted;
+  font-family: $font-body;
+  font-size: 0.65rem;
+  opacity: 0.7;
+  letter-spacing: 0.04em;
 }
 
-.trump-announce-proceed {
-  margin-top: 6px;
-  font-size: 0.72rem;
-  padding: 7px 16px;
-  letter-spacing: 0.08em;
-}
 
 // ─── TRUMP BADGE ON TABLE ────────────────────────────────────
 

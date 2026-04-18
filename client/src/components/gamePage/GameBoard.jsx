@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { WsRequestGameState, WsQuitGame, WsProceedToShuffle, WsReturnToLobby, WsPickClosedTrump, WsRevealTrump } from "../../api/wsEmitters";
+import { WsRequestGameState, WsQuitGame, WsReturnToLobby, WsPickClosedTrump, WsRevealTrump } from "../../api/wsEmitters";
 import BidCenterDisplay from "./BidCenterDisplay";
 import PowerHouseSelector from "./PowerHouseSelector";
 import PlayerHand from "./PlayerHand";
@@ -59,7 +59,6 @@ const GameBoard = ({ userId, isAdmin }) => {
     const totalRoundsInSeries = useSelector((state) => state.game.totalRoundsInSeries);
     const roundResults = useSelector((state) => state.game.roundResults);
     const trumpMode = useSelector((state) => state.game.trumpMode);
-    const scoreboardTimeMs = useSelector((state) => state.game.scoreboardTimeMs);
     const cardRevealTimeMs = useSelector((state) => state.game.cardRevealTimeMs);
 
     // Mendikot-specific selectors
@@ -88,14 +87,39 @@ const GameBoard = ({ userId, isAdmin }) => {
     const dealingAnimRef = useRef(null);
     // Teammate reveal announcement
     const [revealAnnouncement, setRevealAnnouncement] = useState(null); // { playerName, bidderName }
-    const [trumpCountdown, setTrumpCountdown] = useState(5);
-    const trumpCountdownRef = useRef(null);
+    const [trumpDismissedForRound, setTrumpDismissedForRound] = useState(-1);
+    const [trumpCountdown, setTrumpCountdown] = useState(3);
     const prevRevealedPartnersRef = useRef([]);
     const revealAnnouncementTimerRef = useRef(null);
 
     useEffect(() => {
         WsRequestGameState();
     }, []);
+
+    // Judgement: auto-dismiss the trump reveal after 3s
+    useEffect(() => {
+        if (phase === "shuffling" && isJudgement && trumpDismissedForRound !== seriesRoundIndex) {
+            const timer = setTimeout(() => {
+                setTrumpDismissedForRound(seriesRoundIndex);
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [phase, isJudgement, trumpDismissedForRound, seriesRoundIndex]);
+
+    // Reset countdown when a new trump panel appears
+    useEffect(() => {
+        if (phase === "shuffling" && isJudgement && trumpDismissedForRound !== seriesRoundIndex) {
+            setTrumpCountdown(3);
+        }
+    }, [phase, isJudgement, seriesRoundIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Tick countdown while trump panel is visible
+    useEffect(() => {
+        if (phase === "shuffling" && isJudgement && trumpDismissedForRound !== seriesRoundIndex && trumpCountdown > 0) {
+            const timer = setTimeout(() => setTrumpCountdown((c) => c - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [phase, isJudgement, trumpDismissedForRound, seriesRoundIndex, trumpCountdown]);
 
     // Trigger deal reveal when dealing phase completes → bidding begins.
     // Auto-close the overlay when the reveal window expires (biddingWindowOpensAt).
@@ -117,25 +141,19 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
 
-    // For Judgement: delay scoreboard by 3s after phase reaches "finished"
-    // so the last-trick sweep animation plays out before the table disappears.
-    // For Kaliteri: show immediately (Kaliteri has its own post-round flow).
     useEffect(() => {
         if (scorecardTimerRef.current) {
             clearTimeout(scorecardTimerRef.current);
             scorecardTimerRef.current = null;
         }
 
-        // Include series-finished so the last round also gets the 3s hold
         const isFinished = phase === "scoring" || phase === "finished" || phase === "series-finished";
 
-        if (isFinished && isJudgement) {
-            scorecardTimerRef.current = setTimeout(() => setScorecardVisible(true), 3000);
-        } else {
-            setScorecardVisible(isFinished && !isJudgement);
+        // Judgement has no between-round scoreboard — skip entirely
+        if (!isJudgement) {
+            setScorecardVisible(isFinished);
         }
 
-        // Reset when phase leaves finished/scoring/series-finished
         if (!isFinished) setScorecardVisible(false);
 
         return () => {
@@ -215,32 +233,6 @@ const GameBoard = ({ userId, isAdmin }) => {
     useEffect(() => () => {
         if (revealAnnouncementTimerRef.current) clearTimeout(revealAnnouncementTimerRef.current);
     }, []);
-
-    // Trump-announce countdown: 5-second visual countdown matching server timer
-    useEffect(() => {
-        if (trumpCountdownRef.current) {
-            clearInterval(trumpCountdownRef.current);
-            trumpCountdownRef.current = null;
-        }
-        if (phase !== "trump-announce") {
-            setTrumpCountdown(5);
-            return;
-        }
-        setTrumpCountdown(5);
-        trumpCountdownRef.current = setInterval(() => {
-            setTrumpCountdown((prev) => {
-                if (prev <= 1) {
-                    clearInterval(trumpCountdownRef.current);
-                    trumpCountdownRef.current = null;
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-        return () => {
-            if (trumpCountdownRef.current) clearInterval(trumpCountdownRef.current);
-        };
-    }, [phase]);
 
     // ── Partner / relation logic ───────────────────────────────────────────
     // These must all live ABOVE any early return (Rules of Hooks).
@@ -378,8 +370,6 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     const getIsTurn = (pid) => {
         switch (phase) {
-            case "trump-announce":
-                return false; // passive phase, dealer has a button not a "turn"
             case "shuffling":
             case "dealing":
                 return pid === dealer;
@@ -512,9 +502,7 @@ const GameBoard = ({ userId, isAdmin }) => {
         }));
     };
 
-    // For Judgement, keep the table visible until the scorecard delay has elapsed
-    const isTablePhase = ["trump-announce", "shuffling", "dealing", "bidding", "powerhouse", "playing", "band-hukum-pick"].includes(phase)
-        || (isJudgement && (phase === "finished" || phase === "scoring" || phase === "series-finished") && !scorecardVisible);
+    const isTablePhase = ["shuffling", "dealing", "bidding", "powerhouse", "playing", "band-hukum-pick"].includes(phase);
     const isPlayingPhase = phase === "playing";
     const showPlayerHand =
         phase !== "finished" &&
@@ -527,30 +515,28 @@ const GameBoard = ({ userId, isAdmin }) => {
 
     // Center content for CircularTable based on phase
     const renderCenterContent = ({ seatPositionMap, tableSize }) => {
-        if (phase === "trump-announce") {
-            const isDealer = dealer === userId;
-            return (
-                <div className="trump-announce-center">
-                    <div className="trump-announce-title">Trump Suit is...</div>
-                    <div className={`trump-announce-watermark ${isRedSuit(trumpSuit) ? "red" : "black"}`}>
-                        {suitSymbol(trumpSuit)}
-                    </div>
-                    <div className="trump-announce-sub">
-                        {trumpMode === "fixed" ? "Fixed rotation" : "Drawn randomly"}
-                    </div>
-                    <div className="trump-announce-countdown">
-                        Proceeding to shuffle in {trumpCountdown}s...
-                    </div>
-                    {isDealer && (
-                        <button className="btn-primary trump-announce-proceed" onClick={WsProceedToShuffle}>
-                            Proceed to Shuffle
-                        </button>
-                    )}
-                </div>
-            );
-        }
-
         if (phase === "shuffling") {
+            if (isJudgement && trumpDismissedForRound !== seriesRoundIndex) {
+                return (
+                    <div
+                        className="trump-overlay-backdrop trump-overlay-backdrop--table"
+                        onClick={() => setTrumpDismissedForRound(seriesRoundIndex)}
+                    >
+                        <div className="trump-overlay-panel" onClick={(e) => e.stopPropagation()}>
+                            <div className="trump-announce-title">Trump Suit Is...</div>
+                            <div className={`trump-announce-watermark ${isRedSuit(trumpSuit) ? "red" : "black"}`}>
+                                {suitSymbol(trumpSuit)}
+                            </div>
+                            <div className="trump-announce-sub">
+                                {trumpMode === "fixed" ? "Fixed rotation" : "Drawn randomly"}
+                            </div>
+                            <div className="trump-dismiss-hint">
+                                {trumpCountdown > 0 ? trumpCountdown : "·"} · tap to dismiss
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
             return (
                 <ShufflingPanel
                     isTableCenter
@@ -853,7 +839,6 @@ const GameBoard = ({ userId, isAdmin }) => {
                     roundResults={roundResults}
                     trumpCard={trumpCard}
                     trumpSuit={trumpSuit}
-                    scoreboardTimeMs={scoreboardTimeMs}
                     seriesRoundIndex={seriesRoundIndex}
                     totalRoundsInSeries={totalRoundsInSeries}
                 />
@@ -864,7 +849,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                 <JudgementScoreboardModal onClose={() => setShowJdgScoreboard(false)} />
             )}
 
-            {phase === "series-finished" && !isMendikot && (!isJudgement || scorecardVisible) && (
+            {phase === "series-finished" && !isMendikot && (
                 <SeriesFinishedPanel
                     finalRankings={finalRankings}
                     scores={scores}

@@ -3,10 +3,10 @@ const { createDeck } = require('../../../game_engine/deck');
 const { computeTrumpSuit, getNextJudgementRound } = require('../../../game_engine/judgement/rounds');
 const { getGameState, setGameState, persistCheckpoint, deleteGameState } = require('../../../game_engine/stateManager');
 const { broadcastGameState } = require('./broadcastState');
-const { scheduleJudgementAdvance, clearJudgementAdvance } = require('./judgementTimers');
+const { clearJudgementAdvance } = require('./judgementTimers');
 
 /**
- * Advance from "finished" phase to the next Judgement round (trump-announce),
+ * Advance from "finished" phase to the next Judgement round (shuffling),
  * or to "series-finished" if all rounds are done.
  * Called by: scoreboard auto-advance timer, or manual all-ready in nextRound.js
  */
@@ -66,7 +66,7 @@ async function autoNextJudgementRound(io, gameId) {
 
     const newGameState = {
         ...gameState,
-        phase: 'trump-announce',
+        phase: 'shuffling',
         dealerIndex: newDealerIndex,
         dealer: seatOrder[newDealerIndex],
         shuffleQueue: [],
@@ -91,31 +91,10 @@ async function autoNextJudgementRound(io, gameId) {
 
     clearJudgementAdvance(gameId);
     setGameState(gameId, newGameState);
-    await Game.findByIdAndUpdate(gameId, { state: 'trump-announce' });
-    await persistCheckpoint(gameId);
-    await broadcastGameState(io, newGameState);
-    io.to(gameState.roomname).emit('game-phase-change', 'trump-announce');
-
-    // Auto-advance trump-announce → shuffling after 5s
-    scheduleJudgementAdvance(gameId, 5000, () => proceedFromTrumpAnnounce(io, gameId));
-}
-
-/**
- * Advance from "trump-announce" to "shuffling".
- * Called by: auto-timer, or dealer clicking "Proceed to Shuffle"
- */
-async function proceedFromTrumpAnnounce(io, gameId) {
-    const gameState = getGameState(gameId);
-    if (!gameState || gameState.phase !== 'trump-announce') return;
-
-    clearJudgementAdvance(gameId);
-
-    const newGameState = { ...gameState, phase: 'shuffling' };
-    setGameState(gameId, newGameState);
     await Game.findByIdAndUpdate(gameId, { state: 'shuffling' });
     await persistCheckpoint(gameId);
     await broadcastGameState(io, newGameState);
     io.to(gameState.roomname).emit('game-phase-change', 'shuffling');
 }
 
-module.exports = { autoNextJudgementRound, proceedFromTrumpAnnounce };
+module.exports = { autoNextJudgementRound };

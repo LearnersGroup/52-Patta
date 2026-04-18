@@ -91,7 +91,7 @@ const registry = {
 
         hasPowerhouse: false,
         hasPartners: false,
-        hasTrumpAnnounce: true,
+        hasTrumpAnnounce: false,
         trickHasPoints: false,
         gameLabel: "Round",
         dealRevealFallbackMs: 10000,

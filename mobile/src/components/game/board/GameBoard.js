@@ -27,7 +27,6 @@ import MendikotScoreBoard from './MendikotScoreBoard';
 import PlayArea from './PlayArea';
 import PlayerSeat from './PlayerSeat';
 import PowerHouseSelector from './PowerHouseSelector';
-import ScoreTable from './ScoreTable';
 import SeriesFinishedPanel from './SeriesFinishedPanel';
 import ShufflingPanel from './ShufflingPanel';
 import TeamScoreHUD from './TeamScoreHUD';
@@ -81,39 +80,6 @@ const IntendedCardSlot = memo(function IntendedCardSlot({ card, shouldBounce, on
         <View style={[styles.intendedEmpty, { width: INTENDED_W, height: SLOT_H }]} />
       )}
     </Pressable>
-  );
-});
-
-const ScoreboardModal = memo(function ScoreboardModal({ visible, onClose, seatOrder, scores, getName, gameType, roundResults, tricksWon, bidding, phase, userId, gameHistory }) {
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalCard}>
-
-          {/* ── Header ───────────────────────────────────────────────── */}
-          <View style={styles.sbHeader}>
-            <Text style={styles.sbTitle}>Scoreboard</Text>
-            <Pressable style={styles.sbClose} onPress={onClose} hitSlop={10}>
-              <Text style={styles.sbCloseText}>✕</Text>
-            </Pressable>
-          </View>
-
-          <ScoreTable
-            seatOrder={seatOrder}
-            scores={scores}
-            getName={getName}
-            gameType={gameType}
-            userId={userId}
-            roundResults={roundResults}
-            tricksWon={tricksWon}
-            bidding={bidding}
-            phase={phase}
-            gameHistory={gameHistory}
-          />
-
-        </View>
-      </View>
-    </Modal>
   );
 });
 
@@ -240,7 +206,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const roundResults = useSelector((state) => state.game.roundResults);
   const currentGameNumber = useSelector((state) => state.game.currentGameNumber);
   const totalGames = useSelector((state) => state.game.totalGames);
-  const scoreboardTimeMs = useSelector((state) => state.game.scoreboardTimeMs);
   const cardRevealTimeMs = useSelector((state) => state.game.cardRevealTimeMs);
   const trumpMode = useSelector((state) => state.game.trumpMode);
   const bidTimeMs = useSelector((state) => state.game.bidTimeMs);
@@ -261,24 +226,22 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const currentRoundNumber   = useSelector((s) => s.game.currentRoundNumber);
   const totalRounds          = useSelector((s) => s.game.totalRounds);
 
-  const [showScoreboard, setShowScoreboard] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [trumpDismissedForRound, setTrumpDismissedForRound] = useState(-1);
+  const [trumpRevealReady, setTrumpRevealReady] = useState(false);
   const [showDealReveal, setShowDealReveal] = useState(false);
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
   const [intendedCard, setIntendedCard] = useState(null);
   const [revealAnnouncement, setRevealAnnouncement] = useState(null);
   const [trumpRevealRequestAnnouncement, setTrumpRevealRequestAnnouncement] = useState(null);
-  const [showRoundScore, setShowRoundScore] = useState(false);
-  const [roundScoreCountdown, setRoundScoreCountdown] = useState(0);
   const [showSeriesFinished, setShowSeriesFinished] = useState(false);
   const prevPhaseRef = useRef(phase);
   const prevRevealedPartnersRef = useRef(revealedPartners || []);
   const prevTrumpAskerIdRef = useRef(trumpAskerId || null);
   const revealAnnouncementTimerRef = useRef(null);
   const trumpRevealRequestTimerRef = useRef(null);
-  const roundScoreDelayRef = useRef(null);
-  const roundScoreIntervalRef = useRef(null);
+  const playEmittedRef = useRef(false);
 
   useEffect(() => {
     const prev = prevPhaseRef.current;
@@ -297,6 +260,20 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
     prevPhaseRef.current = phase;
   }, [phase, myHand]);
+
+  useEffect(() => {
+    setTrumpRevealReady(phase === 'shuffling' && gameType === 'judgement');
+  }, [phase, gameType, seriesRoundIndex]);
+
+  // Judgement: auto-dismiss the trump reveal 3s after it becomes visible
+  useEffect(() => {
+    if (phase === 'shuffling' && gameType === 'judgement' && trumpRevealReady && trumpDismissedForRound !== seriesRoundIndex) {
+      const timer = setTimeout(() => {
+        setTrumpDismissedForRound(seriesRoundIndex);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [phase, gameType, trumpRevealReady, trumpDismissedForRound, seriesRoundIndex]);
 
   // ── Partner reveal announcements ──────────────────────────────────────
   useEffect(() => {
@@ -357,39 +334,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
     if (trumpRevealRequestTimerRef.current) clearTimeout(trumpRevealRequestTimerRef.current);
   }, []);
 
-
-  // ── Round scoreboard (both game types: show scores after trick animation) ──
-  useEffect(() => {
-    const isRoundEnd = phase === 'finished';
-
-    if (isRoundEnd) {
-      // Wait for trick sweep animation (2000ms hold + 760ms sweep + buffer)
-      clearTimeout(roundScoreDelayRef.current);
-      clearInterval(roundScoreIntervalRef.current);
-      roundScoreDelayRef.current = setTimeout(() => {
-        setShowRoundScore(true);
-        const displayMs = scoreboardTimeMs || 5000;
-        const started = Date.now();
-        setRoundScoreCountdown(Math.ceil(displayMs / 1000));
-        roundScoreIntervalRef.current = setInterval(() => {
-          const leftMs = Math.max(0, displayMs - (Date.now() - started));
-          setRoundScoreCountdown(Math.ceil(leftMs / 1000));
-          if (leftMs <= 0) {
-            clearInterval(roundScoreIntervalRef.current);
-            setShowRoundScore(false);
-          }
-        }, 250);
-      }, 3000);
-    }
-
-    // Don't auto-hide on phase change — let the local timer handle it
-  }, [phase, scoreboardTimeMs]);
-
-  // Cleanup round score timers on unmount
-  useEffect(() => () => {
-    clearTimeout(roundScoreDelayRef.current);
-    clearInterval(roundScoreIntervalRef.current);
-  }, []);
 
   // ── Delay series-finished panel so trick sweep animation can finish ──
   useEffect(() => {
@@ -671,9 +615,18 @@ export default function GameBoard({ userId, isAdmin = false }) {
     setIntendedCard(card);
   }, [phase, userId, closedTrumpHolderId]);
 
+  // Reset the guard whenever it becomes our turn so we can play again
+  useEffect(() => {
+    if (phase === 'playing' && currentTurn === userId) {
+      playEmittedRef.current = false;
+    }
+  }, [phase, currentTurn, userId]);
+
   const handlePlayIntended = useCallback(() => {
     if (!intendedCard || !isMyTurn) return;
     if (isCardInList(intendedCard, validPlays)) {
+      if (playEmittedRef.current) return;
+      playEmittedRef.current = true;
       WsPlayCard(intendedCard);
       hapticSuccess();
       setIntendedCard(null);
@@ -692,6 +645,8 @@ export default function GameBoard({ userId, isAdmin = false }) {
       validPlays.length === 1
     ) {
       const timer = setTimeout(() => {
+        if (playEmittedRef.current) return;
+        playEmittedRef.current = true;
         WsPlayCard(validPlays[0]);
         hapticSuccess();
         setIntendedCard(null);
@@ -704,7 +659,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
     isMendikot
       ? `Rd ${currentRoundNumber || 1}/${totalRounds || 1}`
       : gameType === 'judgement'
-      ? `Round ${Number(seriesRoundIndex || 0) + 1}/${totalRoundsInSeries || 1} • Cards ${currentCardsPerRound || 0}`
+      ? `Rd ${Number(seriesRoundIndex || 0) + 1}/${totalRoundsInSeries || 1}`
       : `Round ${currentRound || 0}`;
 
   const trumpRevealPlayerColor =
@@ -728,8 +683,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
         ) : (
           <TeamScoreHUD
             roundText={roundText}
-            trumpText={activeTrump ? `Trump ${suitSymbol(activeTrump)}` : null}
-            onShowScoreboard={() => setShowScoreboard(true)}
+            trumpSuit={activeTrump || null}
             onShowSettings={() => setShowSettings(true)}
             isAdmin={isAdmin}
             onQuit={() => setShowQuitConfirm(true)}
@@ -741,6 +695,12 @@ export default function GameBoard({ userId, isAdmin = false }) {
             partnerCards={partnerCards || []}
             getName={getName}
             bidding={bidding}
+            seatOrder={seatOrder || []}
+            scores={scores || {}}
+            userId={userId}
+            roundResults={roundResults || []}
+            tricksWon={tricksWon || {}}
+            gameHistory={gameHistory || []}
           />
         )
       ) : null}
@@ -784,16 +744,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
                 );
               }
 
-              if (phase === 'trump-announce') {
-                return (
-                  <TrumpAnnouncePanel
-                    trumpSuit={trumpSuit}
-                    trumpMode={trumpMode || 'random'}
-                    isDealer={dealer === userId}
-                  />
-                );
-              }
-
               if (phase === 'bidding') {
                 if (gameType === 'judgement') {
                   return (
@@ -813,6 +763,20 @@ export default function GameBoard({ userId, isAdmin = false }) {
 
               if (phase === 'shuffling' || phase === 'dealing') {
                 if (phase === 'shuffling') {
+                  if (gameType === 'judgement' && trumpDismissedForRound !== seriesRoundIndex) {
+                    if (!trumpRevealReady) return null;
+                    return (
+                      <Pressable
+                        style={styles.trumpCenterWrap}
+                        onPress={() => setTrumpDismissedForRound(seriesRoundIndex)}
+                      >
+                        <TrumpAnnouncePanel
+                          trumpSuit={trumpSuit}
+                          trumpMode={trumpMode || 'random'}
+                        />
+                      </Pressable>
+                    );
+                  }
                   return (
                     <ShufflingPanel
                       dealer={dealer}
@@ -926,34 +890,6 @@ export default function GameBoard({ userId, isAdmin = false }) {
         </View>
       ) : null}
 
-      {/* ── Round scoreboard overlay (Judgement only) ── */}
-      {showRoundScore ? (
-        <View style={styles.roundScoreOverlay}>
-          <View style={styles.roundScoreCard}>
-            <Text style={styles.roundScoreTitle}>
-              {gameType === 'judgement' ? 'Round Complete' : 'Game Complete'}
-            </Text>
-            <Text style={styles.roundScoreCountdown}>
-              Continuing in {roundScoreCountdown}…
-            </Text>
-            <ScrollView style={{ maxHeight: 320 }}>
-              <ScoreTable
-                seatOrder={seatOrder || []}
-                scores={scores || {}}
-                getName={getName}
-                gameType={gameType}
-                userId={userId}
-                roundResults={roundResults || []}
-                tricksWon={tricksWon || {}}
-                bidding={bidding || {}}
-                phase={phase}
-                gameHistory={gameHistory || []}
-              />
-            </ScrollView>
-          </View>
-        </View>
-      ) : null}
-
       {/* ── Mendikot: end-of-round/series scoreboard ── */}
       {isMendikot && (phase === 'finished' || phase === 'series-finished') ? (
         <View style={styles.mendikotScoreFull}>
@@ -980,23 +916,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
         />
       ) : null}
 
-      <ScoreboardModal
-        visible={showScoreboard}
-        onClose={() => setShowScoreboard(false)}
-        seatOrder={seatOrder || []}
-        scores={scores || {}}
-        getName={getName}
-        gameType={gameType}
-        userId={userId}
-        roundResults={roundResults || []}
-        tricksWon={tricksWon || {}}
-        bidding={bidding || {}}
-        phase={phase}
-        trumpSuit={trumpSuit}
-        gameHistory={gameHistory || []}
-      />
-
-      <InGameSettings visible={showSettings} onClose={() => setShowSettings(false)} />
+<InGameSettings visible={showSettings} onClose={() => setShowSettings(false)} />
 
       <Modal
         visible={showQuitConfirm}
@@ -1211,7 +1131,14 @@ const styles = StyleSheet.create({
     color: colors.redSuit,
   },
 
-  // ── Scoreboard modal ──────────────────────────────────────────────────────
+  trumpCenterWrap: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+// ── Scoreboard modal ──────────────────────────────────────────────────────
   modalBackdrop: {
     flex: 1,
     backgroundColor: colors.overlay,
@@ -1219,51 +1146,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: spacing.md,
   },
-  modalCard: {
-    ...panelStyle,
-    width: '100%',
-    maxWidth: 400,
-    padding: 0,
-    overflow: 'hidden',
-    maxHeight: '85%',
-  },
-
-  // Header
-  sbHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderGold,
-    gap: spacing.xs,
-  },
-  sbTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.cream,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    flex: 1,
-  },
-  sbClose: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(201,162,39,0.12)',
-    borderWidth: 1,
-    borderColor: colors.borderGold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sbCloseText: {
-    color: colors.goldLight,
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 15,
-  },
-
   // ── Quit confirm modal ─────────────────────────────────────────────────────
   quitCard: {
     ...panelStyle,
@@ -1315,38 +1197,5 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
     fontSize: 12,
-  },
-
-  // ── Round scoreboard overlay ──────────────────────────────────────────────
-  roundScoreOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(5, 12, 7, 0.82)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.md,
-    zIndex: 50,
-  },
-  roundScoreCard: {
-    ...panelStyle,
-    width: '100%',
-    maxWidth: 400,
-    padding: spacing.md,
-    gap: spacing.sm,
-    overflow: 'hidden',
-  },
-  roundScoreTitle: {
-    ...typography.subtitle,
-    color: colors.goldLight,
-    fontFamily: fonts.heading,
-    textAlign: 'center',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  roundScoreCountdown: {
-    fontFamily: fonts.body,
-    fontSize: 12,
-    color: colors.creamMuted,
-    textAlign: 'center',
-    fontStyle: 'italic',
   },
 });

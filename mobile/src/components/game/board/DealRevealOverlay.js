@@ -14,8 +14,9 @@ import PlayerHand from '../PlayerHand';
 import { sortCardsBySuit } from '../utils/cardMapper';
 
 const FLIP_MS = 350;
-const MOVE_MS = 350;
+const MOVE_MS = 200;
 const FADE_MS = 400;
+const PAUSE_MS = 500;
 
 /**
  * Shuffle an array using Fisher-Yates (returns new array).
@@ -55,6 +56,7 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
   const phaseRef = useRef('idle');
   const [renderTick, setRenderTick] = useState(0);
   const timeoutRef = useRef(null);
+  const pauseTimeoutRef = useRef(null);
 
   // ── Card dimensions ─────────────────────────────────────────────────────
   const bigW = Math.round(screenW * 0.50);
@@ -94,12 +96,11 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
         phaseRef.current = 'complete';
         setRenderTick((n) => n + 1);
       } else {
-        // Auto-flip the next card so one tap = move + reveal
+        // Reset to idle — user taps to reveal next card
         move.value = 0;
         flip.value = 0;
-        phaseRef.current = 'flipped';
+        phaseRef.current = 'idle';
         setRenderTick((n) => n + 1);
-        flip.value = withTiming(1, { duration: FLIP_MS, easing: Easing.inOut(Easing.ease) });
       }
       return nextIdx;
     });
@@ -163,24 +164,35 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
       const dur = Math.max(0, Number(durationMs) || 10000);
       timeoutRef.current = setTimeout(autoRevealAll, dur);
     }
-    return () => clearTimeout(timeoutRef.current);
+    return () => {
+      clearTimeout(timeoutRef.current);
+      clearTimeout(pauseTimeoutRef.current);
+    };
   }, [visible]);
+
+  // ── Schedule auto-move after pause ───────────────────────────────────
+  const scheduleAutoMove = useCallback(() => {
+    clearTimeout(pauseTimeoutRef.current);
+    pauseTimeoutRef.current = setTimeout(() => doMove(), PAUSE_MS);
+  }, [doMove]);
 
   // ── Tap handler ───────────────────────────────────────────────────────
   const handleTap = useCallback(() => {
     const phase = phaseRef.current;
     if (phase === 'idle') {
-      // Flip the current card face-up
       phaseRef.current = 'flipped';
       setRenderTick((n) => n + 1);
-      flip.value = withTiming(1, { duration: FLIP_MS, easing: Easing.inOut(Easing.ease) });
+      flip.value = withTiming(1, { duration: FLIP_MS, easing: Easing.inOut(Easing.ease) }, (fin) => {
+        if (fin) runOnJS(scheduleAutoMove)();
+      });
     } else if (phase === 'flipped') {
-      // Move card to hand — next card will appear automatically
+      // Rapid tap — skip pause, move immediately
+      clearTimeout(pauseTimeoutRef.current);
       doMove();
     } else if (phase === 'complete') {
       doDismiss();
     }
-  }, [doMove, doDismiss, flip]);
+  }, [doMove, doDismiss, flip, scheduleAutoMove]);
 
   // ── Animated styles ───────────────────────────────────────────────────
   const backdropStyle = useAnimatedStyle(() => ({
@@ -251,9 +263,7 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
               <Text style={styles.progressText}>
                 {phase === 'idle'
                   ? `Tap to reveal  ·  ${currentIndex + 1}/${revealOrder.length}`
-                  : phase === 'flipped'
-                    ? `Tap to continue  ·  ${currentIndex + 1}/${revealOrder.length}`
-                    : `${currentIndex + 1} / ${revealOrder.length}`}
+                  : `${currentIndex + 1} / ${revealOrder.length}`}
               </Text>
             </View>
           </>

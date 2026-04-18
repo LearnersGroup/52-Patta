@@ -11,7 +11,6 @@ const shuffleAction = require("./shuffleAction");
 const undoShuffle = require("./undoShuffle");
 const dealCardsHandler = require("./dealCardsHandler");
 const judgementBid = require("./judgementBid");
-const acknowledgeTrumpAnnounce = require("./acknowledgeTrumpAnnounce");
 const returnToLobby = require("./returnToLobby");
 const pickClosedTrump = require("./pickClosedTrump");
 const revealTrump = require("./revealTrump");
@@ -30,7 +29,6 @@ module.exports = {
     undoShuffle,
     dealCardsHandler,
     judgementBid,
-    acknowledgeTrumpAnnounce,
     returnToLobby,
     pickClosedTrump,
     revealTrump,

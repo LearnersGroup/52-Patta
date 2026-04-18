@@ -46,7 +46,7 @@ function buildInitialState({ gameId, game, config, seatOrder, playerNames, playe
         game_type: "judgement",
         autoplay: game.autoplay ?? true,
         config,
-        phase: "trump-announce",
+        phase: "shuffling",
         seatOrder,
         playerNames,
         playerAvatars,
@@ -84,14 +84,13 @@ function buildInitialState({ gameId, game, config, seatOrder, playerNames, playe
 }
 
 function initialDbState() {
-    return "trump-announce";
+    return "shuffling";
 }
 
 // ── Post-start hooks ────────────────────────────────────────────────────
 
-function afterStart(io, gameState, { scheduleJudgementAdvance, proceedFromTrumpAnnounce }) {
-    io.to(gameState.roomname).emit("game-phase-change", "trump-announce");
-    scheduleJudgementAdvance(gameState.gameId, 5000, () => proceedFromTrumpAnnounce(io, gameState.gameId));
+function afterStart(io, gameState, _deps) {
+    io.to(gameState.roomname).emit("game-phase-change", "shuffling");
 }
 
 // ── Deal ─────────────────────────────────────────────────────────────
@@ -110,13 +109,13 @@ function deal(processedDeck, gameState) {
         hands: dealt.hands,
         bidding,
         trumpCard: null,
-        trumpSuit: gameState.trumpSuit, // preserve existing from trump-announce
+        trumpSuit: gameState.trumpSuit, // preserve existing from shuffling state
     };
 }
 
 function applyDealExtras(gameState /*, dealResult */) {
     gameState.trumpCard = null;
-    // trumpSuit stays unchanged (already set from trump-announce)
+    // trumpSuit stays unchanged (already set at round start)
 }
 
 function transitionToBidding(gameState) {
@@ -183,8 +182,7 @@ function afterRoundEnd(io, gameState, finalState, { scheduleJudgementAdvance, au
     }).catch(() => { /* logged inside persistRecording */ });
 
     if (finalState.phase === "finished") {
-        const scoreboardTimeMs = finalState.config?.scoreboardTimeMs || 5000;
-        scheduleJudgementAdvance(gameState.gameId, scoreboardTimeMs, () => autoNextJudgementRound(io, gameState.gameId));
+        scheduleJudgementAdvance(gameState.gameId, 5000, () => autoNextJudgementRound(io, gameState.gameId));
     }
 }
 
@@ -253,7 +251,6 @@ function buildPublicView(gameState, handSizes) {
         totalRoundsInSeries: gameState.totalRoundsInSeries || gameState.config?.totalRounds || 0,
         roundResults: gameState.roundResults || [],
 
-        scoreboardTimeMs: gameState.config?.scoreboardTimeMs || 5000,
         trumpMode: gameState.config?.trumpMode || "random",
         bidTimeMs: gameState.config?.bidTimeMs ?? null,
         cardRevealTimeMs: gameState.config?.cardRevealTimeMs ?? 10000,

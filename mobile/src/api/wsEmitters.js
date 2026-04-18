@@ -26,7 +26,6 @@ export const WsPlayCard = (card) => emitWithCallback("game-play-card", { card })
 export const WsNextRound = () => emitWithCallback("game-next-round", {});
 export const WsRequestGameState = () => emitWithCallback("game-request-state", {});
 export const WsJudgementBid = (amount) => emitWithCallback("game-judgement-bid", { amount });
-export const WsProceedToShuffle = () => emitWithCallback("game-proceed-to-shuffle", {});
 
 // --- Shuffling & Dealing Emitters ---
 

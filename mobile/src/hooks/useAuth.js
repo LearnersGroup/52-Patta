@@ -160,12 +160,13 @@ export const AuthProvider = ({ children }) => {
         return next;
       });
 
-      // Refresh profile so avatar is available immediately on the home screen
+      // Await the profile fetch so avatar is committed to context before
+      // create-user.js's <Redirect href="/" /> fires (when needsOnboarding
+      // flips to false). Navigating explicitly via router.replace here would
+      // race against the setProfile commit and render HomeScreen with no avatar.
       await refreshProfile();
-
-      router.replace('/');
     },
-    [persistUser, refreshProfile, router]
+    [persistUser, refreshProfile]
   );
 
   const logout = useCallback(async () => {

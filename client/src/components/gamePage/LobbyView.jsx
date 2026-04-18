@@ -32,7 +32,6 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
     const [localReverseOrder, setLocalReverseOrder] = useState(true);
     const [localTrumpMode, setLocalTrumpMode] = useState("fixed");
     const [localMendikotTrumpMode, setLocalMendikotTrumpMode] = useState("band");
-    const [localScoreboardTime, setLocalScoreboardTime] = useState(5);
     const [localBidTimeEnabled, setLocalBidTimeEnabled] = useState(false);
     const [localBidTime, setLocalBidTime] = useState(15);
     const [localCardRevealTime, setLocalCardRevealTime] = useState(10);
@@ -57,7 +56,6 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
         setLocalReverseOrder(roomData?.reverse_order ?? true);
         setLocalTrumpMode(roomData?.trump_mode || "fixed");
         setLocalMendikotTrumpMode(roomData?.trump_mode || "band");
-        setLocalScoreboardTime(roomData?.scoreboard_time ?? 5);
         setLocalBidTimeEnabled(roomData?.judgement_bid_time !== null && roomData?.judgement_bid_time !== undefined);
         setLocalBidTime(roomData?.judgement_bid_time ?? 15);
         setLocalCardRevealTime(roomData?.card_reveal_time ?? 10);
@@ -128,7 +126,6 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                     : localGameType === "judgement"
                     ? localTrumpMode
                     : undefined,
-                scoreboard_time: localScoreboardTime,
                 judgement_bid_time: localBidTimeEnabled ? localBidTime : null,
                 card_reveal_time: localCardRevealTime,
                 rounds_count: localRoundsCount,
@@ -255,8 +252,6 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                                 setTrumpMode={setLocalTrumpMode}
                                 mendikotTrumpMode={localMendikotTrumpMode}
                                 setMendikotTrumpMode={setLocalMendikotTrumpMode}
-                                scoreboardTime={localScoreboardTime}
-                                setScoreboardTime={setLocalScoreboardTime}
                                 bidTimeEnabled={localBidTimeEnabled}
                                 setBidTimeEnabled={setLocalBidTimeEnabled}
                                 bidTime={localBidTime}
