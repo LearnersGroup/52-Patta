@@ -41,7 +41,7 @@ export default function ShufflingPanel({
           <View style={styles.queueRow}>
             {shuffleQueue.map((op, idx) => (
               <View key={`${op.type}_${idx}`} style={styles.chip}>
-                <Text style={styles.chipText}>{ICONS[op.type]} {LABELS[op.type]}</Text>
+                <Text style={styles.chipText}>{LABELS[op.type]}</Text>
               </View>
             ))}
           </View>
@@ -67,7 +67,7 @@ export default function ShufflingPanel({
             disabled={!canShuffle}
             onPress={() => WsShuffleAction(type)}
           >
-            <Text style={styles.actionBtnText}>{ICONS[type]} {LABELS[type]}</Text>
+            <Text style={styles.actionBtnText}>{LABELS[type]}</Text>
           </Pressable>
         ))}
       </View>
@@ -83,7 +83,7 @@ export default function ShufflingPanel({
         {queueLength ? (
           shuffleQueue.map((op, idx) => (
             <View key={`${op.type}_${idx}`} style={styles.chip}>
-              <Text style={styles.chipText}>{ICONS[op.type]} {LABELS[op.type]}</Text>
+              <Text style={styles.chipText}>{LABELS[op.type]}</Text>
             </View>
           ))
         ) : (
