@@ -1,5 +1,10 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.12 — 2026-04-19
+
+### Fixed
+- **CI**: add `expo-build-properties` plugin with `SWIFT_STRICT_CONCURRENCY=minimal` so the iOS local build compiles cleanly under Xcode 16.2 on `macos-15`.
+
 ## 1.1.11 — 2026-04-19
 
 ### Fixed
