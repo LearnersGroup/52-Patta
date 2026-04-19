@@ -3,7 +3,7 @@
 ## 1.1.12 — 2026-04-19
 
 ### Fixed
-- **CI**: fix `withSwiftConcurrency` plugin to use `SWIFT_VERSION='5'` (not `'5.9'` which is invalid and silently ignored, causing the compiler to fall back to pre-Swift 5.5 mode where `@MainActor` is unknown). `'5'` maps to Swift 5.10 compat mode in Xcode 16.4 where `@MainActor` is fully supported. Also rewrote plugin to append a fresh `post_install` block with an idempotency marker instead of injecting into the existing RN block.
+- **CI**: updated expo packages to latest patch versions (expo 55.0.8→55.0.15, expo-modules-core 55.0.8→55.0.22, expo-router 55.0.7→55.0.12, expo-splash-screen 55.0.12→55.0.18, and others). expo-modules-core@55.0.22 contains the Xcode 16.4 / Swift 6 compatibility fixes; the old version used `@MainActor` in protocol conformance position which is Swift-6-only syntax, making it impossible to compile in Swift 5 mode.
 - **CI**: removed broken `prebuildCommand` from `eas.json` (EAS treats it as an expo CLI subcommand, not a shell command); wired `./plugins/withSwiftConcurrency` into `app.json` plugins.
 
 ## 1.1.11 — 2026-04-19
