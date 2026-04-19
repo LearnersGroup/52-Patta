@@ -14,8 +14,6 @@ const JudgementScoreBoard = memo(({
     seriesRoundIndex = 0,
     totalRoundsInSeries = 1,
 }) => {
-    const isFinished = phase === "finished";
-
     const displaySuit = trumpCard?.suit || trumpSuit;
 
     return (
