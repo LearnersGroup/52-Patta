@@ -1,5 +1,10 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.10 — 2026-04-18
+
+### Changed
+- **PowerHouse suit picker (Kaliteri)**: reordered the 2×2 grid to Spades/Diamonds (top) and Clubs/Hearts (bottom). Tapping a suit now enters a confirm state where the button expands to fill the grid and shows "Tap again to confirm"; tapping again confirms the selection, tapping outside cancels and restores all 4 options.
+
 ## 1.1.9 — 2026-04-18
 
 ### Changed

@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LayoutAnimation, Platform, Pressable, ScrollView, StyleSheet, Text, UIManager, View } from 'react-native';
 import { WsSelectPartners, WsSelectPowerHouse } from '../../../api/wsEmitters';
 import { buttonStyles, colors, fonts, spacing, typography } from '../../../styles/theme';
 import CardFace from '../CardFace';
 import { isRedSuit, suitSymbol } from '../utils/cardMapper';
 
+if (Platform.OS === 'android') {
+  UIManager.setLayoutAnimationEnabledExperimental?.(true);
+}
+
 const SUITS = ['S', 'H', 'D', 'C'];
+const SUIT_GRID_ORDER = ['S', 'D', 'C', 'H'];
 const SUIT_NAMES = { S: 'Spades', H: 'Hearts', D: 'Diamonds', C: 'Clubs' };
 const RANK_ORDER_DESC = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
 
@@ -36,6 +41,7 @@ export default function PowerHouseSelector({
 }) {
   const [selectedCards, setSelectedCards] = useState([]);
   const [copyPicker, setCopyPicker] = useState(null);
+  const [pendingSuit, setPendingSuit] = useState(null);
 
   const is2Deck = (configKey || '').includes('2D');
   const targetCount = partnerCardCount || getPartnerCount(configKey);
@@ -44,11 +50,14 @@ export default function PowerHouseSelector({
     if (!isLeader) {
       setSelectedCards([]);
       setCopyPicker(null);
+      setPendingSuit(null);
       return;
     }
     if (!powerHouseSuit) {
       setSelectedCards([]);
       setCopyPicker(null);
+    } else {
+      setPendingSuit(null);
     }
   }, [isLeader, powerHouseSuit]);
 
@@ -125,21 +134,46 @@ export default function PowerHouseSelector({
     );
   }
 
+  const handleSuitTap = (suit) => {
+    if (pendingSuit === suit) {
+      WsSelectPowerHouse(suit);
+    } else {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setPendingSuit(suit);
+    }
+  };
+
+  const cancelPending = () => {
+    if (pendingSuit) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setPendingSuit(null);
+    }
+  };
+
   if (!powerHouseSuit) {
     return (
-      <View style={styles.wrap}>
+      <Pressable style={styles.wrap} onPress={cancelPending}>
         <Text style={styles.title}>Select PowerHouse Suit</Text>
         <View style={styles.suitGrid}>
-          {SUITS.map((suit) => (
-            <Pressable key={suit} style={styles.suitBtn} onPress={() => WsSelectPowerHouse(suit)}>
-              <Text style={[styles.suitBtnSymbol, isRedSuit(suit) ? styles.red : styles.black]}>
-                {suitSymbol(suit)}
+          {pendingSuit ? (
+            <Pressable style={styles.suitBtnFull} onPress={() => handleSuitTap(pendingSuit)}>
+              <Text style={[styles.suitBtnSymbol, styles.suitBtnSymbolExpanded, isRedSuit(pendingSuit) ? styles.red : styles.black]}>
+                {suitSymbol(pendingSuit)}
               </Text>
-              <Text style={styles.suitBtnLabel}>{SUIT_NAMES[suit]}</Text>
+              <Text style={styles.suitBtnLabelConfirm}>Tap again to confirm</Text>
             </Pressable>
-          ))}
+          ) : (
+            SUIT_GRID_ORDER.map((suit) => (
+              <Pressable key={suit} style={styles.suitBtn} onPress={() => handleSuitTap(suit)}>
+                <Text style={[styles.suitBtnSymbol, isRedSuit(suit) ? styles.red : styles.black]}>
+                  {suitSymbol(suit)}
+                </Text>
+                <Text style={styles.suitBtnLabel}>{SUIT_NAMES[suit]}</Text>
+              </Pressable>
+            ))
+          )}
         </View>
-      </View>
+      </Pressable>
     );
   }
 
@@ -319,10 +353,30 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 34,
   },
+  suitBtnSymbolExpanded: {
+    fontSize: 48,
+    lineHeight: 54,
+  },
   suitBtnLabel: {
     ...typography.label,
     color: colors.creamMuted,
     fontSize: 9,
+  },
+  suitBtnFull: {
+    width: '100%',
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    borderWidth: 2,
+    borderColor: colors.gold,
+    borderRadius: 10,
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 6,
+  },
+  suitBtnLabelConfirm: {
+    ...typography.label,
+    color: colors.gold,
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   pickList: {
     flexGrow: 0,
