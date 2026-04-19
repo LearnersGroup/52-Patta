@@ -40,12 +40,6 @@ const ShufflingPanel = memo(({
         overhand: "Overhand",
     };
 
-    const shuffleTypeIcons = {
-        riffle: "♠",
-        hindu: "♥",
-        overhand: "♦",
-    };
-
     const wrapperClass = isTableCenter
         ? `shuffling-center-content ${isDealer ? "dealer-view" : "spectator-view"}`
         : `shuffling-panel ${isDealer ? "dealer-view" : "spectator-view"}`;
