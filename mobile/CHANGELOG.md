@@ -3,7 +3,8 @@
 ## 1.1.12 — 2026-04-19
 
 ### Fixed
-- **CI**: revert to config plugin approach for Swift concurrency fix. `prebuildCommand` in `eas.json` was broken — EAS treats the value as an expo CLI subcommand (runs `npx expo <value> --platform ios`), so `bash scripts/prebuild-ios.sh` was being run as `npx expo bash scripts/...`. Removed `prebuildCommand` from both profiles; added `./plugins/withSwiftConcurrency` to `app.json` so it runs during the standard `expo prebuild` phase and injects `SWIFT_VERSION=5.9` + `SWIFT_STRICT_CONCURRENCY=minimal` on all pod targets.
+- **CI**: fix `withSwiftConcurrency` config plugin to use `SWIFT_VERSION='5'` instead of `'5.9'`. `5.9` is not a valid Xcode build setting value — it is silently ignored by the compiler, which then falls back to pre-Swift 5.5 mode where `@MainActor` is unrecognised. `SWIFT_VERSION='5'` is the correct value and maps to Swift 5.10 compat mode in the Xcode 16 toolchain, where `@MainActor` is fully supported and concurrency checking defaults to minimal. Also rewrote the plugin to always append a fresh `post_install` block with a marker for idempotency, rather than injecting into the existing RN block.
+- **CI**: revert to config plugin approach (removed broken `prebuildCommand` from `eas.json`). EAS treats `prebuildCommand` as an expo CLI subcommand (`npx expo <value> --platform ios`), not a shell command.
 
 ## 1.1.11 — 2026-04-19
 
