@@ -1,9 +1,15 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.11 — 2026-04-19
+
+### Fixed
+- **TeamScoreHUD (Kaliteri)**: added `minHeight: 44` to the HUD row so it always reserves the same vertical space across all game phases. Previously the row collapsed to ~0 height during shuffling/dealing/bidding (when neither side column had content), causing the table to bleed up behind the absolutely-positioned pill.
+
 ## 1.1.10 — 2026-04-18
 
 ### Changed
 - **PowerHouse suit picker (Kaliteri)**: reordered the 2×2 grid to Spades/Diamonds (top row) and Clubs/Hearts (bottom row) using explicit row layout so exactly 2 buttons appear per row on all screen sizes. Tapping a suit fades in (500 ms) a full-screen Modal overlay with a centered confirm card; tapping it again confirms the suit; tapping anywhere else fades it out (300 ms) and returns to the 4-button grid.
+- **TeamScoreHUD layout**: pill always stays centred — left side (score) and right side (partner cards) each get `flex: 1` so they balance each other regardless of which is visible. Score, pill, and partner cards all appear in the same row.
 
 ## 1.1.9 — 2026-04-18
 

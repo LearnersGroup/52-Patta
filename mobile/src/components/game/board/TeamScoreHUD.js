@@ -123,9 +123,31 @@ export default function TeamScoreHUD({
 
   return (
     <View style={styles.outerRow}>
-      <View style={styles.leftCol}>
 
-        {/* ── Integrated HUD pill ── */}
+      {/* ── Left: team score ── */}
+      <View style={styles.sideLeft}>
+        {isKaliteriPlaying ? (
+          <View style={styles.scoreStack}>
+            <View style={styles.scoreRow}>
+              <View style={[styles.teamDot, styles.bidDot]} />
+              <View style={styles.scoreRowDivider} />
+              <Text style={styles.scoreText}>
+                {bidScore}{bidding?.currentBid != null ? `/${bidding.currentBid}` : ''}
+              </Text>
+            </View>
+            <View style={styles.scoreRow}>
+              <View style={[styles.teamDot, styles.opposeDot]} />
+              <View style={styles.scoreRowDivider} />
+              <Text style={styles.scoreText}>
+                {opposeScore !== null ? opposeScore : '???'}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+      </View>
+
+      {/* ── Centre: HUD pill — absolutely centred so it never shifts ── */}
+      <View style={styles.pillCenter} pointerEvents="box-none">
         <View style={styles.pill}>
           {trumpSuit ? (
             <View style={styles.trumpChip}>
@@ -148,35 +170,14 @@ export default function TeamScoreHUD({
             <Text style={styles.iconText}>⚙</Text>
           </Pressable>
         </View>
-
-        {/* ── Team scores (Kaliteri only during play) ── */}
-        {isKaliteriPlaying ? (
-          <View style={styles.scoreRow}>
-            <View style={styles.teamScore}>
-              <View style={[styles.teamDot, styles.bidDot]} />
-              <Text style={styles.scoreText}>{bidScore}</Text>
-            </View>
-            {bidding?.currentBid != null ? (
-              <Text style={styles.bidLabel}>/ {bidding.currentBid}</Text>
-            ) : null}
-            <Text style={styles.vsText}>vs</Text>
-            <View style={styles.teamScore}>
-              <View style={[styles.teamDot, styles.opposeDot]} />
-              <Text style={styles.scoreText}>
-                {opposeScore !== null ? opposeScore : '???'}
-              </Text>
-            </View>
-          </View>
-        ) : null}
-
       </View>
 
-      {/* ── Partner cards (Kaliteri) ── */}
-      {showPartnerCards ? (
-        <View style={styles.rightCol}>
+      {/* ── Right: partner cards ── */}
+      <View style={styles.sideRight}>
+        {showPartnerCards ? (
           <PartnerCardDisplay partnerCards={partnerCards} getName={getName} />
-        </View>
-      ) : null}
+        ) : null}
+      </View>
 
       <JudgementMenuModal
         visible={showMenu}
@@ -201,18 +202,25 @@ export default function TeamScoreHUD({
 const styles = StyleSheet.create({
   outerRow: {
     flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: spacing.xs,
-    marginTop: -10,
+    alignItems: 'flex-start',
+    minHeight: 44,
   },
-  leftCol: {
+  sideLeft: {
     flex: 1,
-    gap: 2,
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
   },
-  rightCol: {
-    justifyContent: 'center',
+  sideRight: {
+    flex: 1,
     alignItems: 'flex-end',
-    paddingLeft: spacing.xs,
+    justifyContent: 'flex-start',
+  },
+  pillCenter: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
 
   // ── Integrated pill (matches MendikotHUD pill) ──────────────────────────
@@ -226,7 +234,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 5,
     gap: 5,
-    alignSelf: 'center',
   },
   trumpChip: {
     alignItems: 'center',
@@ -268,22 +275,30 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // ── Team score row (Kaliteri) ───────────────────────────────────────────
+  // ── Team score stack (Kaliteri) ─────────────────────────────────────────
+  scoreStack: {
+    flexDirection: 'column',
+    gap: 4,
+  },
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
-    paddingLeft: 2,
+    gap: 6,
+  },
+  scoreRowDivider: {
+    width: 1,
+    height: 13,
+    backgroundColor: 'rgba(201,162,39,0.3)',
   },
   teamScore: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
   },
   teamDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
   bidDot: {
     backgroundColor: '#3b82f6',
@@ -303,22 +318,9 @@ const styles = StyleSheet.create({
   },
   scoreText: {
     fontFamily: fonts.heading,
-    fontSize: 12,
+    fontSize: 15,
     fontWeight: '700',
     color: colors.cream,
-  },
-  bidLabel: {
-    fontFamily: fonts.heading,
-    fontSize: 11,
-    fontWeight: '700',
-    color: colors.goldLight,
-    opacity: 0.7,
-  },
-  vsText: {
-    fontFamily: fonts.body,
-    fontSize: 10,
-    color: colors.creamMuted,
-    fontStyle: 'italic',
   },
 });
 

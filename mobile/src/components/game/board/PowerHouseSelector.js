@@ -60,6 +60,7 @@ export default function PowerHouseSelector({
   const [copyPicker, setCopyPicker] = useState(null);
   const [pendingSuit, setPendingSuit] = useState(null);
   const [pendingSuitLayout, setPendingSuitLayout] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
   const expandAnim = useRef(new Animated.Value(0)).current;
   const pendingRequestRef = useRef(false);
   const suitGridRef = useRef(null);
@@ -74,6 +75,7 @@ export default function PowerHouseSelector({
       setCopyPicker(null);
       setPendingSuit(null);
       setPendingSuitLayout(null);
+      setConfirmed(false);
       pendingRequestRef.current = false;
       expandAnim.stopAnimation();
       expandAnim.setValue(0);
@@ -85,6 +87,7 @@ export default function PowerHouseSelector({
     } else {
       setPendingSuit(null);
       setPendingSuitLayout(null);
+      setConfirmed(false);
       pendingRequestRef.current = false;
       expandAnim.stopAnimation();
       expandAnim.setValue(0);
@@ -184,6 +187,7 @@ export default function PowerHouseSelector({
   const confirmSuit = () => {
     const suit = pendingSuit;
     clearPendingSuit();
+    setConfirmed(true);
     if (suit) WsSelectPowerHouse(suit);
   };
 
@@ -246,9 +250,14 @@ export default function PowerHouseSelector({
       }
     : null;
 
-  const expandedSymbolScale = expandAnim.interpolate({
+  const expandedSymbolFontSize = expandAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.7],
+    outputRange: [30, 44],
+  });
+
+  const expandedSymbolLineHeight = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [34, 50],
   });
 
   const confirmHintOpacity = expandAnim.interpolate({
@@ -278,6 +287,14 @@ export default function PowerHouseSelector({
   );
 
   if (!powerHouseSuit) {
+    if (confirmed) {
+      return (
+        <View style={styles.wrap}>
+          <Text style={styles.subtitle}>Moving to teammate selection...</Text>
+        </View>
+      );
+    }
+
     return (
       <View style={styles.wrap}>
         <Text style={styles.title}>Select PowerHouse Suit</Text>
@@ -306,7 +323,7 @@ export default function PowerHouseSelector({
                   style={[
                     styles.suitBtnSymbol,
                     pendingSuit && isRedSuit(pendingSuit) ? styles.red : styles.black,
-                    { transform: [{ scale: expandedSymbolScale }] },
+                    { fontSize: expandedSymbolFontSize, lineHeight: expandedSymbolLineHeight },
                   ]}
                 >
                   {pendingSuit ? suitSymbol(pendingSuit) : ''}
@@ -518,9 +535,7 @@ const styles = StyleSheet.create({
   },
   suitBtnExpanded: {
     position: 'absolute',
-    justifyContent: 'center',
     paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.md,
     overflow: 'hidden',
     zIndex: 2,
     backgroundColor: 'rgba(10,30,15,0.95)',
@@ -539,10 +554,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
   },
   suitBtnLabelConfirm: {
-    ...typography.label,
+    position: 'absolute',
+    bottom: spacing.sm,
+    left: 0,
+    right: 0,
+    fontFamily: fonts.body,
     color: colors.gold,
     fontSize: 11,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
+    textAlign: 'center',
   },
   pickList: {
     flexGrow: 0,
