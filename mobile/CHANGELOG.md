@@ -1,5 +1,10 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.13 — 2026-04-19
+
+### Fixed
+- **CI**: patch expo-modules-core@55.0.22 post-install to remove `@MainActor` from three protocol conformances (`AnyExpoSwiftUIHostingView`, `ViewWrapper`, `AnyArgument`). These use Swift-6-only conformance annotation syntax that fails with "unknown attribute 'MainActor'" in Swift 5 mode. A `postinstall` Node script (`scripts/patch-expo-modules.js`) applies the changes idempotently after every `npm install` / `npm ci`.
+
 ## 1.1.12 — 2026-04-19
 
 ### Fixed
