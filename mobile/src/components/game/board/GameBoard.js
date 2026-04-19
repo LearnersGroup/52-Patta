@@ -1003,9 +1003,9 @@ const styles = StyleSheet.create({
   },
   trumpPlaceholder: {
     position: 'absolute',
-    width: 156,
-    height: 156,
-    tintColor: '#000',
+    width: 200,
+    height: 200,
+    tintColor: '#777777',
     opacity: 0.2,
   },
   trumpWatermark: {

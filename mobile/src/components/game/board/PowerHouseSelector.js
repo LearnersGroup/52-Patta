@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { WsSelectPartners, WsSelectPowerHouse } from '../../../api/wsEmitters';
 import { buttonStyles, colors, fonts, spacing, typography } from '../../../styles/theme';
 import CardFace from '../CardFace';
@@ -11,6 +11,25 @@ const SUIT_ROW_1 = ['S', 'D'];
 const SUIT_ROW_2 = ['C', 'H'];
 const SUIT_NAMES = { S: 'Spades', H: 'Hearts', D: 'Diamonds', C: 'Clubs' };
 const RANK_ORDER_DESC = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function measureInWindow(ref) {
+  return new Promise((resolve) => {
+    const node = ref && typeof ref === 'object' && 'current' in ref ? ref.current : ref;
+    if (!node || typeof node.measureInWindow !== 'function') {
+      resolve(null);
+      return;
+    }
+
+    node.measureInWindow((x, y, width, height) => {
+      if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+        resolve(null);
+        return;
+      }
+      resolve({ x, y, width, height });
+    });
+  });
+}
 
 function getPartnerCount(configKey) {
   if (!configKey) return 1;
@@ -40,7 +59,11 @@ export default function PowerHouseSelector({
   const [selectedCards, setSelectedCards] = useState([]);
   const [copyPicker, setCopyPicker] = useState(null);
   const [pendingSuit, setPendingSuit] = useState(null);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [pendingSuitLayout, setPendingSuitLayout] = useState(null);
+  const expandAnim = useRef(new Animated.Value(0)).current;
+  const pendingRequestRef = useRef(false);
+  const suitGridRef = useRef(null);
+  const suitButtonRefs = useRef({});
 
   const is2Deck = (configKey || '').includes('2D');
   const targetCount = partnerCardCount || getPartnerCount(configKey);
@@ -50,6 +73,10 @@ export default function PowerHouseSelector({
       setSelectedCards([]);
       setCopyPicker(null);
       setPendingSuit(null);
+      setPendingSuitLayout(null);
+      pendingRequestRef.current = false;
+      expandAnim.stopAnimation();
+      expandAnim.setValue(0);
       return;
     }
     if (!powerHouseSuit) {
@@ -57,8 +84,12 @@ export default function PowerHouseSelector({
       setCopyPicker(null);
     } else {
       setPendingSuit(null);
+      setPendingSuitLayout(null);
+      pendingRequestRef.current = false;
+      expandAnim.stopAnimation();
+      expandAnim.setValue(0);
     }
-  }, [isLeader, powerHouseSuit]);
+  }, [expandAnim, isLeader, powerHouseSuit]);
 
   const selectedCount = selectedCards.length;
 
@@ -133,65 +164,162 @@ export default function PowerHouseSelector({
     );
   }
 
-  const showConfirm = (suit) => {
-    fadeAnim.setValue(0);
-    setPendingSuit(suit);
-    Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+  const clearPendingSuit = () => {
+    pendingRequestRef.current = false;
+    setPendingSuit(null);
+    setPendingSuitLayout(null);
   };
 
   const cancelPending = () => {
-    Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => {
-      setPendingSuit(null);
+    Animated.timing(expandAnim, {
+      toValue: 0,
+      duration: 180,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: false,
+    }).start(() => {
+      clearPendingSuit();
     });
   };
 
   const confirmSuit = () => {
-    setPendingSuit(null);
-    WsSelectPowerHouse(pendingSuit);
+    const suit = pendingSuit;
+    clearPendingSuit();
+    if (suit) WsSelectPowerHouse(suit);
   };
+
+  const showConfirm = async (suit) => {
+    if (pendingRequestRef.current) return;
+    pendingRequestRef.current = true;
+
+    const [fromRect, toRect] = await Promise.all([
+      measureInWindow(suitButtonRefs.current[suit]),
+      measureInWindow(suitGridRef),
+    ]);
+
+    const fallbackRect = toRect || fromRect;
+    if (!fallbackRect) {
+      pendingRequestRef.current = false;
+      WsSelectPowerHouse(suit);
+      return;
+    }
+
+    expandAnim.stopAnimation();
+    expandAnim.setValue(0);
+    setPendingSuit(suit);
+    setPendingSuitLayout({
+      fromRect: fromRect || fallbackRect,
+      toRect: toRect || fallbackRect,
+    });
+
+    requestAnimationFrame(() => {
+      Animated.timing(expandAnim, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    });
+  };
+
+  const expandedSuitStyle = pendingSuitLayout
+    ? {
+        left: expandAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [pendingSuitLayout.fromRect.x, pendingSuitLayout.toRect.x],
+        }),
+        top: expandAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [pendingSuitLayout.fromRect.y, pendingSuitLayout.toRect.y],
+        }),
+        width: expandAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [pendingSuitLayout.fromRect.width, pendingSuitLayout.toRect.width],
+        }),
+        height: expandAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [pendingSuitLayout.fromRect.height, pendingSuitLayout.toRect.height],
+        }),
+        borderRadius: expandAnim.interpolate({
+          inputRange: [0, 1],
+          outputRange: [10, 14],
+        }),
+      }
+    : null;
+
+  const expandedSymbolScale = expandAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.7],
+  });
+
+  const confirmHintOpacity = expandAnim.interpolate({
+    inputRange: [0, 0.55, 1],
+    outputRange: [0, 0, 1],
+  });
+
+  const renderSuitButton = (suit) => (
+    <View
+      key={suit}
+      ref={(node) => {
+        suitButtonRefs.current[suit] = node;
+      }}
+      collapsable={false}
+    >
+      <Pressable
+        style={[styles.suitBtn, pendingSuit === suit && styles.suitBtnGhost]}
+        onPress={() => showConfirm(suit)}
+        disabled={!!pendingSuit}
+      >
+        <Text style={[styles.suitBtnSymbol, isRedSuit(suit) ? styles.red : styles.black]}>
+          {suitSymbol(suit)}
+        </Text>
+        <Text style={styles.suitBtnLabel}>{SUIT_NAMES[suit]}</Text>
+      </Pressable>
+    </View>
+  );
 
   if (!powerHouseSuit) {
     return (
       <View style={styles.wrap}>
         <Text style={styles.title}>Select PowerHouse Suit</Text>
-        <View style={styles.suitGrid}>
+        <View ref={suitGridRef} collapsable={false} style={styles.suitGrid}>
           <View style={styles.suitRow}>
-            {SUIT_ROW_1.map((suit) => (
-              <Pressable key={suit} style={styles.suitBtn} onPress={() => showConfirm(suit)}>
-                <Text style={[styles.suitBtnSymbol, isRedSuit(suit) ? styles.red : styles.black]}>
-                  {suitSymbol(suit)}
-                </Text>
-                <Text style={styles.suitBtnLabel}>{SUIT_NAMES[suit]}</Text>
-              </Pressable>
-            ))}
+            {SUIT_ROW_1.map(renderSuitButton)}
           </View>
           <View style={styles.suitRow}>
-            {SUIT_ROW_2.map((suit) => (
-              <Pressable key={suit} style={styles.suitBtn} onPress={() => showConfirm(suit)}>
-                <Text style={[styles.suitBtnSymbol, isRedSuit(suit) ? styles.red : styles.black]}>
-                  {suitSymbol(suit)}
-                </Text>
-                <Text style={styles.suitBtnLabel}>{SUIT_NAMES[suit]}</Text>
-              </Pressable>
-            ))}
+            {SUIT_ROW_2.map(renderSuitButton)}
           </View>
         </View>
 
-        <Modal visible={!!pendingSuit} transparent animationType="none" statusBarTranslucent onRequestClose={cancelPending}>
-          {/* Layer 1: dark backdrop — catches outside taps */}
-          <Animated.View style={[StyleSheet.absoluteFill, styles.backdropDim, { opacity: fadeAnim }]} pointerEvents="box-none">
-            <Pressable style={StyleSheet.absoluteFill} onPress={cancelPending} />
-          </Animated.View>
-          {/* Layer 2: confirm button — centered, above backdrop */}
-          <Animated.View style={[StyleSheet.absoluteFill, styles.confirmCenter, { opacity: fadeAnim }]} pointerEvents="box-none">
-            <Pressable style={styles.suitBtnFull} onPress={confirmSuit}>
-              <Text style={[styles.suitBtnSymbol, styles.suitBtnSymbolExpanded, pendingSuit && isRedSuit(pendingSuit) ? styles.red : styles.black]}>
-                {pendingSuit ? suitSymbol(pendingSuit) : ''}
-              </Text>
-              <Text style={styles.suitBtnLabelConfirm}>Tap again to confirm</Text>
-            </Pressable>
-          </Animated.View>
-        </Modal>
+        {pendingSuit && pendingSuitLayout ? (
+          <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={cancelPending}>
+            <View style={styles.confirmOverlayRoot}>
+              <Pressable style={styles.transparentBackdrop} onPress={cancelPending} />
+              <AnimatedPressable
+                style={[
+                  styles.suitBtn,
+                  styles.suitBtnExpanded,
+                  expandedSuitStyle,
+                ]}
+                onPress={confirmSuit}
+              >
+                <Animated.Text
+                  style={[
+                    styles.suitBtnSymbol,
+                    styles.suitBtnSymbolExpanded,
+                    pendingSuit && isRedSuit(pendingSuit) ? styles.red : styles.black,
+                    { transform: [{ scale: expandedSymbolScale }] },
+                  ]}
+                >
+                  {pendingSuit ? suitSymbol(pendingSuit) : ''}
+                </Animated.Text>
+                <Text style={styles.suitBtnLabelExpanded}>{pendingSuit ? SUIT_NAMES[pendingSuit] : ''}</Text>
+                <Animated.Text style={[styles.suitBtnLabelConfirm, { opacity: confirmHintOpacity }]}>
+                  Tap again to confirm
+                </Animated.Text>
+              </AnimatedPressable>
+            </View>
+          </Modal>
+        ) : null}
       </View>
     );
   }
@@ -359,12 +487,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
-  backdropDim: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
+  confirmOverlayRoot: {
+    flex: 1,
   },
-  confirmCenter: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  transparentBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
   },
   suitBtn: {
     width: 68,
@@ -381,6 +509,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 34,
   },
+  suitBtnGhost: {
+    opacity: 0,
+  },
   suitBtnSymbolExpanded: {
     fontSize: 48,
     lineHeight: 54,
@@ -390,15 +521,27 @@ const styles = StyleSheet.create({
     color: colors.creamMuted,
     fontSize: 9,
   },
-  suitBtnFull: {
-    width: 200,
+  suitBtnExpanded: {
+    position: 'absolute',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+    overflow: 'hidden',
+    zIndex: 2,
     backgroundColor: 'rgba(10,30,15,0.95)',
     borderWidth: 2,
     borderColor: colors.gold,
-    borderRadius: 14,
-    alignItems: 'center',
-    paddingVertical: 28,
-    gap: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  suitBtnLabelExpanded: {
+    ...typography.label,
+    color: colors.creamMuted,
+    fontSize: 11,
+    letterSpacing: 0.7,
   },
   suitBtnLabelConfirm: {
     ...typography.label,
