@@ -70,9 +70,6 @@ const ShufflingPanel = memo(({
                             onClick={() => handleShuffle(type)}
                             disabled={!canShuffle}
                         >
-                            <span className="shuffle-icon">
-                                {shuffleTypeIcons[type]}
-                            </span>
                             <span className="shuffle-label">
                                 {shuffleTypeLabels[type]}
                             </span>
@@ -89,9 +86,6 @@ const ShufflingPanel = memo(({
                     <div className="shuffle-queue">
                         {shuffleQueue.map((op, idx) => (
                             <div key={idx} className="shuffle-chip">
-                                <span className="chip-icon">
-                                    {shuffleTypeIcons[op.type]}
-                                </span>
                                 <span className="chip-label">
                                     {shuffleTypeLabels[op.type]}
                                 </span>
@@ -151,9 +145,6 @@ const ShufflingPanel = memo(({
                         <div className="shuffle-queue spectator-queue">
                             {shuffleQueue.map((op, idx) => (
                                 <div key={idx} className="shuffle-chip small">
-                                    <span className="chip-icon">
-                                        {shuffleTypeIcons[op.type]}
-                                    </span>
                                     <span className="chip-label">
                                         {shuffleTypeLabels[op.type]}
                                     </span>
