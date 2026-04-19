@@ -3,8 +3,7 @@
 ## 1.1.12 — 2026-04-19
 
 ### Fixed
-- **CI**: add `expo-build-properties` plugin with `SWIFT_STRICT_CONCURRENCY=minimal` so the iOS local build compiles cleanly under Xcode 16.2 on `macos-15`.
-- **CI**: add `expo-build-properties` to `mobile/package.json` so EAS CLI can resolve the config plugin during `eas build --local`.
+- **CI**: replace `expo-build-properties` buildSettings approach with a custom `withSwiftConcurrency` config plugin that injects `SWIFT_STRICT_CONCURRENCY=minimal` into all CocoaPods targets via a `post_install` hook. The previous approach only covered the main app target; the errors were in pod targets (`expo-modules-core`).
 
 ## 1.1.11 — 2026-04-19
 

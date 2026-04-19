@@ -45,16 +45,7 @@
       "expo-router",
       "expo-web-browser",
       "expo-font",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "buildSettings": {
-              "SWIFT_STRICT_CONCURRENCY": "minimal"
-            }
-          }
-        }
-      ]
+      "./plugins/withSwiftConcurrency"
     ]
   }
 }
