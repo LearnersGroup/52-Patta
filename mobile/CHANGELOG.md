@@ -4,6 +4,7 @@
 
 ### Fixed
 - **CI**: add `expo-build-properties` plugin with `SWIFT_STRICT_CONCURRENCY=minimal` so the iOS local build compiles cleanly under Xcode 16.2 on `macos-15`.
+- **CI**: add `expo-build-properties` to `mobile/package.json` so EAS CLI can resolve the config plugin during `eas build --local`.
 
 ## 1.1.11 — 2026-04-19
 
