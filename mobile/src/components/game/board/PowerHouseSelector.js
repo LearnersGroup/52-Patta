@@ -305,7 +305,6 @@ export default function PowerHouseSelector({
                 <Animated.Text
                   style={[
                     styles.suitBtnSymbol,
-                    styles.suitBtnSymbolExpanded,
                     pendingSuit && isRedSuit(pendingSuit) ? styles.red : styles.black,
                     { transform: [{ scale: expandedSymbolScale }] },
                   ]}
@@ -511,10 +510,6 @@ const styles = StyleSheet.create({
   },
   suitBtnGhost: {
     opacity: 0,
-  },
-  suitBtnSymbolExpanded: {
-    fontSize: 48,
-    lineHeight: 54,
   },
   suitBtnLabel: {
     ...typography.label,
