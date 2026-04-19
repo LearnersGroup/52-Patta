@@ -3,7 +3,7 @@
 ## 1.1.12 — 2026-04-19
 
 ### Fixed
-- **CI**: replace config plugin with `prebuildCommand` in `eas.json` + `scripts/patch-podfile.py`. Runs `expo prebuild` then appends a `post_install` block setting `SWIFT_VERSION=5.9` + `SWIFT_STRICT_CONCURRENCY=minimal` on all pod targets. Script prints the patched Podfile tail in CI logs so the fix is verifiable.
+- **CI**: revert to config plugin approach for Swift concurrency fix. `prebuildCommand` in `eas.json` was broken — EAS treats the value as an expo CLI subcommand (runs `npx expo <value> --platform ios`), so `bash scripts/prebuild-ios.sh` was being run as `npx expo bash scripts/...`. Removed `prebuildCommand` from both profiles; added `./plugins/withSwiftConcurrency` to `app.json` so it runs during the standard `expo prebuild` phase and injects `SWIFT_VERSION=5.9` + `SWIFT_STRICT_CONCURRENCY=minimal` on all pod targets.
 
 ## 1.1.11 — 2026-04-19
 

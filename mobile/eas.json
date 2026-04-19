@@ -10,7 +10,6 @@
     },
     "preview": {
       "distribution": "store",
-      "prebuildCommand": "bash scripts/prebuild-ios.sh",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://staging.52patta.in/api",
@@ -18,7 +17,6 @@
       }
     },
     "production": {
-      "prebuildCommand": "bash scripts/prebuild-ios.sh",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://52patta.in/api",
