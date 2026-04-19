@@ -10,7 +10,7 @@
     },
     "preview": {
       "distribution": "store",
-      "prebuildCommand": "npx expo prebuild --platform ios --no-install && python3 scripts/patch-podfile.py",
+      "prebuildCommand": "bash scripts/prebuild-ios.sh",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://staging.52patta.in/api",
@@ -18,7 +18,7 @@
       }
     },
     "production": {
-      "prebuildCommand": "npx expo prebuild --platform ios --no-install && python3 scripts/patch-podfile.py",
+      "prebuildCommand": "bash scripts/prebuild-ios.sh",
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://52patta.in/api",
