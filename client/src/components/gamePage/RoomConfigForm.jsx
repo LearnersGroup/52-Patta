@@ -87,8 +87,6 @@ const RoomConfigForm = ({
     setTrumpMode,
     mendikotTrumpMode,
     setMendikotTrumpMode,
-    scoreboardTime,
-    setScoreboardTime,
     bidTimeEnabled,
     setBidTimeEnabled,
     bidTime,
@@ -133,11 +131,7 @@ const RoomConfigForm = ({
     }, [gameType, playerCount, setPlayerCount]);
 
     useEffect(() => {
-        if (gameType === "judgement") {
-            if (playerCount <= 6 && deckCount !== 1) setDeckCount(1);
-            if (playerCount >= 7 && deckCount !== 2) setDeckCount(2);
-            return;
-        }
+        if (gameType === "judgement") return;
 
         if (!isDeckCountValid(playerCount, deckCount)) {
             setDeckCount(2);
@@ -210,7 +204,6 @@ const RoomConfigForm = ({
         setMaxCardsPerRound((prev) => Math.max(1, Math.min(maxPossible, prev + delta)));
     };
 
-    const adjustScoreboardTime = (delta) => setScoreboardTime((prev) => Math.max(3, Math.min(30, prev + delta)));
     const adjustBidTime = (delta) => setBidTime((prev) => Math.max(5, Math.min(60, prev + delta)));
     const adjustCardRevealTime = (delta) => setCardRevealTime((prev) => Math.max(3, Math.min(30, prev + delta)));
 
@@ -298,10 +291,10 @@ const RoomConfigForm = ({
                     <button
                         className={`deck-btn ${deckCount === 1 ? "active" : ""}`}
                         onClick={() => setDeckCount(1)}
-                        disabled={gameType === "judgement" ? playerCount >= 7 : !oneDeckOk}
+                        disabled={gameType === "judgement" ? false : !oneDeckOk}
                         title={
                             gameType === "judgement"
-                                ? (playerCount >= 7 ? "Judgement uses 2 decks for 7+ players" : "")
+                                ? ""
                                 : (!oneDeckOk ? `${playerCount} players require 2 decks` : "")
                         }
                     >
@@ -310,7 +303,7 @@ const RoomConfigForm = ({
                     <button
                         className={`deck-btn ${deckCount === 2 ? "active" : ""}`}
                         onClick={() => setDeckCount(2)}
-                        disabled={gameType === "judgement" ? playerCount <= 6 : false}
+                        disabled={false}
                     >
                         2 Decks
                     </button>
@@ -322,9 +315,7 @@ const RoomConfigForm = ({
                 )}
                 {gameType === "judgement" && (
                     <div className="deck-warning">
-                        {playerCount <= 6
-                            ? "Judgement with 3-6 players uses 1 deck"
-                            : "Judgement with 7+ players uses 2 decks"}
+                        Max {Math.floor((52 * deckCount) / playerCount)} cards/round with {playerCount} players + {deckCount === 1 ? "1 deck" : "2 decks"}
                     </div>
                 )}
             </div>
@@ -581,15 +572,6 @@ const RoomConfigForm = ({
                         )}
                     </div>
 
-                    <div className="form-group">
-                        <label>Scoreboard Display Time</label>
-                        <div className="game-count-widget">
-                            <button className="bid-adjust" onClick={() => adjustScoreboardTime(-1)} disabled={scoreboardTime <= 3}>&minus;</button>
-                            <span className="threshold-value">{scoreboardTime}s</span>
-                            <button className="bid-adjust" onClick={() => adjustScoreboardTime(1)} disabled={scoreboardTime >= 30}>+</button>
-                        </div>
-                        <div className="game-count-info">How long to show the scoreboard between rounds (3–30s)</div>
-                    </div>
 
                     <div className="form-group">
                         <label>Bidding Time Limit</label>

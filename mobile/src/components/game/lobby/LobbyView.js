@@ -1,5 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+
+const GAME_ICONS = {
+  kaliteri:  require('../../../../assets/Icons/Kaliteri_Icon.png'),
+  judgement: require('../../../../assets/Icons/Judgement_Icon.png'),
+  mendikot:  require('../../../../assets/Icons/Mendi_Icon.png'),
+};
 import {
   WsAdminKickPlayer,
   WsAdminRandomizeTeams,
@@ -141,9 +147,12 @@ export default function LobbyView({
       {/* ── Header card: game type name + start button + info row ── */}
       <View style={styles.headerCard}>
         <View style={styles.headerRow}>
-          <Text style={styles.gameTitle}>
-            {gameType === 'judgement' ? 'Judgement' : gameType === 'mendikot' ? 'Mendikot' : 'Kaliteri'}
-          </Text>
+          <View style={styles.gameTitleRow}>
+            <Image source={GAME_ICONS[gameType] || GAME_ICONS.kaliteri} style={styles.gameTitleIcon} />
+            <Text style={styles.gameTitle}>
+              {gameType === 'judgement' ? 'Judgement' : gameType === 'mendikot' ? 'Mendikot' : 'Kaliteri'}
+            </Text>
+          </View>
           {isAdmin ? (
             <Pressable
               style={[
@@ -257,6 +266,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  gameTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  gameTitleIcon: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
   },
   gameTitle: {
     fontFamily: fonts.heading,

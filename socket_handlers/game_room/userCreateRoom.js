@@ -104,15 +104,6 @@ module.exports = wrapHandler('user-create-room', async (socket, io, data, callba
             callback(configCheck.reason);
             return;
         }
-    } else if (normalizedGameType === "judgement") {
-        if (deckCountParsed === 1 && count > 6) {
-            callback("Judgement with 1 deck supports up to 6 players");
-            return;
-        }
-        if (deckCountParsed === 2 && count < 7) {
-            callback("Judgement with 2 decks is for 7+ players");
-            return;
-        }
     }
 
     // Sanitize room name

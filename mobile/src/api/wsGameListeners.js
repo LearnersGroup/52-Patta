@@ -12,7 +12,6 @@ import {
 import { notify } from "../redux/slices/alert";
 
 const PHASE_LABELS = {
-    "trump-announce": "Trump announced",
     shuffling: "Shuffling",
     dealing: "Dealing cards",
     bidding: "Bidding started",

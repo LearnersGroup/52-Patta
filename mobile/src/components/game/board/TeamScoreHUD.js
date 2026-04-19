@@ -1,12 +1,82 @@
-import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, pillStyle, spacing, typography } from '../../../styles/theme';
+import { memo, useMemo, useState } from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors, fonts, panelStyle, spacing } from '../../../styles/theme';
+import { isRedSuit, suitSymbol } from '../utils/cardMapper';
 import PartnerCardDisplay from './PartnerCardDisplay';
+import ScoreTable from './ScoreTable';
+
+// ── Judgement menu modal (scoreboard + end button) ────────────────────────
+
+const JudgementMenuModal = memo(function JudgementMenuModal({
+  visible, onClose, isAdmin, onEnd,
+  seatOrder, scores, getName, gameType, userId,
+  roundResults, tricksWon, bidding, phase, gameHistory,
+}) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Pressable style={menuStyles.backdrop} onPress={onClose}>
+        <Pressable style={menuStyles.card} onPress={() => {}}>
+
+          <View style={menuStyles.header}>
+            {isAdmin ? (
+              <Pressable
+                style={menuStyles.endBtn}
+                onPress={() => { onClose(); onEnd(); }}
+                hitSlop={6}
+              >
+                <Text style={menuStyles.endBtnText}>END</Text>
+              </Pressable>
+            ) : (
+              <View style={menuStyles.headerSide} />
+            )}
+
+            <Text style={menuStyles.title}>SCOREBOARD</Text>
+
+            <View style={menuStyles.headerSide}>
+              <Pressable style={menuStyles.closeBtn} onPress={onClose} hitSlop={10}>
+                <Text style={menuStyles.closeBtnText}>✕</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={menuStyles.divider} />
+
+          <ScrollView
+            style={menuStyles.scroll}
+            contentContainerStyle={menuStyles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <ScoreTable
+              seatOrder={seatOrder}
+              scores={scores}
+              getName={getName}
+              gameType={gameType}
+              userId={userId}
+              roundResults={roundResults}
+              tricksWon={tricksWon}
+              bidding={bidding}
+              phase={phase}
+              gameHistory={gameHistory}
+            />
+          </ScrollView>
+
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+});
+
+// ── Main HUD ──────────────────────────────────────────────────────────────
 
 export default function TeamScoreHUD({
-  trumpText,
+  trumpSuit,
   roundText,
-  onShowScoreboard,
   onShowSettings,
   isAdmin = false,
   onQuit,
@@ -19,16 +89,22 @@ export default function TeamScoreHUD({
   partnerCards = [],
   getName,
   bidding,
+  // Scoreboard props
+  seatOrder = [],
+  scores = {},
+  userId,
+  roundResults = [],
+  tricksWon = {},
+  gameHistory = [],
 }) {
+  const [showMenu, setShowMenu] = useState(false);
+
   const isKaliteriPlaying = gameType === 'kaliteri' && (phase === 'playing' || phase === 'powerhouse');
 
-  // Compute per-player trick points
   const playerTrickPoints = useMemo(() => {
     const pts = {};
     (tricks || []).forEach((t) => {
-      if (t.winner) {
-        pts[t.winner] = (pts[t.winner] || 0) + (t.points || 0);
-      }
+      if (t.winner) pts[t.winner] = (pts[t.winner] || 0) + (t.points || 0);
     });
     return pts;
   }, [tricks]);
@@ -47,38 +123,33 @@ export default function TeamScoreHUD({
 
   return (
     <View style={styles.outerRow}>
-      {/* ── Left column: control row + optional team score row ── */}
       <View style={styles.leftCol}>
-        {/* Row 1: Quit, Trump, Round, Scoreboard */}
-        <View style={styles.row}>
-          {isAdmin && onQuit ? (
-            <Pressable style={styles.quitBtn} onPress={onQuit}>
-              <Text style={styles.quitText}>✕ Quit</Text>
-            </Pressable>
-          ) : null}
 
-          {trumpText ? (
-            <View style={styles.pill}>
-              <Text style={styles.pillValue}>{trumpText}</Text>
+        {/* ── Integrated HUD pill ── */}
+        <View style={styles.pill}>
+          {trumpSuit ? (
+            <View style={styles.trumpChip}>
+              <Text style={[styles.trumpSymbol, isRedSuit(trumpSuit) && styles.trumpRed]}>
+                {suitSymbol(trumpSuit)}
+              </Text>
             </View>
           ) : null}
 
-          {roundText ? (
-            <View style={styles.pill}>
-              <Text style={styles.pillValue}>{roundText}</Text>
-            </View>
-          ) : null}
+          {trumpSuit ? <View style={styles.divider} /> : null}
 
-          <Pressable style={styles.scoreboardBtn} onPress={onShowScoreboard}>
-            <Text style={styles.scoreboardText}>⊞</Text>
+          <Pressable style={styles.menuZone} onPress={() => setShowMenu(true)}>
+            {roundText ? <Text style={styles.roundText}>{roundText}</Text> : null}
+            <Text style={styles.iconText}>☰</Text>
           </Pressable>
 
-          <Pressable style={styles.scoreboardBtn} onPress={onShowSettings}>
-            <Text style={styles.scoreboardText}>⚙</Text>
+          <View style={styles.divider} />
+
+          <Pressable style={styles.iconBtn} onPress={onShowSettings} hitSlop={8}>
+            <Text style={styles.iconText}>⚙</Text>
           </Pressable>
         </View>
 
-        {/* Row 2: Team scores (kaliteri only during play) */}
+        {/* ── Team scores (Kaliteri only during play) ── */}
         {isKaliteriPlaying ? (
           <View style={styles.scoreRow}>
             <View style={styles.teamScore}>
@@ -97,14 +168,32 @@ export default function TeamScoreHUD({
             </View>
           </View>
         ) : null}
+
       </View>
 
-      {/* ── Right column: partner cards spanning both rows ── */}
+      {/* ── Partner cards (Kaliteri) ── */}
       {showPartnerCards ? (
         <View style={styles.rightCol}>
           <PartnerCardDisplay partnerCards={partnerCards} getName={getName} />
         </View>
       ) : null}
+
+      <JudgementMenuModal
+        visible={showMenu}
+        onClose={() => setShowMenu(false)}
+        isAdmin={isAdmin}
+        onEnd={onQuit}
+        seatOrder={seatOrder}
+        scores={scores}
+        getName={getName}
+        gameType={gameType}
+        userId={userId}
+        roundResults={roundResults}
+        tricksWon={tricksWon}
+        bidding={bidding}
+        phase={phase}
+        gameHistory={gameHistory}
+      />
     </View>
   );
 }
@@ -114,6 +203,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'stretch',
     gap: spacing.xs,
+    marginTop: -10,
   },
   leftCol: {
     flex: 1,
@@ -124,50 +214,61 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingLeft: spacing.xs,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'nowrap',
-    gap: spacing.xs,
-  },
+
+  // ── Integrated pill (matches MendikotHUD pill) ──────────────────────────
   pill: {
-    ...pillStyle,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    backgroundColor: 'rgba(19, 42, 25, 0.92)',
+    borderWidth: 1,
+    borderColor: 'rgba(201,162,39,0.28)',
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    gap: 5,
+    alignSelf: 'center',
   },
-  pillValue: {
-    ...typography.captionSmall,
-    color: colors.goldLight,
-    fontFamily: fonts.heading,
-    fontWeight: '700',
+  trumpChip: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  scoreboardBtn: {
-    ...pillStyle,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+  trumpSymbol: {
+    fontSize: 15,
+    color: colors.cream,
+    fontFamily: fonts.body,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
-  scoreboardText: {
-    fontSize: 16,
-    color: colors.goldLight,
-    lineHeight: 20,
-  },
-  quitBtn: {
-    ...pillStyle,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderColor: 'rgba(204, 41, 54, 0.5)',
-    backgroundColor: 'rgba(204, 41, 54, 0.08)',
-  },
-  quitText: {
-    fontFamily: fonts.heading,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.5,
+  trumpRed: {
     color: colors.redSuit,
   },
+  divider: {
+    width: 1,
+    height: 14,
+    backgroundColor: 'rgba(201,162,39,0.3)',
+    marginHorizontal: 2,
+  },
+  roundText: {
+    fontSize: 11,
+    color: colors.creamMuted,
+    fontFamily: fonts.body,
+  },
+  menuZone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 3,
+  },
+  iconBtn: {
+    paddingHorizontal: 3,
+  },
+  iconText: {
+    fontSize: 14,
+    color: colors.gold,
+    lineHeight: 16,
+  },
 
-  /* ── Team score row ── */
+  // ── Team score row (Kaliteri) ───────────────────────────────────────────
   scoreRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -218,5 +319,88 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.creamMuted,
     fontStyle: 'italic',
+  },
+});
+
+// ── Menu modal styles (matches MendikotHUD menuStyles) ────────────────────
+
+const menuStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.md,
+  },
+  card: {
+    ...panelStyle,
+    width: '100%',
+    maxWidth: 380,
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 10,
+  },
+  headerSide: {
+    width: 52,
+    alignItems: 'flex-end',
+  },
+  title: {
+    flex: 1,
+    fontFamily: fonts.heading,
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.cream,
+    textAlign: 'center',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  endBtn: {
+    width: 52,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.redSuit + 'aa',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  endBtnText: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.redSuit,
+    letterSpacing: 1,
+  },
+  closeBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(201,162,39,0.10)',
+    borderWidth: 1,
+    borderColor: colors.borderGold,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: {
+    color: colors.goldLight,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 15,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.borderGold,
+    marginHorizontal: spacing.sm,
+  },
+  scroll: {
+    flexShrink: 1,
+  },
+  scrollContent: {
+    paddingBottom: spacing.sm,
   },
 });

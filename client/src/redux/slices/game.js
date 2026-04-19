@@ -17,7 +17,7 @@ const readCachedAvatars = (gameId) => {
 const initialState = {
     gameId: null,
     game_type: null,
-    phase: null, // null | "trump-announce" | "shuffling" | "dealing" | "bidding" | "powerhouse" | "playing" | "band-hukum-pick" | "scoring" | "finished" | "series-finished"
+    phase: null, // null | "shuffling" | "dealing" | "bidding" | "powerhouse" | "playing" | "band-hukum-pick" | "scoring" | "finished" | "series-finished"
     configKey: null,
     config: null,
     seatOrder: [],
@@ -59,7 +59,6 @@ const initialState = {
     trumpCard: null,
     trumpSuit: null,
     trumpMode: "random",
-    scoreboardTimeMs: 5000,
     bidTimeMs: null,
     cardRevealTimeMs: 10000,
     judgementBids: {},
@@ -158,7 +157,6 @@ const gameSlice = createSlice({
             state.trumpCard = data.trumpCard || null;
             state.trumpSuit = data.trumpSuit || null;
             state.trumpMode = data.trumpMode || "random";
-            state.scoreboardTimeMs = data.scoreboardTimeMs || 5000;
             state.bidTimeMs = data.bidTimeMs ?? null;
             if (action.payload.cardRevealTimeMs !== undefined) state.cardRevealTimeMs = action.payload.cardRevealTimeMs;
             state.judgementBids = data.bidding?.bids || {};

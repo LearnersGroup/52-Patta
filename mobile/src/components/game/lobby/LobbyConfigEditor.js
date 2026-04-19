@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+
+const GAME_ICONS = {
+  kaliteri:  require('../../../../assets/Icons/Kaliteri_Icon.png'),
+  judgement: require('../../../../assets/Icons/Judgement_Icon.png'),
+  mendikot:  require('../../../../assets/Icons/Mendi_Icon.png'),
+};
 import {
   buttonStyles,
   colors,
@@ -46,7 +52,6 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
   const [maxCardsPerRound, setMaxCardsPerRound] = useState(7);
   const [reverseOrder, setReverseOrder] = useState(true);
   const [trumpMode, setTrumpMode] = useState('fixed');
-  const [scoreboardTime, setScoreboardTime] = useState(5);
   const [bidTimeEnabled, setBidTimeEnabled] = useState(false);
   const [bidTime, setBidTime] = useState(15);
   const [cardRevealTime, setCardRevealTime] = useState(10);
@@ -64,7 +69,7 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
   useEffect(() => {
     const gt = roomData?.game_type || 'kaliteri';
     const pc = roomData?.player_count || (gt === 'judgement' ? 3 : 4);
-    const dc = roomData?.deck_count || (gt === 'judgement' ? (pc <= 6 ? 1 : 2) : 1);
+    const dc = roomData?.deck_count || 1;
 
     setGameType(gt);
     setPlayerCount(pc);
@@ -75,25 +80,28 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
     setInspectTime(roomData?.inspect_time || 15);
     setMaxCardsPerRound(roomData?.max_cards_per_round || 7);
     setReverseOrder(roomData?.reverse_order ?? true);
-    setTrumpMode(roomData?.trump_mode || 'fixed');
-    setScoreboardTime(roomData?.scoreboard_time || 5);
+    setTrumpMode(gt === 'judgement' ? (roomData?.trump_mode || 'fixed') : 'fixed');
+
     setBidTimeEnabled(roomData?.judgement_bid_time !== null && roomData?.judgement_bid_time !== undefined);
     setBidTime(roomData?.judgement_bid_time || 15);
     setCardRevealTime(roomData?.card_reveal_time || 10);
     // Mendikot
-    setMendikotTrumpMode(roomData?.mendikot_trump_mode || 'band');
+    setMendikotTrumpMode(gt === 'mendikot' ? (roomData?.trump_mode || 'band') : 'band');
     setMendikotRounds(roomData?.rounds_count || 1);
     setMendikotPickPhase(roomData?.band_hukum_pick_phase ?? true);
   }, [roomData]);
 
   useEffect(() => {
-    if (gameType === 'judgement') {
-      if (playerCount <= 6) setDeckCount(1);
-      else setDeckCount(2);
-    } else if (!isDeckCountValid(playerCount, deckCount)) {
+    if (gameType === 'judgement') return;
+    if (!isDeckCountValid(playerCount, deckCount)) {
       setDeckCount(2);
     }
   }, [gameType, playerCount, deckCount]);
+
+  useEffect(() => {
+    if (gameType !== 'judgement') return;
+    setMaxCardsPerRound((prev) => Math.min(prev, maxPossibleCards));
+  }, [gameType, maxPossibleCards]);
 
   const submit = () => {
     const payload = {
@@ -108,14 +116,14 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
       payload.inspect_time = inspectTime;
       payload.bid_threshold = playerCount % 2 === 1 ? bidThreshold : null;
     } else if (gameType === 'mendikot') {
-      payload.mendikot_trump_mode   = mendikotTrumpMode;
+      payload.trump_mode            = mendikotTrumpMode;
       payload.rounds_count          = mendikotRounds;
       payload.band_hukum_pick_phase = mendikotPickPhase;
     } else {
       payload.max_cards_per_round = maxCardsPerRound;
       payload.reverse_order = reverseOrder;
       payload.trump_mode = trumpMode;
-      payload.scoreboard_time = scoreboardTime;
+
       payload.judgement_bid_time = bidTimeEnabled ? bidTime : null;
       payload.card_reveal_time = cardRevealTime;
     }
@@ -127,15 +135,24 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
     <View style={styles.wrap}>
       <View style={styles.group}>
         <Text style={styles.label}>Game Type</Text>
-        <View style={styles.row}>
-          <Pressable style={[styles.chip, gameType === 'kaliteri' && styles.chipActive]} onPress={() => setGameType('kaliteri')}>
-            <Text style={styles.chipText}>Kaliteri</Text>
+        <View style={styles.gameTypeRow}>
+          <Pressable style={styles.gameTypeCard} onPress={() => setGameType('kaliteri')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'kaliteri' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.kaliteri} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'kaliteri' && styles.gameTypeNameActive]}>Kaliteri</Text>
           </Pressable>
-          <Pressable style={[styles.chip, gameType === 'judgement' && styles.chipActive]} onPress={() => setGameType('judgement')}>
-            <Text style={styles.chipText}>Judgement</Text>
+          <Pressable style={styles.gameTypeCard} onPress={() => setGameType('judgement')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'judgement' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.judgement} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'judgement' && styles.gameTypeNameActive]}>Judgement</Text>
           </Pressable>
-          <Pressable style={[styles.chip, gameType === 'mendikot' && styles.chipActive]} onPress={() => setGameType('mendikot')}>
-            <Text style={styles.chipText}>Mendikot</Text>
+          <Pressable style={styles.gameTypeCard} onPress={() => setGameType('mendikot')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'mendikot' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.mendikot} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'mendikot' && styles.gameTypeNameActive]}>Mendikot</Text>
           </Pressable>
         </View>
       </View>
@@ -229,7 +246,6 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
               </Pressable>
             </View>
           </View>
-          <NumberStepper label="Scoreboard Display Time" value={scoreboardTime} min={3} max={30} suffix="s" onChange={setScoreboardTime} />
           <View style={styles.group}>
             <Text style={styles.label}>Bidding Time Limit</Text>
             <View style={styles.row}>
@@ -280,7 +296,37 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
   },
-  // Chips with gold border when active
+  gameTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  gameTypeCard: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  gameTypeIconWrap: {},
+  gameTypeIconWrapActive: {
+    backgroundColor: 'rgba(201,162,39,0.06)',
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.65,
+    shadowRadius: 32,
+    elevation: 12,
+  },
+  gameTypeIcon: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
+  },
+  gameTypeName: {
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    color: colors.creamMuted,
+    letterSpacing: 1,
+  },
+  gameTypeNameActive: {
+    color: colors.gold,
+  },
   chip: {
     borderWidth: 1,
     borderColor: colors.borderGold,
@@ -291,10 +337,6 @@ const styles = StyleSheet.create({
   chipActive: {
     borderColor: colors.gold,
     backgroundColor: 'rgba(201, 162, 39, 0.12)',
-    shadowColor: colors.gold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
   chipText: {
     fontFamily: fonts.body,

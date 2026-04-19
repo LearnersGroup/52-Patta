@@ -4,7 +4,6 @@ const { SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
 const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
-const { proceedFromTrumpAnnounce } = require("./helpers/autoNextJudgementRound");
 const wrapHandler = require('../wrapHandler');
 
 // Ensure all strategies are registered
@@ -148,8 +147,5 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
         io.to(game.roomname).emit("game-avatars", playerAvatars || {});
 
         // Game-specific post-start actions
-        strategy.afterStart(io, gameState, {
-            scheduleJudgementAdvance,
-            proceedFromTrumpAnnounce,
-        });
+        strategy.afterStart(io, gameState, { scheduleJudgementAdvance });
 });

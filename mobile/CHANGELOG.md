@@ -1,6 +1,47 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.9 — 2026-04-18
+
+### Changed
+- **Game mode icons on homepage, create-room, lobby, and config editor**: replaced Unicode suit symbols (♠♦♣♥) with the dedicated PNG game mode icons (`Kaliteri_Icon`, `Judgement_Icon`, `Mendi_Icon`) for a more polished, branded look.
+- **Homepage**: added Mendikot as a third game card alongside Kaliteri and Judgement.
+
+## 1.1.8 — 2026-04-18
+
+### Changed
+- **Judgement deck count is now free**: removed the hard coupling that forced 1 deck for ≤6 players and 2 decks for 7+ players. Any deck count can now be used with any player count; "Max Cards / Round" is automatically clamped to the maximum dealable cards (`floor(52 × decks / players)`) to prevent running out of cards.
+
+## 1.1.7 — 2026-04-18
+
+### Fixed
+- **Create-room → lobby settings override (Judgement)**: the "Trump Mode" setting selected on the create-room screen was silently dropped by the server because the form was sending `'cyclic'`, which is not a valid value (server accepts `'fixed'` or `'random'`). The lobby then fell back to its `'fixed'` default, making it appear as though the selection was overridden. Fixed by aligning the option value to `'fixed'`.
+- **Mendikot trump mode not persisted to lobby**: `LobbyConfigEditor` was reading `roomData.mendikot_trump_mode` (a field that does not exist) instead of `roomData.trump_mode`, so the lobby always displayed the `'band'` default regardless of what was chosen at room creation. The save payload also sent `mendikot_trump_mode` instead of `trump_mode`, so updates from the lobby were silently ignored by the server. Both fields corrected.
+
+### Changed
+- **Create-room label alignment (Judgement)**: setting labels in the create-room form now match the lobby editor exactly — "Trump Mode" (was "Powerhouse Selection"), "Fixed (S→D→C→H)" option (was "Cyclic"), "Ascending Only" (was "Ascending"), "Scoreboard Display Time" (was "Scoreboard Time"), "Bidding Time Limit" (was "Bid Timer"), "Time Limit" option (was "Timed"), "Card Reveal Time" (was "Card Inspect Time").
+- **Create-room label alignment (Kaliteri)**: "Bid Threshold for Extra Teammate" (was "Bid Threshold").
+
+## 1.1.6 — 2026-04-18
+
+### Fixed
+- **Auto-play double-emit race condition**: when auto-play fired on the last card of a hand and the player also tapped confirm, both paths emitted `game-play-card` before Redux state updated — the second emit hit the server after the phase had already advanced, causing a `Game is not in playing phase` error. Added a `playEmittedRef` guard that is reset at the start of each turn; whichever path fires first (auto-play or manual confirm) sets the flag and the other becomes a no-op.
+- **Avatar missing on HomeScreen after onboarding**: after completing avatar creation, the avatar now appears immediately on the HomeScreen. Previously, `completeOnboarding` called `router.replace('/')` right after `refreshProfile()`, racing against the profile state commit and causing HomeScreen to render before the avatar was available. Removed the explicit navigation — the `<Redirect>` in `create-user.js` now handles it after the profile (with avatar) is fully committed to context.
+
+## 1.1.5 — 2026-04-17
+
+### Changed
+- **Judgement trump reveal**: removed `trump-announce` as a distinct server phase. Trump suit for the next round is now shown inline in the table center after a brief delay (allowing the last-trick sweep animation to complete) — a 3-second countdown is shown; tap anywhere to dismiss early, or it auto-dismisses. No full-screen overlay. Between-round inline result panel removed.
+
 ## 1.1.4 — 2026-04-17
+
+### Changed
+- **Judgement HUD pill**: redesigned `TeamScoreHUD` to match the Mendikot HUD pill style — dark green pill (`rgba(19,42,25,0.92)`) with gold border. Trump suit symbol is now inline inside the pill (coloured red for hearts/diamonds), separated by a gold divider from the round indicator. Round text uses the same compact font style as Mendikot (`Rd X/Y` cadence). Separate trump and scoreboard sections removed. Scoreboard icon replaced with hamburger (☰) button. Settings (⚙) icon moved inside the pill. Hamburger opens a SCOREBOARD modal with an END button (admin only, top-left), centred SCOREBOARD title, and ✕ close button (top-right), containing the full per-player score table.
+
+### Fixed
+- **Ready status ring**: fixed ready indicator around player avatars showing pink in Kaliteri/Judgement lobbies after switching from a Mendikot room. `colors.ready` is now green (`#4ade80`); Mendikot team colours remain separate.
+- **Judgement round scoreboard**: converted between-round scoreboard from an absolute-positioned `View` to a `Modal` (`statusBarTranslucent`) so it covers the full screen including status bar and home indicator areas.
+- **Judgement trump reveal timing**: scoreboard overlay now stays visible until the `bidding` phase begins, so the trump-announce and dealing animations of the next round are never obscured by the countdown.
+- **Turn indicator glow**: blink rate doubled (1200 ms → 600 ms); shadow opacity raised to 0.95 and radius range widened to 10–22 px for a neon-gold intensity matching the lobby ready ring.
 
 ### Changed
 - **App background**: switched to `background_soft.png` for all screens; active game screen retains `background_textured.png`; game lobby also uses `background_soft.png`. Added `variant` prop to `AppBackground` (`'soft'` | `'textured'`).

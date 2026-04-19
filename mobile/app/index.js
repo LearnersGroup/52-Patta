@@ -1,6 +1,7 @@
 import { Redirect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
+const GAME_ICONS = {
+  kaliteri:  require('../assets/Icons/Kaliteri_Icon.png'),
+  judgement: require('../assets/Icons/Judgement_Icon.png'),
+  mendikot:  require('../assets/Icons/Mendi_Icon.png'),
+};
 import { socket } from '../src/api/socket';
 import { get_current_game } from '../src/api/apiHandler';
 import { useAuth } from '../src/hooks/useAuth';
@@ -207,22 +214,19 @@ export default function HomeScreen() {
         contentContainerStyle={styles.gamesRow}
         style={styles.gamesScroll}
       >
-        <Pressable
-          style={styles.gameCard}
-          onPress={() => router.push('/rules/kaliteri')}
-        >
-          <Text style={styles.gameCardIcon}>3♠</Text>
+        <Pressable style={styles.gameCard} onPress={() => router.push('/rules/kaliteri')}>
+          <Image source={GAME_ICONS.kaliteri} style={styles.gameCardImg} />
           <Text style={styles.gameCardName}>Kaliteri</Text>
-          <Text style={styles.gameCardSub}>Patta</Text>
         </Pressable>
 
-        <Pressable
-          style={styles.gameCard}
-          onPress={() => router.push('/rules/judgement')}
-        >
-          <Text style={styles.gameCardIcon}>♠♦♣♥</Text>
+        <Pressable style={styles.gameCard} onPress={() => router.push('/rules/judgement')}>
+          <Image source={GAME_ICONS.judgement} style={styles.gameCardImg} />
           <Text style={styles.gameCardName}>Judgement</Text>
-          <Text style={styles.gameCardSub}>Katchufool</Text>
+        </Pressable>
+
+        <Pressable style={styles.gameCard} onPress={() => router.push('/rules/mendikot')}>
+          <Image source={GAME_ICONS.mendikot} style={styles.gameCardImg} />
+          <Text style={styles.gameCardName}>Mendikot</Text>
         </Pressable>
       </ScrollView>
 
@@ -410,29 +414,18 @@ const styles = StyleSheet.create({
     paddingRight: spacing.lg,
   },
   gameCard: {
-    width: 150,
-    height: 110,
-    ...panelStyle,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
+    gap: spacing.xs,
   },
-  gameCardIcon: {
-    fontSize: 24,
-    color: colors.cream,
-    marginBottom: 4,
+  gameCardImg: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
   gameCardName: {
     fontFamily: fonts.heading,
     fontSize: 14,
     color: colors.gold,
     letterSpacing: 1,
-  },
-  gameCardSub: {
-    fontFamily: fonts.body,
-    fontSize: 11,
-    color: colors.creamMuted,
   },
 });

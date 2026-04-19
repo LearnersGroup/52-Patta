@@ -7,34 +7,12 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { WsProceedToShuffle } from '../../../api/wsEmitters';
-import { colors, fonts, pillStyle, typography } from '../../../styles/theme';
+import { colors, fonts, typography } from '../../../styles/theme';
 import { isRedSuit, suitSymbol } from '../utils/cardMapper';
 
-export default function TrumpAnnouncePanel({ trumpSuit, trumpMode = 'random', isDealer = false }) {
-  const [countdown, setCountdown] = useState(3);
+export default function TrumpAnnouncePanel({ trumpSuit, trumpMode = 'random' }) {
   const pulse = useSharedValue(1);
-
-  useEffect(() => {
-    setCountdown(3);
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [trumpSuit]);
-
-  // Auto-proceed to shuffle when countdown finishes (dealer only)
-  useEffect(() => {
-    if (countdown === 0 && isDealer) {
-      WsProceedToShuffle();
-    }
-  }, [countdown, isDealer]);
+  const [countdown, setCountdown] = useState(3);
 
   useEffect(() => {
     pulse.value = withRepeat(
@@ -43,6 +21,12 @@ export default function TrumpAnnouncePanel({ trumpSuit, trumpMode = 'random', is
       true
     );
   }, [pulse]);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
@@ -57,9 +41,7 @@ export default function TrumpAnnouncePanel({ trumpSuit, trumpMode = 'random', is
         </Text>
       </Animated.View>
       <Text style={styles.sub}>{trumpMode === 'fixed' ? 'Fixed rotation' : 'Random draw'}</Text>
-      <View style={styles.countdownPill}>
-        <Text style={styles.countdownText}>Proceeding to shuffle in {countdown}s</Text>
-      </View>
+      <Text style={styles.dismissHint}>{countdown > 0 ? countdown : '·'} · tap to dismiss</Text>
     </View>
   );
 }
@@ -99,15 +81,11 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
-  countdownPill: {
-    ...pillStyle,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  countdownText: {
+  dismissHint: {
     fontFamily: fonts.body,
-    color: colors.goldLight,
-    fontSize: 12,
-    fontWeight: '700',
+    color: colors.creamMuted,
+    fontSize: 11,
+    marginTop: 2,
+    opacity: 0.75,
   },
 });

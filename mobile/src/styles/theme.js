@@ -35,10 +35,10 @@ export const colors = {
   shadow: 'rgba(0, 0, 0, 0.55)',
 
   // Semantic – status colors
-  ready: '#f472b6',
-  readyLight: '#38bdf8',
-  readyBg: 'rgba(244, 114, 182, 0.12)',
-  readyBorder: 'rgba(244, 114, 182, 0.35)',
+  ready: '#4ade80',
+  readyLight: '#86efac',
+  readyBg: 'rgba(74, 222, 128, 0.12)',
+  readyBorder: 'rgba(74, 222, 128, 0.35)',
   dangerBg: 'rgba(204, 41, 54, 0.08)',
   dangerBorder: 'rgba(204, 41, 54, 0.35)',
   warningBg: 'rgba(243, 156, 18, 0.1)',
