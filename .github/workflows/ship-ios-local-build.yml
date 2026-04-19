@@ -25,19 +25,6 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: 🔧 Patch Podfile for Swift concurrency (Xcode 16.2 compat)
-        run: |
-          cat >> mobile/ios/Podfile << 'RUBY'
-
-          post_install do |installer_concurrency_patch|
-            installer_concurrency_patch.pods_project.targets.each do |target|
-              target.build_configurations.each do |config|
-                config.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
-              end
-            end
-          end
-          RUBY
-
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
