@@ -3,7 +3,7 @@
 ## 1.1.10 — 2026-04-18
 
 ### Changed
-- **PowerHouse suit picker (Kaliteri)**: reordered the 2×2 grid to Spades/Diamonds (top) and Clubs/Hearts (bottom). Tapping a suit now enters a confirm state where the button expands to fill the grid and shows "Tap again to confirm"; tapping again confirms the selection, tapping outside cancels and restores all 4 options.
+- **PowerHouse suit picker (Kaliteri)**: reordered the 2×2 grid to Spades/Diamonds (top row) and Clubs/Hearts (bottom row) using explicit row layout so exactly 2 buttons appear per row on all screen sizes. Tapping a suit fades in (500 ms) a full-screen Modal overlay with a centered confirm card; tapping it again confirms the suit; tapping anywhere else fades it out (300 ms) and returns to the 4-button grid.
 
 ## 1.1.9 — 2026-04-18
 
