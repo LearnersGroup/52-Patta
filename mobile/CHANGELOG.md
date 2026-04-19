@@ -1,5 +1,11 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.9 — 2026-04-18
+
+### Changed
+- **Game mode icons on homepage, create-room, lobby, and config editor**: replaced Unicode suit symbols (♠♦♣♥) with the dedicated PNG game mode icons (`Kaliteri_Icon`, `Judgement_Icon`, `Mendi_Icon`) for a more polished, branded look.
+- **Homepage**: added Mendikot as a third game card alongside Kaliteri and Judgement.
+
 ## 1.1.8 — 2026-04-18
 
 ### Changed

@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+
+const GAME_ICONS = {
+  kaliteri:  require('../../../../assets/Icons/Kaliteri_Icon.png'),
+  judgement: require('../../../../assets/Icons/Judgement_Icon.png'),
+  mendikot:  require('../../../../assets/Icons/Mendi_Icon.png'),
+};
 import {
   buttonStyles,
   colors,
@@ -129,15 +135,24 @@ export default function LobbyConfigEditor({ roomData, onSave, onCancel }) {
     <View style={styles.wrap}>
       <View style={styles.group}>
         <Text style={styles.label}>Game Type</Text>
-        <View style={styles.row}>
-          <Pressable style={[styles.chip, gameType === 'kaliteri' && styles.chipActive]} onPress={() => setGameType('kaliteri')}>
-            <Text style={styles.chipText}>Kaliteri</Text>
+        <View style={styles.gameTypeRow}>
+          <Pressable style={styles.gameTypeCard} onPress={() => setGameType('kaliteri')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'kaliteri' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.kaliteri} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'kaliteri' && styles.gameTypeNameActive]}>Kaliteri</Text>
           </Pressable>
-          <Pressable style={[styles.chip, gameType === 'judgement' && styles.chipActive]} onPress={() => setGameType('judgement')}>
-            <Text style={styles.chipText}>Judgement</Text>
+          <Pressable style={styles.gameTypeCard} onPress={() => setGameType('judgement')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'judgement' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.judgement} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'judgement' && styles.gameTypeNameActive]}>Judgement</Text>
           </Pressable>
-          <Pressable style={[styles.chip, gameType === 'mendikot' && styles.chipActive]} onPress={() => setGameType('mendikot')}>
-            <Text style={styles.chipText}>Mendikot</Text>
+          <Pressable style={styles.gameTypeCard} onPress={() => setGameType('mendikot')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'mendikot' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.mendikot} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'mendikot' && styles.gameTypeNameActive]}>Mendikot</Text>
           </Pressable>
         </View>
       </View>
@@ -281,7 +296,37 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
   },
-  // Chips with gold border when active
+  gameTypeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  gameTypeCard: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  gameTypeIconWrap: {},
+  gameTypeIconWrapActive: {
+    backgroundColor: 'rgba(201,162,39,0.06)',
+    shadowColor: colors.gold,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.65,
+    shadowRadius: 32,
+    elevation: 12,
+  },
+  gameTypeIcon: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
+  },
+  gameTypeName: {
+    fontFamily: fonts.heading,
+    fontSize: 14,
+    color: colors.creamMuted,
+    letterSpacing: 1,
+  },
+  gameTypeNameActive: {
+    color: colors.gold,
+  },
   chip: {
     borderWidth: 1,
     borderColor: colors.borderGold,
@@ -292,10 +337,6 @@ const styles = StyleSheet.create({
   chipActive: {
     borderColor: colors.gold,
     backgroundColor: 'rgba(201, 162, 39, 0.12)',
-    shadowColor: colors.gold,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
   chipText: {
     fontFamily: fonts.body,

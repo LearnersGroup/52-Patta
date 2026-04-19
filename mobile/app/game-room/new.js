@@ -2,6 +2,7 @@ import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
+const GAME_ICONS = {
+  kaliteri:  require('../../assets/Icons/Kaliteri_Icon.png'),
+  judgement: require('../../assets/Icons/Judgement_Icon.png'),
+  mendikot:  require('../../assets/Icons/Mendi_Icon.png'),
+};
 import { socket } from '../../src/api/socket';
 import { useAuth } from '../../src/hooks/useAuth';
 import AppBackground from '../../src/components/shared/AppBackground';
@@ -276,50 +283,27 @@ export default function NewGameRoomScreen() {
         <View style={styles.gameTypeRow}>
 
           {/* Kaliteri card */}
-          <Pressable
-            style={[styles.gameTypeCard, gameType === 'kaliteri' && styles.gameTypeCardActive]}
-            onPress={() => toggleGameType('kaliteri')}
-          >
-            <Text style={styles.gameTypeSuits}>
-              <Text style={styles.suitBlack}>♠ </Text>
-              <Text style={styles.suitBlack}>♠ </Text>
-              <Text style={styles.suitBlack}>♠</Text>
-            </Text>
-            <Text style={[styles.gameTypeName, gameType === 'kaliteri' && styles.gameTypeNameActive]}>
-              Kaliteri
-            </Text>
+          <Pressable style={styles.gameTypeCard} onPress={() => toggleGameType('kaliteri')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'kaliteri' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.kaliteri} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'kaliteri' && styles.gameTypeNameActive]}>Kaliteri</Text>
           </Pressable>
 
           {/* Judgement card */}
-          <Pressable
-            style={[styles.gameTypeCard, gameType === 'judgement' && styles.gameTypeCardActive]}
-            onPress={() => toggleGameType('judgement')}
-          >
-            <Text style={styles.gameTypeSuits}>
-              <Text style={styles.suitBlack}>♠</Text>
-              <Text style={styles.suitRed}> ♦</Text>
-              <Text style={styles.suitBlack}> ♣</Text>
-              <Text style={styles.suitRed}> ♥</Text>
-            </Text>
-            <Text style={[styles.gameTypeName, gameType === 'judgement' && styles.gameTypeNameActive]}>
-              Judgement
-            </Text>
+          <Pressable style={styles.gameTypeCard} onPress={() => toggleGameType('judgement')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'judgement' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.judgement} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'judgement' && styles.gameTypeNameActive]}>Judgement</Text>
           </Pressable>
 
           {/* Mendikot card */}
-          <Pressable
-            style={[styles.gameTypeCard, gameType === 'mendikot' && styles.gameTypeCardActive]}
-            onPress={() => toggleGameType('mendikot')}
-          >
-            <Text style={styles.gameTypeSuits}>
-              <Text style={styles.suitBlack}>♣</Text>
-              <Text style={styles.suitRed}> ♦</Text>
-              <Text style={styles.suitRed}> ♥</Text>
-              <Text style={styles.suitBlack}> ♠</Text>
-            </Text>
-            <Text style={[styles.gameTypeName, gameType === 'mendikot' && styles.gameTypeNameActive]}>
-              Mendikot
-            </Text>
+          <Pressable style={styles.gameTypeCard} onPress={() => toggleGameType('mendikot')}>
+            <View style={[styles.gameTypeIconWrap, gameType === 'mendikot' && styles.gameTypeIconWrapActive]}>
+              <Image source={GAME_ICONS.mendikot} style={styles.gameTypeIcon} />
+            </View>
+            <Text style={[styles.gameTypeName, gameType === 'mendikot' && styles.gameTypeNameActive]}>Mendikot</Text>
           </Pressable>
 
         </View>
@@ -532,41 +516,31 @@ const styles = StyleSheet.create({
   // ── Game type cards ──────────────────────────────────────────────────────
   gameTypeRow: {
     flexDirection: 'row',
-    gap: spacing.md,
+    justifyContent: 'space-around',
   },
   gameTypeCard: {
-    flex: 1,
-    minHeight: 96,
-    ...panelStyle,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.lg,
+    gap: spacing.xs,
   },
-  gameTypeCardActive: {
-    borderColor: colors.gold,
-    backgroundColor: 'rgba(201,162,39,0.12)',
-    shadowColor: 'rgba(201,162,39,0.35)',
+  gameTypeIconWrap: {},
+  gameTypeIconWrapActive: {
+    backgroundColor: 'rgba(201,162,39,0.06)',
+    shadowColor: colors.gold,
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
+    shadowOpacity: 0.65,
+    shadowRadius: 32,
+    elevation: 12,
   },
-  gameTypeSuits: {
-    fontSize: 22,
-    letterSpacing: 2,
-  },
-  suitBlack: {
-    color: colors.gold,
-  },
-  suitRed: {
-    color: colors.redSuit,
+  gameTypeIcon: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
   },
   gameTypeName: {
-    fontFamily: fonts.headingMedium,
-    fontSize: 13,
+    fontFamily: fonts.heading,
+    fontSize: 14,
     color: colors.creamMuted,
-    letterSpacing: 2.5,
-    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   gameTypeNameActive: {
     color: colors.gold,
