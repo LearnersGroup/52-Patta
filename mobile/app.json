@@ -44,8 +44,7 @@
     "plugins": [
       "expo-router",
       "expo-web-browser",
-      "expo-font",
-      "./plugins/withSwiftConcurrency"
+      "expo-font"
     ]
   }
 }

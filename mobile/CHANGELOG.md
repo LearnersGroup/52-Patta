@@ -3,7 +3,7 @@
 ## 1.1.12 — 2026-04-19
 
 ### Fixed
-- **CI**: set `SWIFT_VERSION=5.9` on all pod targets via `withSwiftConcurrency` post_install hook. Xcode 16.4 (now default on `macos-15`) uses Swift 6 language mode; `expo-modules-core@55` uses `@MainActor` (Swift 5.5+) and actor isolation patterns that are hard errors in Swift 6. Swift 5.9 supports `@MainActor` and avoids Swift 6 concurrency enforcement.
+- **CI**: replace config plugin with `prebuildCommand` in `eas.json` + `scripts/patch-podfile.py`. Runs `expo prebuild` then appends a `post_install` block setting `SWIFT_VERSION=5.9` + `SWIFT_STRICT_CONCURRENCY=minimal` on all pod targets. Script prints the patched Podfile tail in CI logs so the fix is verifiable.
 
 ## 1.1.11 — 2026-04-19
 
