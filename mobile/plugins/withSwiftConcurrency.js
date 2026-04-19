@@ -11,7 +11,7 @@ module.exports = function withSwiftConcurrency(config) {
     const injection = `
   installer.pods_project.targets.each do |target|
     target.build_configurations.each do |cfg|
-      cfg.build_settings['SWIFT_VERSION'] = '5.0'
+      cfg.build_settings['SWIFT_VERSION'] = '5.9'
       cfg.build_settings['SWIFT_STRICT_CONCURRENCY'] = 'minimal'
     end
   end`;
