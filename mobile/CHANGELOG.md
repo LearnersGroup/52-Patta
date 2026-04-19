@@ -3,7 +3,7 @@
 ## 1.1.12 — 2026-04-19
 
 ### Fixed
-- **CI**: replace `expo-build-properties` buildSettings approach with a custom `withSwiftConcurrency` config plugin that injects `SWIFT_STRICT_CONCURRENCY=minimal` into all CocoaPods targets via a `post_install` hook. The previous approach only covered the main app target; the errors were in pod targets (`expo-modules-core`).
+- **CI**: add `SWIFT_VERSION=5.0` to the `withSwiftConcurrency` post_install hook. Xcode 16.4 (now default on `macos-15`) uses Swift 6 language mode, which treats `@MainActor` conformance annotations and actor isolation patterns in `expo-modules-core@55` as hard errors. Forcing pods to Swift 5 language mode resolves them.
 
 ## 1.1.11 — 2026-04-19
 
