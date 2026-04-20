@@ -11,6 +11,7 @@
     "preview": {
       "distribution": "store",
       "autoIncrement": true,
+      "image": "latest",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://staging.52patta.in/api",
         "EXPO_PUBLIC_WS_URL": "https://staging.52patta.in"
@@ -18,6 +19,7 @@
     },
     "production": {
       "autoIncrement": true,
+      "image": "latest",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://52patta.in/api",
         "EXPO_PUBLIC_WS_URL": "https://52patta.in"

@@ -1,5 +1,11 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.14 — 2026-04-20
+
+### Fixed
+- **CI**: set `"image": "latest"` on `preview` and `production` EAS build profiles so all future EAS-remote builds use the newest Xcode image (Xcode 26+ / iOS 26 SDK), satisfying Apple's April 28 2026 requirement (ITMS-90725).
+- **CI**: updated `ship-ios-local-build` workflow to use `macos-26` runner and Xcode 26 for the same reason.
+
 ## 1.1.13 — 2026-04-19
 
 ### Fixed
