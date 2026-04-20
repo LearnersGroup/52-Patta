@@ -7,9 +7,9 @@
     "icon": "./assets/Icons/52_Patta_Icon.png",
     "userInterfaceStyle": "light",
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0f2a16"
+      "image": "./assets/NC_LOGO_SCREEN.jpeg",
+      "resizeMode": "cover",
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true,
