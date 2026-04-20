@@ -5,6 +5,8 @@
  * - expo-modules-core: removes Swift 6-only `@MainActor` protocol conformances.
  * - expo-router: removes direct references to iOS 26 SDK-only toolbar APIs that
  *   fail to compile when the project is built with Xcode 16.4.
+ * - expo-image: removes direct references to iOS 26-only SF Symbol draw effects
+ *   that fail to compile when the project is built with Xcode 16.4.
  *
  * Runs automatically via the postinstall npm hook.
  */
@@ -60,6 +62,8 @@ const expoModulesCoreBase = path.join(
 );
 
 const expoRouterBase = path.join(__dirname, '..', 'node_modules', 'expo-router');
+
+const expoImageBase = path.join(__dirname, '..', 'node_modules', 'expo-image');
 
 const patchGroups = [
   {
@@ -287,6 +291,45 @@ const patchGroups = [
       }`,
         to: `    case .prominent:
       return .done`,
+      },
+    ],
+  },
+  {
+    packageName: 'expo-image',
+    basePath: expoImageBase,
+    patches: [
+      {
+        file: 'ios/ImageView.swift',
+        from: `  @available(iOS 26.0, tvOS 26.0, *)
+  private func applySymbolEffectiOS26(effect: SFSymbolEffectType, scope: SFSymbolEffectScope?, options: SymbolEffectOptions) {
+    switch effect {
+    case .drawOn:
+      switch scope {
+      case .byLayer: sdImageView.addSymbolEffect(.drawOn.byLayer, options: options)
+      case .wholeSymbol: sdImageView.addSymbolEffect(.drawOn.wholeSymbol, options: options)
+      case .none: sdImageView.addSymbolEffect(.drawOn, options: options)
+      }
+    case .drawOff:
+      switch scope {
+      case .byLayer: sdImageView.addSymbolEffect(.drawOff.byLayer, options: options)
+      case .wholeSymbol: sdImageView.addSymbolEffect(.drawOff.wholeSymbol, options: options)
+      case .none: sdImageView.addSymbolEffect(.drawOff, options: options)
+      }
+    default:
+      break
+    }
+  }`,
+        to: `  @available(iOS 26.0, tvOS 26.0, *)
+  private func applySymbolEffectiOS26(effect: SFSymbolEffectType, scope: SFSymbolEffectScope?, options: SymbolEffectOptions) {
+    // These effects require newer SDK symbol-effect types than Xcode 16.4 provides.
+    // Ignore them gracefully so the module still compiles on the older toolchain.
+    switch effect {
+    case .drawOn, .drawOff:
+      break
+    default:
+      break
+    }
+  }`,
       },
     ],
   },
