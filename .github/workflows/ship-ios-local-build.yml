@@ -30,7 +30,18 @@ jobs:
         with:
           xcode-version: "26"
 
-      - name: 🟢 Setup Node.js
+      - name: Verify active Xcode and iOS SDK
+        run: |
+          echo "DEVELOPER_DIR=$(xcode-select -p)"
+          xcodebuild -version
+          xcodebuild -showsdks
+
+          if ! xcodebuild -showsdks | grep -E "iphoneos26|iOS 26" >/dev/null; then
+            echo "ERROR: iOS 26 SDK not found on this runner."
+            exit 1
+          fi
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
