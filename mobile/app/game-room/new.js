@@ -260,8 +260,6 @@ export default function NewGameRoomScreen() {
   // ── disabled deck values ─────────────────────────────────────────────────
   const disabledDecks = gameType === 'judgement'
     ? (playerCount <= 6 ? [2] : [1])
-    : gameType === 'mendikot'
-    ? [2]   // mendikot always uses 1 deck
     : (!isDeckCountValid(playerCount, 1) ? [1] : []);
 
   // ── render ───────────────────────────────────────────────────────────────
