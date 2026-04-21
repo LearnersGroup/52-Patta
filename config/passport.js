@@ -5,6 +5,21 @@ const gravatar = require('gravatar');
 const User = require('../models/User');
 const { buildDiceBearAvatarUrl } = require('../lib/avatarUtils');
 
+function normalizeCallbackUrl(callbackUrl, provider) {
+    if (!callbackUrl || typeof callbackUrl !== 'string') {
+        return callbackUrl;
+    }
+
+    const legacyPath = `/api/auth/${provider}/callback`;
+    const correctPath = `/api/oauth/${provider}/callback`;
+
+    if (callbackUrl.includes(legacyPath)) {
+        return callbackUrl.replace(legacyPath, correctPath);
+    }
+
+    return callbackUrl;
+}
+
 async function findOrCreateUser(provider, profile, done, req) {
     const email = profile.emails && profile.emails[0] && profile.emails[0].value;
 
@@ -88,10 +103,17 @@ async function findOrCreateUser(provider, profile, done, req) {
 
 // Google OAuth 2.0
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    const rawGoogleCallback = process.env.GOOGLE_CALLBACK_URL || '/api/oauth/google/callback';
+    const googleCallbackUrl = normalizeCallbackUrl(rawGoogleCallback, 'google');
+
+    if (rawGoogleCallback !== googleCallbackUrl) {
+        console.warn(`[OAuth] Normalized GOOGLE_CALLBACK_URL from legacy path to ${googleCallbackUrl}`);
+    }
+
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || '/api/oauth/google/callback',
+        callbackURL: googleCallbackUrl,
         scope: ['profile', 'email'],
         passReqToCallback: true,
     }, (req, accessToken, refreshToken, profile, done) => {
@@ -101,10 +123,17 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
 // Facebook OAuth
 if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
+    const rawFacebookCallback = process.env.FACEBOOK_CALLBACK_URL || '/api/oauth/facebook/callback';
+    const facebookCallbackUrl = normalizeCallbackUrl(rawFacebookCallback, 'facebook');
+
+    if (rawFacebookCallback !== facebookCallbackUrl) {
+        console.warn(`[OAuth] Normalized FACEBOOK_CALLBACK_URL from legacy path to ${facebookCallbackUrl}`);
+    }
+
     passport.use(new FacebookStrategy({
         clientID: process.env.FACEBOOK_APP_ID,
         clientSecret: process.env.FACEBOOK_APP_SECRET,
-        callbackURL: process.env.FACEBOOK_CALLBACK_URL || '/api/oauth/facebook/callback',
+        callbackURL: facebookCallbackUrl,
         profileFields: ['id', 'displayName', 'emails', 'photos'],
         passReqToCallback: true,
     }, (req, accessToken, refreshToken, profile, done) => {
