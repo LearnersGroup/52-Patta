@@ -1,5 +1,10 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.15 — 2026-04-21
+
+### Fixed
+- **Create Room (Mendikot)**: removed the incorrect hard-disable of the "2 Decks" option for mendikot. The game engine supports 1 or 2 decks for all mendikot player counts (4–12); only the mobile UI was blocking selection.
+
 ## 1.1.14 — 2026-04-20
 
 ### Fixed
