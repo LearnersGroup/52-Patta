@@ -20,6 +20,32 @@ function normalizeCallbackUrl(callbackUrl, provider) {
     return callbackUrl;
 }
 
+function deriveCallbackUrl(providerEnvName, provider) {
+    const rawValue = process.env[providerEnvName];
+    const normalizedFromEnv = normalizeCallbackUrl(rawValue, provider);
+
+    if (normalizedFromEnv) {
+        if (rawValue !== normalizedFromEnv) {
+            console.warn(`[OAuth] Normalized ${providerEnvName} from legacy path to ${normalizedFromEnv}`);
+        }
+        return normalizedFromEnv;
+    }
+
+    // Fallback for environments where callback URL was not explicitly set.
+    // In this project, CLIENT_URL is usually same-origin with API domain.
+    if (process.env.CLIENT_URL) {
+        try {
+            const base = new URL(process.env.CLIENT_URL);
+            return `${base.origin}/api/oauth/${provider}/callback`;
+        } catch {
+            console.warn(`[OAuth] Invalid CLIENT_URL while deriving ${providerEnvName}: ${process.env.CLIENT_URL}`);
+        }
+    }
+
+    // Local/dev fallback only.
+    return `/api/oauth/${provider}/callback`;
+}
+
 async function findOrCreateUser(provider, profile, done, req) {
     const email = profile.emails && profile.emails[0] && profile.emails[0].value;
 
@@ -103,12 +129,8 @@ async function findOrCreateUser(provider, profile, done, req) {
 
 // Google OAuth 2.0
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    const rawGoogleCallback = process.env.GOOGLE_CALLBACK_URL || '/api/oauth/google/callback';
-    const googleCallbackUrl = normalizeCallbackUrl(rawGoogleCallback, 'google');
-
-    if (rawGoogleCallback !== googleCallbackUrl) {
-        console.warn(`[OAuth] Normalized GOOGLE_CALLBACK_URL from legacy path to ${googleCallbackUrl}`);
-    }
+    const googleCallbackUrl = deriveCallbackUrl('GOOGLE_CALLBACK_URL', 'google');
+    console.info(`[OAuth] Google callback URL: ${googleCallbackUrl}`);
 
     passport.use(new GoogleStrategy({
         clientID: process.env.GOOGLE_CLIENT_ID,
@@ -123,12 +145,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 
 // Facebook OAuth
 if (process.env.FACEBOOK_APP_ID && process.env.FACEBOOK_APP_SECRET) {
-    const rawFacebookCallback = process.env.FACEBOOK_CALLBACK_URL || '/api/oauth/facebook/callback';
-    const facebookCallbackUrl = normalizeCallbackUrl(rawFacebookCallback, 'facebook');
-
-    if (rawFacebookCallback !== facebookCallbackUrl) {
-        console.warn(`[OAuth] Normalized FACEBOOK_CALLBACK_URL from legacy path to ${facebookCallbackUrl}`);
-    }
+    const facebookCallbackUrl = deriveCallbackUrl('FACEBOOK_CALLBACK_URL', 'facebook');
+    console.info(`[OAuth] Facebook callback URL: ${facebookCallbackUrl}`);
 
     passport.use(new FacebookStrategy({
         clientID: process.env.FACEBOOK_APP_ID,
