@@ -85,9 +85,9 @@ Before any deploy workflow runs, set these in **GitHub → Settings → Environm
 | Variable | `CLIENT_URL` | `https://staging.52patta.in` |
 | Variable | `CORS_ORIGINS` | `https://staging.52patta.in` |
 | Variable | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| Variable | `GOOGLE_CALLBACK_URL` | `https://staging.52patta.in/api/auth/google/callback` |
+| Variable | `GOOGLE_CALLBACK_URL` | `https://staging.52patta.in/api/oauth/google/callback` |
 | Variable | `FACEBOOK_APP_ID` | Facebook app ID |
-| Variable | `FACEBOOK_CALLBACK_URL` | `https://staging.52patta.in/api/auth/facebook/callback` |
+| Variable | `FACEBOOK_CALLBACK_URL` | `https://staging.52patta.in/api/oauth/facebook/callback` |
 
 ### `production` environment
 | Type | Key | Value |
@@ -104,9 +104,9 @@ Before any deploy workflow runs, set these in **GitHub → Settings → Environm
 | Variable | `CLIENT_URL` | `https://52patta.in` |
 | Variable | `CORS_ORIGINS` | `https://52patta.in,https://www.52patta.in` |
 | Variable | `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| Variable | `GOOGLE_CALLBACK_URL` | `https://52patta.in/api/auth/google/callback` |
+| Variable | `GOOGLE_CALLBACK_URL` | `https://52patta.in/api/oauth/google/callback` |
 | Variable | `FACEBOOK_APP_ID` | Facebook app ID |
-| Variable | `FACEBOOK_CALLBACK_URL` | `https://52patta.in/api/auth/facebook/callback` |
+| Variable | `FACEBOOK_CALLBACK_URL` | `https://52patta.in/api/oauth/facebook/callback` |
 
 ---
 
