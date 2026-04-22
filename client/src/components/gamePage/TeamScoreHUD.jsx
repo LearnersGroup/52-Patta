@@ -14,6 +14,7 @@ const TeamScoreHUD = memo(({
     partnerCards = [],
     phase = "playing",
     removedTwos = [],
+    closeScoreboardSignal = 0,
 }) => {
     const [showScoreboard, setShowScoreboard] = useState(false);
     const [isPileOpen, setIsPileOpen]         = useState(false);
@@ -66,6 +67,11 @@ const TeamScoreHUD = memo(({
     useEffect(() => () => {
         if (pileTimerRef.current) clearTimeout(pileTimerRef.current);
     }, []);
+
+    // Parent can force-close scoreboard (e.g. right before deal-reveal starts).
+    useEffect(() => {
+        setShowScoreboard(false);
+    }, [closeScoreboardSignal]);
 
     // Up to 3 cards shown in the pile stack visual
     const pilePreview = removedTwos.slice(0, 3);

@@ -112,6 +112,53 @@ const GAME_DATA = {
             },
         ],
     },
+    mendikot: {
+        name: "Mendikot",
+        icon: "10♣",
+        sections: [
+            {
+                title: "Overview",
+                items: [
+                    "Mendikot is a team-based trick-taking game for even player counts (4, 6, 8, 10, 12).",
+                    "1 deck is used for up to 6 players; 2 decks for larger tables.",
+                    "Teams (A vs B) stay fixed through the series of rounds.",
+                ],
+            },
+            {
+                title: "Trump (Band / Cut Hukum)",
+                items: [
+                    "Band mode: a closed trump card is selected before play and revealed only when asked.",
+                    "A player may ask for trump reveal when they cannot follow the led suit.",
+                    "Cut mode: no preset trump — the first off-suit card played by a void player sets trump immediately.",
+                ],
+            },
+            {
+                title: "Playing Tricks",
+                items: [
+                    "Leader starts the trick; play moves clockwise.",
+                    "Players must follow suit if able; otherwise any card is legal.",
+                    "Trump beats non-trump cards; otherwise highest card in led suit wins.",
+                    "With duplicate cards (2 decks), if two identical cards compete, the later-played copy wins.",
+                ],
+            },
+            {
+                title: "What Counts",
+                items: [
+                    "Teams track both tricks won and captured 10s (Mendi cards).",
+                    "All 10s captured by one team in a round is a Mendikot.",
+                    "Capturing all 10s and all tricks is a 52-card Mendikot.",
+                ],
+            },
+            {
+                title: "Round Result",
+                items: [
+                    "Round winner is decided by: 52-card Mendikot → Mendikot → win-by-mendi (more 10s) → win-by-tricks.",
+                    "If tricks are tied, first team to reach that tied trick count wins the tie-break.",
+                    "Series winner is based on cumulative round-result categories across configured rounds.",
+                ],
+            },
+        ],
+    },
 };
 
 function RuleSection({ section, defaultOpen = false }) {

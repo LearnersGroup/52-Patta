@@ -76,6 +76,7 @@ const GameBoard = ({ userId, isAdmin }) => {
     const [inspectMode, setInspectMode] = useState(false);
     const [showJdgScoreboard, setShowJdgScoreboard] = useState(false);
     const [showDealReveal, setShowDealReveal] = useState(false);
+    const [closeHudScoreboardSignal, setCloseHudScoreboardSignal] = useState(0);
     // Judgement: delay scoreboard by 3s so the last trick animation plays out first
     const [scorecardVisible, setScorecardVisible] = useState(false);
     const scorecardTimerRef = useRef(null);
@@ -127,6 +128,9 @@ const GameBoard = ({ userId, isAdmin }) => {
         const prev = prevPhaseRef.current;
         const curr = phase;
         if (prev === "dealing" && curr === "bidding") {
+            // Ensure any open scoreboard/modal is closed before card reveal starts.
+            setCloseHudScoreboardSignal((v) => v + 1);
+            setShowJdgScoreboard(false);
             dealRevealKeyRef.current += 1;
             setShowDealReveal(true);
 
@@ -719,6 +723,7 @@ const GameBoard = ({ userId, isAdmin }) => {
                             partnerCards={partnerCards}
                             phase={phase}
                             removedTwos={removedTwos || []}
+                            closeScoreboardSignal={closeHudScoreboardSignal}
                         />
                     )}
 

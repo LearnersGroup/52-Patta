@@ -231,6 +231,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
   const [trumpDismissedForRound, setTrumpDismissedForRound] = useState(-1);
   const [trumpRevealReady, setTrumpRevealReady] = useState(false);
   const [showDealReveal, setShowDealReveal] = useState(false);
+  const [closeHudMenuSignal, setCloseHudMenuSignal] = useState(0);
   const [judgementBidCountdown, setJudgementBidCountdown] = useState(null);
   const [intendedCard, setIntendedCard] = useState(null);
   const [revealAnnouncement, setRevealAnnouncement] = useState(null);
@@ -251,6 +252,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
     // window; players see their hand directly in band-hukum-pick (face-down)
     // or start playing immediately (Cut Hukum).
     if (prev !== 'bidding' && phase === 'bidding' && Array.isArray(myHand) && myHand.length > 0) {
+      setCloseHudMenuSignal((v) => v + 1);
       setShowDealReveal(true);
     }
 
@@ -687,6 +689,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
           <TeamScoreHUD
             roundText={roundText}
             trumpSuit={activeTrump || null}
+            closeMenuSignal={closeHudMenuSignal}
             onShowSettings={() => setShowSettings(true)}
             isAdmin={isAdmin}
             onQuit={() => setShowQuitConfirm(true)}

@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import AppBackground from '../../src/components/shared/AppBackground';
 import {
   buttonStyles,
@@ -131,6 +131,64 @@ const GAMES = {
       },
     ],
   },
+  mendikot: {
+    title: 'Mendikot',
+    subtitle: 'Band / Cut Hukum',
+    icon: '10♣',
+    phases: [
+      {
+        title: 'Introduction',
+        body: [
+          'Mendikot is a team-based trick-taking game for even player counts: 4, 6, 8, 10, or 12.',
+          '1 deck is typically used for up to 6 players; 2 decks for larger tables.',
+          'Teams are fixed (Team A vs Team B) for the series of rounds.',
+          'The objective is to capture 10s (Mendi cards) and win key tricks.',
+        ],
+      },
+      {
+        title: 'Shuffling & Dealing',
+        body: [
+          'Same shuffle pipeline as other games: Riffle, Hindu, and Overhand, with an optional cut.',
+          'Cards are dealt one-by-one clockwise from the player to the dealer\'s left.',
+          'If needed, low cards (2s) are removed before dealing so all players receive equal cards.',
+        ],
+      },
+      {
+        title: 'Trump Modes',
+        body: [
+          'Band Hukum: a closed trump card is selected before play and hidden until reveal is triggered.',
+          'A reveal can be requested when a player is void in the led suit (cannot follow suit).',
+          'Cut Hukum: no trump is preselected; first off-suit play by a void player sets trump immediately.',
+        ],
+      },
+      {
+        title: 'Playing Tricks',
+        body: [
+          'Leader starts, then play continues clockwise.',
+          'Players must follow led suit if possible; otherwise any card can be played.',
+          'Trump beats non-trump; if no trump is played, highest card in led suit wins.',
+          'With 2 decks, if identical cards compete in a trick, the later-played copy wins.',
+          'Trick winner leads the next trick.',
+        ],
+      },
+      {
+        title: 'Round Result & Series',
+        body: [
+          'Round priority is: 52-card Mendikot → Mendikot → win-by-mendi → win-by-tricks.',
+          '52-card Mendikot = one team captures all 10s and all tricks.',
+          'Mendikot = one team captures all 10s.',
+          'If both teams split 10s, trick count decides; ties use first-to-N-tricks tie-break.',
+          'Series winner is based on cumulative round results across configured rounds.',
+        ],
+      },
+    ],
+  },
+};
+
+const GAME_ICONS = {
+  kaliteri: require('../../assets/Icons/Kaliteri_Icon.png'),
+  judgement: require('../../assets/Icons/Judgement_Icon.png'),
+  mendikot: require('../../assets/Icons/Mendi_Icon.png'),
 };
 
 // ── Screen ──────────────────────────────────────────────────────────────────
@@ -138,7 +196,12 @@ const GAMES = {
 export default function GameRulesScreen() {
   const { game } = useLocalSearchParams();
   const router = useRouter();
-  const data = GAMES[game];
+  const gameParam = Array.isArray(game) ? game[0] : game;
+  const gameKey = typeof gameParam === 'string'
+    ? decodeURIComponent(gameParam).trim().toLowerCase()
+    : '';
+  const data = GAMES[gameKey];
+  const gameIcon = GAME_ICONS[gameKey];
 
   if (!data) {
     return (
@@ -161,7 +224,11 @@ export default function GameRulesScreen() {
         </View>
 
         <View style={styles.titleBlock}>
-          <Text style={styles.icon}>{data.icon}</Text>
+          {gameIcon ? (
+            <Image source={gameIcon} style={styles.iconImage} />
+          ) : (
+            <Text style={styles.icon}>{data.icon}</Text>
+          )}
           <Text style={styles.title}>{data.title}</Text>
           <Text style={styles.subtitle}>{data.subtitle}</Text>
         </View>
@@ -227,6 +294,12 @@ const styles = StyleSheet.create({
   icon: {
     fontSize: 36,
     color: colors.cream,
+    marginBottom: spacing.xs,
+  },
+  iconImage: {
+    width: 72,
+    height: 72,
+    resizeMode: 'contain',
     marginBottom: spacing.xs,
   },
   title: {
