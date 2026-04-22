@@ -615,12 +615,15 @@ export default function GameBoard({ userId, isAdmin = false }) {
     setIntendedCard(card);
   }, [phase, userId, closedTrumpHolderId]);
 
-  // Reset the guard whenever it becomes our turn so we can play again
+  // Reset the guard whenever a new set of valid plays arrives for us.
+  // Using validPlays (not just currentTurn) handles the case where the same
+  // player wins a trick and leads the next one — currentTurn stays userId so
+  // the effect wouldn't re-run on currentTurn alone.
   useEffect(() => {
-    if (phase === 'playing' && currentTurn === userId) {
+    if (phase === 'playing' && currentTurn === userId && Array.isArray(validPlays) && validPlays.length > 0) {
       playEmittedRef.current = false;
     }
-  }, [phase, currentTurn, userId]);
+  }, [phase, currentTurn, userId, validPlays]);
 
   const handlePlayIntended = useCallback(() => {
     if (!intendedCard || !isMyTurn) return;
