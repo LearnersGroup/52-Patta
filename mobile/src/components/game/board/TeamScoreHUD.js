@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, panelStyle, spacing } from '../../../styles/theme';
 import { isRedSuit, suitSymbol } from '../utils/cardMapper';
@@ -96,8 +96,14 @@ export default function TeamScoreHUD({
   roundResults = [],
   tricksWon = {},
   gameHistory = [],
+  closeMenuSignal = 0,
 }) {
   const [showMenu, setShowMenu] = useState(false);
+
+  // Parent can force-close the scoreboard modal (used before deal-reveal starts).
+  useEffect(() => {
+    setShowMenu(false);
+  }, [closeMenuSignal]);
 
   const isKaliteriPlaying = gameType === 'kaliteri' && (phase === 'playing' || phase === 'powerhouse');
 

@@ -1,5 +1,16 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.16 — 2026-04-21
+
+### Added
+- **Mendikot rules content (mobile + web)**: added a full Mendikot rules reference (overview, trump modes, trick play, scoring, round/series result logic) so players can read game flow in-app before joining tables.
+
+### Changed
+- **Rules screen icon handling (mobile)**: rules pages now render dedicated game icon assets (`Kaliteri_Icon`, `Judgement_Icon`, `Mendi_Icon`) instead of only text glyphs, and route param normalization now safely handles encoded/array `game` values.
+
+### Fixed
+- **HUD scoreboard/menu overlap during deal reveal (mobile + web)**: when transitioning into bidding and triggering card-reveal, any open HUD scoreboard/menu modal is now force-closed first to prevent lingering overlays above the reveal sequence.
+
 ## 1.1.15 — 2026-04-21
 
 ### Fixed
