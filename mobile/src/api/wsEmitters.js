@@ -22,7 +22,14 @@ export const WsPlaceBid = (amount) => emitWithCallback("game-place-bid", { amoun
 export const WsPassBid = () => emitWithCallback("game-pass-bid", {});
 export const WsSelectPowerHouse = (suit) => emitWithCallback("game-select-powerhouse", { suit });
 export const WsSelectPartners = (cards, duplicateSpecs) => emitWithCallback("game-select-partners", { cards, duplicateSpecs });
-export const WsPlayCard = (card) => emitWithCallback("game-play-card", { card });
+export const WsPlayCard = (card, onError) => {
+    socket.emit("game-play-card", { card }, (err) => {
+        if (err) {
+            console.error(`WS [game-play-card] error:`, err);
+            onError?.(err);
+        }
+    });
+};
 export const WsNextRound = () => emitWithCallback("game-next-round", {});
 export const WsRequestGameState = () => emitWithCallback("game-request-state", {});
 export const WsJudgementBid = (amount) => emitWithCallback("game-judgement-bid", { amount });
