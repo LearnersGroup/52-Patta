@@ -627,7 +627,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
     if (isCardInList(intendedCard, validPlays)) {
       if (playEmittedRef.current) return;
       playEmittedRef.current = true;
-      WsPlayCard(intendedCard);
+      WsPlayCard(intendedCard, () => { playEmittedRef.current = false; });
       hapticSuccess();
       setIntendedCard(null);
     } else {
@@ -647,7 +647,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
       const timer = setTimeout(() => {
         if (playEmittedRef.current) return;
         playEmittedRef.current = true;
-        WsPlayCard(validPlays[0]);
+        WsPlayCard(validPlays[0], () => { playEmittedRef.current = false; });
         hapticSuccess();
         setIntendedCard(null);
       }, 2000);
