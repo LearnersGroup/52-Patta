@@ -59,7 +59,6 @@ const GameBoard = ({ userId, isAdmin }) => {
     const totalRoundsInSeries = useSelector((state) => state.game.totalRoundsInSeries);
     const roundResults = useSelector((state) => state.game.roundResults);
     const trumpMode = useSelector((state) => state.game.trumpMode);
-    const cardRevealTimeMs = useSelector((state) => state.game.cardRevealTimeMs);
 
     // Mendikot-specific selectors
     const isMendikot = gameType === "mendikot";
