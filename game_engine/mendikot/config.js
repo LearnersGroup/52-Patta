@@ -33,7 +33,8 @@ function computeMendikotConfig(
     deckCount,
     trumpMode = "band",
     bandHukumPickPhase = true,
-    roundsCount = 5
+    roundsCount = 5,
+    cardRevealTime = null
 ) {
     validateMendikotConfig(playerCount, deckCount);
 
@@ -61,6 +62,7 @@ function computeMendikotConfig(
         trump_mode: trumpMode,
         band_hukum_pick_phase: !!bandHukumPickPhase,
         rounds_count: rounds,
+        cardRevealTimeMs: cardRevealTime ? cardRevealTime * 1000 : 10000,
     };
 }
 

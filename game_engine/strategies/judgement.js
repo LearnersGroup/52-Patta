@@ -118,19 +118,19 @@ function applyDealExtras(gameState /*, dealResult */) {
     // trumpSuit stays unchanged (already set at round start)
 }
 
-function transitionToBidding(gameState) {
-    const cardRevealMs = gameState.config?.cardRevealTimeMs ?? 10000;
-
-    gameState.phase = "bidding";
+function transitionToCardReveal(gameState) {
+    const revealMs = gameState.config?.cardRevealTimeMs ?? 10000;
+    gameState.phase = "card-reveal";
     gameState.currentRound = 0;
-    if (gameState.bidding) {
-        gameState.bidding.biddingWindowOpensAt = Date.now() + cardRevealMs;
-    }
+    return { revealMs };
+}
 
-    return {
-        type: "judgement",
-        cardRevealMs,
-    };
+function transitionFromCardReveal(gameState) {
+    gameState.phase = "bidding";
+    if (gameState.bidding) {
+        gameState.bidding.biddingWindowOpensAt = Date.now();
+    }
+    return { type: "judgement", nextPhase: "bidding" };
 }
 
 // ── Play card: scoring ──────────────────────────────────────────────────
@@ -273,7 +273,8 @@ registerStrategy("judgement", {
     afterStart,
     deal,
     applyDealExtras,
-    transitionToBidding,
+    transitionToCardReveal,
+    transitionFromCardReveal,
     onRoundEnd,
     afterRoundEnd,
     nextRound,

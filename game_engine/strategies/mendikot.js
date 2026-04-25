@@ -13,7 +13,8 @@ function computeConfig(game, playerCount, deckCount) {
         deckCount,
         game.trump_mode || "band",
         game.band_hukum_pick_phase !== undefined ? !!game.band_hukum_pick_phase : true,
-        game.rounds_count || 5
+        game.rounds_count || 5,
+        game.card_reveal_time || null
     );
 }
 
@@ -165,9 +166,22 @@ function applyDealExtras(gameState) {
     }
 }
 
-function transitionToBidding(gameState) {
+function transitionToCardReveal(gameState) {
+    // Band Hukum with manual pick: picker chooses first, then card-reveal happens
+    // after the pick (handled in pickClosedTrump handler).
+    if (gameState.config?.trump_mode === "band" && gameState.config?.band_hukum_pick_phase) {
+        gameState.phase = "band-hukum-pick";
+        return { revealMs: null };
+    }
+    const revealMs = gameState.config?.cardRevealTimeMs ?? 10000;
+    gameState.phase = "card-reveal";
+    return { revealMs };
+}
+
+function transitionFromCardReveal(gameState) {
     if (gameState.config?.trump_mode === "band") {
         if (gameState.config?.band_hukum_pick_phase) {
+            // Should not be reached via dealCardsHandler; pick handler drives this path.
             gameState.phase = "band-hukum-pick";
             return { type: "mendikot", nextPhase: "band-hukum-pick" };
         }
@@ -439,7 +453,8 @@ registerStrategy("mendikot", {
     afterStart,
     deal,
     applyDealExtras,
-    transitionToBidding,
+    transitionToCardReveal,
+    transitionFromCardReveal,
     onRoundEnd,
     afterRoundEnd,
     nextRound,

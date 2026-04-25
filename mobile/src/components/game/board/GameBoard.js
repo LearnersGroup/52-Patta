@@ -247,13 +247,14 @@ export default function GameBoard({ userId, isAdmin = false }) {
   useEffect(() => {
     const prev = prevPhaseRef.current;
 
-    // Kaliteri / Judgement: reveal overlay fires when phase enters bidding.
-    // Mendikot does NOT use DealRevealOverlay — there is no server-side inspect
-    // window; players see their hand directly in band-hukum-pick (face-down)
-    // or start playing immediately (Cut Hukum).
-    if (prev !== 'bidding' && phase === 'bidding' && Array.isArray(myHand) && myHand.length > 0) {
+    // Show reveal overlay for the duration of the card-reveal phase (all modes).
+    // The server owns the timer; the client mirrors the phase.
+    if (phase === 'card-reveal' && prev !== 'card-reveal') {
       setCloseHudMenuSignal((v) => v + 1);
       setShowDealReveal(true);
+    }
+    if (prev === 'card-reveal' && phase !== 'card-reveal') {
+      setShowDealReveal(false);
     }
 
     if (phase === 'lobby' || phase === null || phase === 'shuffling') {
@@ -261,7 +262,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
     }
 
     prevPhaseRef.current = phase;
-  }, [phase, myHand]);
+  }, [phase]);
 
   useEffect(() => {
     setTrumpRevealReady(phase === 'shuffling' && gameType === 'judgement');

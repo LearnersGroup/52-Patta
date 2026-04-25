@@ -260,11 +260,12 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
 
             {/* Progress / instruction */}
             <View style={[styles.progressWrap, { top: startTop + bigH + 20 }]}>
-              <Text style={styles.progressText}>
-                {phase === 'idle'
-                  ? `Tap to reveal  ·  ${currentIndex + 1}/${revealOrder.length}`
-                  : `${currentIndex + 1} / ${revealOrder.length}`}
+              <Text style={styles.progressCount}>
+                {`${currentIndex + 1} / ${revealOrder.length}`}
               </Text>
+              {phase === 'idle' && (
+                <Text style={styles.progressHint}>tap to reveal</Text>
+              )}
             </View>
           </>
         ) : null}
@@ -299,16 +300,27 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
+    gap: 2,
   },
-  progressText: {
-    fontFamily: fonts.body,
+  progressCount: {
+    fontFamily: fonts.heading,
     color: colors.goldLight,
-    fontSize: 13,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 1,
     textShadowColor: 'rgba(0,0,0,0.7)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  progressHint: {
+    fontFamily: fonts.body,
+    color: colors.creamMuted,
+    fontSize: 11,
+    fontWeight: '400',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   completeWrap: {
     flex: 1,

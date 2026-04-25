@@ -117,15 +117,27 @@ class GameStrategy {
     }
 
     /**
-     * Transition from the dealing phase to the bidding phase.
-     * Mutates gameState.phase and sets any bidding timer fields.
+     * Transition from dealing → card-reveal after the dealing animation completes.
+     * Mutates gameState.phase to "card-reveal".
      *
      * @param {object} gameState - Mutable game state
-     * @returns {{ type: string, timerDelayMs?: number, cardRevealMs?: number }}
-     *   Descriptor used by dealCardsHandler to schedule the bid expiry timer.
+     * @returns {{ revealMs: number }}
+     *   How long to hold the card-reveal phase before advancing.
      */
-    transitionToBidding(gameState) {
-        throw new Error(`${this.constructor.name}.transitionToBidding() is not implemented`);
+    transitionToCardReveal(gameState) {
+        throw new Error(`${this.constructor.name}.transitionToCardReveal() is not implemented`);
+    }
+
+    /**
+     * Transition from card-reveal → the next game-specific phase (bidding,
+     * band-hukum-pick, playing, …).  Mutates gameState.phase.
+     *
+     * @param {object} gameState - Mutable game state
+     * @returns {{ type: string, nextPhase: string, timerDelayMs?: number }}
+     *   Descriptor used by dealCardsHandler to schedule game-specific timers.
+     */
+    transitionFromCardReveal(gameState) {
+        throw new Error(`${this.constructor.name}.transitionFromCardReveal() is not implemented`);
     }
 
     // ── Round end / scoring ──────────────────────────────────────────────
@@ -201,7 +213,8 @@ const REQUIRED_METHODS = [
     'afterStart',
     'deal',
     'applyDealExtras',
-    'transitionToBidding',
+    'transitionToCardReveal',
+    'transitionFromCardReveal',
     'onRoundEnd',
     'afterRoundEnd',
     'nextRound',

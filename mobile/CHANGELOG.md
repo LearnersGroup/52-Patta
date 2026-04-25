@@ -1,5 +1,12 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.18 — 2026-04-24
+
+### Changed
+- **Card reveal counter redesigned**: progress now shows `X / Y` as the primary text with `tap to reveal` as smaller subtext beneath, replacing the previous inline `Tap to reveal · X/Y` format.
+- **Card-reveal is now a formal phase (all game modes)**: the server previously embedded the card-inspect window inside the `bidding` phase for Kaliteri/Judgement and skipped it entirely for Mendikot. All three modes now transition through an explicit `card-reveal` phase between dealing and their game-specific setup. The reveal overlay now opens on entering `card-reveal` and closes when the server advances to the next phase, rather than relying on a client-side timer.
+- **Mendikot gains a card-reveal window**: Mendikot now includes a `card-reveal` phase (default 10s, configurable via `card_reveal_time`). In Band Hukum the order is `band-hukum-pick → card-reveal → playing`; in Cut Hukum it is `card-reveal → playing`.
+
 ## 1.1.16 — 2026-04-21
 
 ### Added
