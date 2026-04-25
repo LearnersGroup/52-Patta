@@ -9,7 +9,7 @@ const JudgementBiddingPanel = ({ bidding, userId, cardsInRound = 0, getName = (p
 
     const totalBidsSoFar = bidding?.totalBids || 0;
     const isDealerTurn = currentBidderIndex === bidOrder.length - 1;
-    const forbiddenBid = isDealerTurn ? cardsInRound - totalBidsSoFar : null;
+    const forbiddenBid = isDealerTurn && cardsInRound - totalBidsSoFar >= 0 ? cardsInRound - totalBidsSoFar : null;
 
     const [amount, setAmount] = useState(0);
 

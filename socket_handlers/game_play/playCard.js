@@ -1,12 +1,12 @@
 const { playCard: playCardEngine, getValidPlays } = require("../../game_engine/tricks");
-const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
+const { getGameState, setGameState, persistCheckpoint, deleteGameState } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
 const { scheduleAutoNextGame } = require("./autoNextGame");
 const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
+const { scheduleMendikotNextRound } = require("./helpers/mendikotTimers");
 const { autoNextJudgementRound } = require("./helpers/autoNextJudgementRound");
 const { recordPlay, recordTrickComplete } = require("../../game_engine/recording");
-const { deleteGameState } = require("../../game_engine/stateManager");
 const Game = require("../../models/Game");
 const wrapHandler = require("../wrapHandler");
 
@@ -95,9 +95,14 @@ module.exports = wrapHandler('game-play-card', async (socket, io, data, callback
         strategy.afterRoundEnd(io, gameState, newState, {
             scheduleAutoNextGame,
             scheduleJudgementAdvance,
+            scheduleMendikotNextRound,
             autoNextJudgementRound,
             deleteGameState,
             Game,
+            getGameState,
+            setGameState,
+            persistCheckpoint,
+            broadcastGameState,
         });
     }
 

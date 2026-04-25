@@ -82,6 +82,9 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
   const revealOrderRef = useRef(revealOrder);
   revealOrderRef.current = revealOrder;
 
+  // Used in doSettle to schedule auto-move without a circular useCallback dep
+  const doMoveRef = useRef(null);
+
   // ── Settle: card reached hand position ──────────────────────────────────
   const doSettle = useCallback(() => {
     setCurrentIndex((prevIdx) => {
@@ -96,11 +99,13 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
         phaseRef.current = 'complete';
         setRenderTick((n) => n + 1);
       } else {
-        // Reset to idle — user taps to reveal next card
+        // Next card starts face-up; auto-moves after pause, tap skips it
         move.value = 0;
-        flip.value = 0;
-        phaseRef.current = 'idle';
+        flip.value = 1;
+        phaseRef.current = 'flipped';
         setRenderTick((n) => n + 1);
+        clearTimeout(pauseTimeoutRef.current);
+        pauseTimeoutRef.current = setTimeout(() => doMoveRef.current?.(), PAUSE_MS);
       }
       return nextIdx;
     });
@@ -118,6 +123,8 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
   }, [backdropOp, doClose]);
 
   // ── Move: shrink + slide card to hand ─────────────────────────────────
+  // Keep ref in sync so doSettle can schedule auto-move without a circular dep
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const doMove = useCallback(() => {
     if (phaseRef.current !== 'flipped') return;
     phaseRef.current = 'moving';
@@ -175,6 +182,8 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
     clearTimeout(pauseTimeoutRef.current);
     pauseTimeoutRef.current = setTimeout(() => doMove(), PAUSE_MS);
   }, [doMove]);
+
+  doMoveRef.current = doMove;
 
   // ── Tap handler ───────────────────────────────────────────────────────
   const handleTap = useCallback(() => {
@@ -239,10 +248,10 @@ export default function DealRevealOverlay({ visible, cards = [], durationMs = 10
 
       {/* Tap area */}
       <Pressable style={StyleSheet.absoluteFill} onPress={handleTap}>
-        {/* Next card back — peek underneath current card */}
+        {/* Next card — peek face-up underneath current card */}
         {showCard && !isLastCard ? (
           <View style={[styles.nextBackCard, { left: cardLeft, top: startTop, width: bigW, height: bigH }]}>
-            <CardBack width={bigW} />
+            <CardFace card={revealOrder[currentIndex + 1]} width={bigW} />
           </View>
         ) : null}
 

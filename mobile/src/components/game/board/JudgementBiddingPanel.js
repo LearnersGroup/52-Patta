@@ -24,7 +24,7 @@ export default function JudgementBiddingPanel({
   const isMyTurn          = currentBidder === userId;
   const totalBidsSoFar    = bidding?.totalBids || 0;
   const isDealerTurn      = currentBidderIdx === bidOrder.length - 1;
-  const forbiddenBid      = isDealerTurn ? cardsInRound - totalBidsSoFar : null;
+  const forbiddenBid      = isDealerTurn && cardsInRound - totalBidsSoFar >= 0 ? cardsInRound - totalBidsSoFar : null;
 
   const [amount, setAmount] = useState(0);
 
