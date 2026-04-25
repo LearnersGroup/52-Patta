@@ -22,6 +22,8 @@ const OAuthCallback = lazy(() => import("./components/authPage/OAuthCallback"));
 const ProfilePage = lazy(() => import("./components/profilePage/ProfilePage"));
 const CreateGamePage = lazy(() => import("./components/gamePage/CreateGamePage"));
 const GamePage = lazy(() => import("./components/gamePage/GamePage"));
+const LogPage = lazy(() => import("./components/logPage/LogPage"));
+const SeriesDetail = lazy(() => import("./components/logPage/SeriesDetail"));
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -93,6 +95,22 @@ export default function App() {
                                 element={
                                     <ProtectedRoute>
                                         <ProfilePage />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/log"
+                                element={
+                                    <ProtectedRoute>
+                                        <LogPage />
+                                    </ProtectedRoute>
+                                }
+                            />
+                            <Route
+                                path="/log/:seriesId"
+                                element={
+                                    <ProtectedRoute>
+                                        <SeriesDetail />
                                     </ProtectedRoute>
                                 }
                             />

@@ -10,6 +10,7 @@ import {
 } from "../../api/wsEmitters";
 import RoomConfigForm from "./RoomConfigForm";
 import MendikotTeamLobby from "./MendikotTeamLobby";
+import RoomLog from "../logPage/RoomLog";
 
 const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
     const lastToggleRef = useRef(0);
@@ -342,6 +343,8 @@ const LobbyView = ({ roomId, roomData, isAdmin, userId }) => {
                         })}
                     </div>
                 )}
+
+                {roomId && <RoomLog roomId={roomId} />}
             </div>
         </>
     );

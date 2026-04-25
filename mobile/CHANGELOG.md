@@ -1,5 +1,13 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.20 — 2026-04-25
+
+### Changed
+- **Mendikot trump reveal: black glow behind revealed card**: when the closed (band hukum) trump is revealed, the card displayed above the table now sits on a dark halo/glow for the duration of the reveal toast, making the moment more visually prominent.
+
+### Added
+- **Game Log (mobile + web + server)**: completed game history is now persisted to a new `GameLog` collection in MongoDB. A bottom tab navigator appears on the home screen with a **Game Log** tab listing all past series (mode, date, final rankings, score). Tapping a series opens a detail screen showing per-game score deltas. The lobby now shows a **Games This Session** section under the Players card, populated from the backend and updated live via socket as each game in a room finishes.
+
 ## 1.1.19 — 2026-04-25
 
 ### Changed

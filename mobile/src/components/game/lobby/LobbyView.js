@@ -26,6 +26,7 @@ import {
 } from '../../../styles/theme';
 import LobbyConfigEditor from './LobbyConfigEditor';
 import LobbyPlayerList from './LobbyPlayerList';
+import RoomLog from './RoomLog';
 
 function getPlayerId(player) {
   return player?.playerId?._id?.toString?.() || player?.playerId?.toString?.() || '';
@@ -49,6 +50,7 @@ export default function LobbyView({
   userId,
   currentUserName = '',
   onLeaveSuccess,
+  gameRoomId,
 }) {
   const lastToggleRef = useRef(0);
   const READY_DEBOUNCE_MS = 500;
@@ -245,6 +247,7 @@ export default function LobbyView({
           teamBIds={teamBIds}
           onSwitchTeam={onSwitchTeam}
         />
+        {gameRoomId ? <RoomLog roomId={gameRoomId} /> : null}
       </View>
 
     </View>

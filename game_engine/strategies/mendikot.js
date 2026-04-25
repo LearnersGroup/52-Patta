@@ -6,6 +6,7 @@ const { initTrick, updatePendingRevealDecision } = require("../mendikot/tricks")
 const { autoRevealIfNeeded } = require("../mendikot/bandHukum");
 const { classifyRoundResult } = require("../mendikot/scoring");
 const { computeNextDealer } = require("../mendikot/dealerRotation");
+const GameLog = require("../../models/GameLog");
 
 function computeConfig(game, playerCount, deckCount) {
     return computeMendikotConfig(
@@ -276,8 +277,53 @@ function afterRoundEnd(io, gameState, finalState, deps) {
     io.to(gameState.roomname).emit("game-phase-change", finalState.phase);
     io.to(gameState.roomname).emit("game-round-result", finalState.scoringResult);
 
+    // Persist per-round GameLog row (best-effort)
+    const { Game } = deps;
+    (async () => {
+        try {
+            const game = await Game.findById(gameState.gameId).select("code players").lean();
+            const players = (game?.players || []).map((p) => ({
+                userId: p.playerId,
+                name: finalState.playerNames?.[p.playerId?.toString()] || "",
+                avatar: finalState.playerAvatars?.[p.playerId?.toString()] || "",
+            }));
+            const roundNumber = (finalState.round_results || []).length;
+            const playerDeltas = {};
+            for (const pid of (finalState.seatOrder || [])) {
+                playerDeltas[pid] =
+                    (finalState.scores?.[pid] || 0) - (finalState.scoresAtGameStart?.[pid] || 0);
+            }
+            const logEntry = await GameLog.create({
+                kind: "game",
+                roomId: gameState.gameId,
+                roomCode: game?.code || "",
+                gameType: "mendikot",
+                seriesId: finalState.seriesId,
+                gameNumber: roundNumber,
+                players,
+                scoringResult: finalState.scoringResult || null,
+                playerDeltas,
+                startedAt: finalState.gameStartedAt ? new Date(finalState.gameStartedAt) : null,
+                finishedAt: new Date(),
+                durationMs: finalState.gameStartedAt ? Date.now() - finalState.gameStartedAt : null,
+            });
+            io.to(gameState.roomname).emit("room-log-append", {
+                _id: logEntry._id,
+                kind: "game",
+                gameNumber: logEntry.gameNumber,
+                gameType: "mendikot",
+                scoringResult: logEntry.scoringResult,
+                playerDeltas: logEntry.playerDeltas,
+                players: logEntry.players,
+                finishedAt: logEntry.finishedAt,
+            });
+        } catch (logErr) {
+            console.error("[mendikot] GameLog per-round persist error:", logErr.message);
+        }
+    })();
+
     if (finalState.phase === "finished") {
-        const { scheduleMendikotNextRound, getGameState, setGameState, persistCheckpoint, broadcastGameState, Game } = deps;
+        const { scheduleMendikotNextRound, getGameState, setGameState, persistCheckpoint, broadcastGameState } = deps;
         scheduleMendikotNextRound(gameState.gameId, 10000, async () => {
             const currentState = getGameState(gameState.gameId);
             if (!currentState || currentState.phase !== "finished") return;
@@ -291,9 +337,43 @@ function afterRoundEnd(io, gameState, finalState, deps) {
         return;
     }
 
-    // series-finished -> brief scoreboard display then return to lobby
+    // series-finished -> persist series log, then brief scoreboard display then return to lobby
+    (async () => {
+        try {
+            const game = await Game.findById(gameState.gameId).select("code players").lean();
+            const players = (game?.players || []).map((p) => ({
+                userId: p.playerId,
+                name: finalState.playerNames?.[p.playerId?.toString()] || "",
+                avatar: finalState.playerAvatars?.[p.playerId?.toString()] || "",
+            }));
+            const rankings = (finalState.seatOrder || [])
+                .map((pid) => ({
+                    playerId: pid,
+                    name: finalState.playerNames?.[pid] || pid,
+                    score: finalState.scores?.[pid] || 0,
+                }))
+                .sort((a, b) => b.score - a.score)
+                .map((entry, idx) => ({ ...entry, rank: idx + 1 }));
+            await GameLog.create({
+                kind: "series",
+                roomId: gameState.gameId,
+                roomCode: game?.code || "",
+                gameType: "mendikot",
+                seriesId: finalState.seriesId,
+                players,
+                finalRankings: rankings,
+                winnerUserId: rankings[0]?.playerId || null,
+                startedAt: finalState.seriesStartedAt ? new Date(finalState.seriesStartedAt) : null,
+                finishedAt: new Date(),
+                durationMs: finalState.seriesStartedAt ? Date.now() - finalState.seriesStartedAt : null,
+            });
+        } catch (logErr) {
+            console.error("[mendikot] GameLog series persist error:", logErr.message);
+        }
+    })();
+
     setTimeout(async () => {
-        const { Game, deleteGameState } = deps;
+        const { deleteGameState } = deps;
         try {
             await Game.findByIdAndUpdate(gameState.gameId, {
                 $set: {
@@ -378,6 +458,9 @@ async function nextRound(io, gameId, existingState, deps) {
         first_to_n_tricks: null,
         nextRoundReady: [],
         scoringResult: null,
+        // Snapshot scores at start of this round so per-round deltas can be computed
+        scoresAtGameStart: { ...(existingState.scores || {}) },
+        gameStartedAt: Date.now(),
     };
 
     setGameState(gameId, nextState);

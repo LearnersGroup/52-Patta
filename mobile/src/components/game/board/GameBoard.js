@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 
 const trumpPlaceholderImg = require('../../../../assets/Backgrounds/play_table/52_Patta_Icon_Suits_shadow.png');
 import Animated, {
@@ -102,6 +103,22 @@ const TrumpRevealRequestAnnouncement = memo(function TrumpRevealRequestAnnouncem
     <>
       {card ? (
         <View style={styles.trumpRevealCardAboveTable}>
+          <Svg
+            pointerEvents="none"
+            style={styles.trumpRevealGlow}
+            width={240}
+            height={240}
+          >
+            <Defs>
+              <RadialGradient id="trumpGlow" cx="50%" cy="50%" rx="50%" ry="50%" fx="50%" fy="50%">
+                <Stop offset="0%" stopColor="#000" stopOpacity="0.85" />
+                <Stop offset="35%" stopColor="#000" stopOpacity="0.55" />
+                <Stop offset="65%" stopColor="#000" stopOpacity="0.20" />
+                <Stop offset="100%" stopColor="#000" stopOpacity="0" />
+              </RadialGradient>
+            </Defs>
+            <Rect x="0" y="0" width="240" height="240" fill="url(#trumpGlow)" />
+          </Svg>
           <TrumpRevealCard card={card} width={80} />
         </View>
       ) : null}
@@ -1112,6 +1129,14 @@ const styles = StyleSheet.create({
     top: '28%',
     alignSelf: 'center',
     zIndex: 100,
+  },
+  trumpRevealGlow: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    marginLeft: -120,
+    marginTop: -120,
+    backgroundColor: 'transparent',
   },
   trumpRevealToast: {
     top: '62%',

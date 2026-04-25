@@ -1,0 +1,316 @@
+// ============================================
+// Game Log Page
+// ============================================
+
+.log-page {
+  min-height: 100vh;
+  background: $bg-deep;
+  padding: 2rem 1.5rem;
+  max-width: 860px;
+  margin: 0 auto;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  &__title {
+    font-family: $font-heading;
+    font-size: 1.6rem;
+    color: $gold;
+    letter-spacing: 0.1em;
+    margin: 0;
+  }
+
+  &__empty,
+  &__error {
+    text-align: center;
+    color: $cream-muted;
+    font-family: $font-body;
+    padding: 3rem 0;
+  }
+
+  &__error {
+    color: $red-suit;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  &__load-more {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.6rem;
+    background: $bg-panel;
+    border: 1px solid $border-gold;
+    border-radius: 8px;
+    color: $cream-muted;
+    font-family: $font-body;
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: center;
+
+    &:hover {
+      border-color: $gold;
+      color: $gold;
+    }
+  }
+}
+
+.series-card {
+  background: $bg-panel;
+  border: 1px solid $border-gold;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    border-color: rgba(201, 162, 39, 0.55);
+    background: $bg-panel-light;
+  }
+
+  &__top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  &__game-type {
+    font-family: $font-heading;
+    font-size: 0.95rem;
+    color: $gold;
+    letter-spacing: 0.08em;
+  }
+
+  &__date {
+    font-family: $font-body;
+    font-size: 0.8rem;
+    color: $cream-muted;
+  }
+
+  &__meta {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    font-family: $font-body;
+    font-size: 0.82rem;
+    color: $cream-muted;
+  }
+
+  &__dot {
+    color: rgba(201, 162, 39, 0.4);
+  }
+
+  &__rank-chip {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 4px;
+    padding: 1px 8px;
+    color: $cream;
+
+    &--win {
+      background: rgba(201, 162, 39, 0.1);
+      color: $gold-light;
+    }
+  }
+}
+
+// ── Series Detail ───────────────────────────────────────────────────────────
+
+.series-detail {
+  min-height: 100vh;
+  background: $bg-deep;
+  padding: 2rem 1.5rem;
+  max-width: 860px;
+  margin: 0 auto;
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: $font-body;
+    font-size: 0.9rem;
+    color: $gold;
+    cursor: pointer;
+    margin-bottom: 1.25rem;
+    background: none;
+    border: none;
+    padding: 0;
+
+    &:hover { color: $gold-light; }
+  }
+
+  &__header-card {
+    background: $bg-panel;
+    border: 1px solid $border-gold;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  &__type {
+    font-family: $font-heading;
+    font-size: 1.3rem;
+    color: $gold;
+    letter-spacing: 0.1em;
+    margin: 0 0 0.25rem;
+  }
+
+  &__date,
+  &__games-count {
+    font-family: $font-body;
+    font-size: 0.82rem;
+    color: $cream-muted;
+    margin: 0;
+  }
+
+  &__section {
+    background: $bg-panel;
+    border: 1px solid $border-gold;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  &__section-title {
+    font-family: $font-heading;
+    font-size: 0.72rem;
+    color: $gold;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 0 0 0.75rem;
+  }
+}
+
+.rank-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+
+  &--first {
+    background: rgba(201, 162, 39, 0.07);
+    border-radius: 6px;
+    padding: 0.35rem 0.5rem;
+  }
+
+  &__num {
+    font-family: $font-body;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: $cream-muted;
+    width: 24px;
+
+    .rank-row--first & { color: $gold; }
+  }
+
+  &__name {
+    font-family: $font-body;
+    font-size: 0.9rem;
+    color: $cream;
+    flex: 1;
+
+    .rank-row--first & {
+      font-weight: 700;
+      color: $gold-light;
+    }
+  }
+
+  &__score {
+    font-family: $font-body;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: $cream;
+
+    .rank-row--first & { color: $gold-light; }
+  }
+}
+
+.game-breakdown-row {
+  border-bottom: 1px solid rgba(201, 162, 39, 0.1);
+  padding: 0.5rem 0;
+
+  &:last-child { border-bottom: none; }
+
+  &__num {
+    font-family: $font-body;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: $gold;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.25rem;
+  }
+
+  &__players {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  &__player {
+    font-family: $font-body;
+    font-size: 0.82rem;
+    color: $cream;
+    display: flex;
+    gap: 0.2rem;
+    align-items: center;
+  }
+
+  &__delta {
+    font-weight: 700;
+    font-size: 0.8rem;
+
+    &--pos { color: #4ade80; }
+    &--neg { color: $red-suit; }
+  }
+}
+
+// ── In-lobby Room Log ──────────────────────────────────────────────────────
+
+.room-log {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid $border-gold;
+
+  &__title {
+    font-family: $font-heading;
+    font-size: 0.72rem;
+    color: $gold;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin: 0 0 0.5rem;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.2rem 0;
+  }
+
+  &__game-num {
+    font-family: $font-body;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: $gold;
+    min-width: 52px;
+  }
+
+  &__players {
+    font-family: $font-body;
+    font-size: 0.8rem;
+    color: $cream-muted;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}

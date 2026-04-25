@@ -12,6 +12,8 @@ const { computeTrumpSuit, dealJudgementRound, getNextJudgementRound } = require(
 const { initJudgementBidding } = require("../judgement/bidding");
 const { calculateJudgementRoundResult, applyJudgementScoring } = require("../judgement/scoring");
 const { finalizeJudgementResult, persistRecording } = require("../recording");
+const GameLog = require("../../models/GameLog");
+const Game = require("../../models/Game");
 
 // ── Config ──────────────────────────────────────────────────────────────
 
@@ -183,6 +185,72 @@ function afterRoundEnd(io, gameState, finalState, { scheduleJudgementAdvance, au
 
     if (finalState.phase === "finished") {
         scheduleJudgementAdvance(gameState.gameId, 5000, () => autoNextJudgementRound(io, gameState.gameId));
+    } else if (finalState.phase === "series-finished") {
+        // Last round goes directly to series-finished — autoNextJudgementRound is never called.
+        // Save per-round + series GameLog rows here.
+        (async () => {
+            try {
+                const game = await Game.findById(gameState.gameId).select("code players").lean();
+                const players = (game?.players || []).map((p) => ({
+                    userId: p.playerId,
+                    name: finalState.playerNames?.[p.playerId?.toString()] || "",
+                    avatar: finalState.playerAvatars?.[p.playerId?.toString()] || "",
+                }));
+                const lastRound = (finalState.roundResults || []).slice(-1)[0] || null;
+                const playerDeltas = lastRound?.deltas || {};
+                const roundNumber = (finalState.roundResults || []).length;
+
+                const logEntry = await GameLog.create({
+                    kind: "game",
+                    roomId: gameState.gameId,
+                    roomCode: game?.code || "",
+                    gameType: finalState.game_type || "judgement",
+                    seriesId: finalState.seriesId,
+                    gameNumber: roundNumber,
+                    players,
+                    scoringResult: lastRound,
+                    playerDeltas,
+                    startedAt: finalState.gameStartedAt ? new Date(finalState.gameStartedAt) : null,
+                    finishedAt: new Date(),
+                    durationMs: finalState.gameStartedAt ? Date.now() - finalState.gameStartedAt : null,
+                });
+                io.to(gameState.roomname).emit("room-log-append", {
+                    _id: logEntry._id,
+                    kind: "game",
+                    gameNumber: logEntry.gameNumber,
+                    gameType: logEntry.gameType,
+                    scoringResult: logEntry.scoringResult,
+                    playerDeltas: logEntry.playerDeltas,
+                    players: logEntry.players,
+                    finishedAt: logEntry.finishedAt,
+                });
+
+                const rankings = (finalState.seatOrder || [])
+                    .map((pid) => ({
+                        playerId: pid,
+                        name: finalState.playerNames?.[pid] || pid,
+                        score: finalState.scores?.[pid] || 0,
+                    }))
+                    .sort((a, b) => b.score - a.score)
+                    .map((entry, idx) => ({ ...entry, rank: idx + 1 }));
+
+                await GameLog.create({
+                    kind: "series",
+                    roomId: gameState.gameId,
+                    roomCode: game?.code || "",
+                    gameType: finalState.game_type || "judgement",
+                    seriesId: finalState.seriesId,
+                    players,
+                    finalRankings: rankings,
+                    winnerUserId: rankings[0]?.playerId || null,
+                    startedAt: finalState.seriesStartedAt ? new Date(finalState.seriesStartedAt) : null,
+                    finishedAt: new Date(),
+                    durationMs: finalState.seriesStartedAt ? Date.now() - finalState.seriesStartedAt : null,
+                });
+            } catch (logErr) {
+                console.error("[judgement] GameLog series-finished persist error:", logErr.message);
+            }
+        })();
     }
 }
 

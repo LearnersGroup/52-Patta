@@ -1,7 +1,7 @@
 const Game = require("../../models/Game");
 const User = require("../../models/User");
 const { SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
-const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
+const { setGameState, persistCheckpoint, newSeriesId } = require("../../game_engine/stateManager");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { scheduleJudgementAdvance } = require("./helpers/judgementTimers");
 const wrapHandler = require('../wrapHandler');
@@ -134,6 +134,13 @@ module.exports = wrapHandler('game-start', async (socket, io, data, callback) =>
         const gameState = strategy.buildInitialState({
             gameId, game, config, seatOrder, playerNames, playerAvatars, scores,
         });
+
+        // Stamp a seriesId shared by all per-game and per-series GameLog rows
+        gameState.seriesId = newSeriesId();
+        gameState.seriesStartedAt = Date.now();
+        gameState.game_type = gameType;
+        gameState.scoresAtGameStart = { ...scores };
+        gameState.gameStartedAt = Date.now();
 
         // Store in memory
         setGameState(gameId, gameState);

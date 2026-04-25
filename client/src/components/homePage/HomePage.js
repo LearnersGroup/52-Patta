@@ -122,6 +122,13 @@ const HomePage = () => {
                     >
                         ♦ {displayName}
                     </button>
+                    <button
+                        type="button"
+                        className="btn-outline"
+                        onClick={() => navigate('/log')}
+                    >
+                        Game Log
+                    </button>
                     <button className="btn-outline" onClick={handleLogout}>
                         Logout
                     </button>

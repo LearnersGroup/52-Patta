@@ -133,6 +133,35 @@ export const get_current_game = async () => {
     }
 };
 
+export const get_my_game_log = async ({ limit = 20, cursor } = {}) => {
+    try {
+        const params = { limit };
+        if (cursor) params.cursor = cursor;
+        const response = await apiClient.get("/game-log/me", { params });
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};
+
+export const get_series_detail = async (seriesId) => {
+    try {
+        const response = await apiClient.get(`/game-log/me/${seriesId}`);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};
+
+export const get_room_log = async (roomId) => {
+    try {
+        const response = await apiClient.get(`/game-log/room/${roomId}`);
+        return response.data;
+    } catch (error) {
+        throw error.response?.data || error;
+    }
+};
+
 export const get_all_user_in_room = async (room_id) => {
     try {
         const response = await apiClient.get("/game-rooms/players", {

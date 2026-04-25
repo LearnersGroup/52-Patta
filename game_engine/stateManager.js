@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Game = require("../models/Game");
 
 /**
@@ -95,6 +96,14 @@ function getActiveGameCount() {
     return activeGames.size;
 }
 
+/**
+ * Generate a new seriesId (ObjectId) to group all game rows + series row
+ * for one series. Callers store this on game state before series starts.
+ */
+function newSeriesId() {
+    return new mongoose.Types.ObjectId();
+}
+
 module.exports = {
     getGameState,
     setGameState,
@@ -105,4 +114,5 @@ module.exports = {
     persistCheckpoint,
     rehydrateGame,
     getActiveGameCount,
+    newSeriesId,
 };

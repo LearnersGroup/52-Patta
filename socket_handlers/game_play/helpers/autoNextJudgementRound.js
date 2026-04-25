@@ -1,4 +1,5 @@
 const Game = require('../../../models/Game');
+const GameLog = require('../../../models/GameLog');
 const { createDeck } = require('../../../game_engine/deck');
 const { computeTrumpSuit, getNextJudgementRound } = require('../../../game_engine/judgement/rounds');
 const { getGameState, setGameState, persistCheckpoint, deleteGameState } = require('../../../game_engine/stateManager');
@@ -14,6 +15,44 @@ async function autoNextJudgementRound(io, gameId) {
     const gameState = getGameState(gameId);
     if (!gameState || gameState.phase !== 'finished') return;
 
+    // Persist per-round GameLog row
+    try {
+        const game = await Game.findById(gameId).select('code game_type players').lean();
+        const players = (game?.players || []).map((p) => ({
+            userId: p.playerId,
+            name: gameState.playerNames?.[p.playerId?.toString()] || '',
+            avatar: gameState.playerAvatars?.[p.playerId?.toString()] || '',
+        }));
+        const lastRound = (gameState.roundResults || []).slice(-1)[0] || null;
+        const playerDeltas = lastRound?.deltas || {};
+        const logEntry = await GameLog.create({
+            kind: 'game',
+            roomId: gameId,
+            roomCode: game?.code || '',
+            gameType: gameState.game_type || game?.game_type || 'judgement',
+            seriesId: gameState.seriesId,
+            gameNumber: (gameState.seriesRoundIndex ?? 0) + 1,
+            players,
+            scoringResult: lastRound || null,
+            playerDeltas,
+            startedAt: gameState.gameStartedAt ? new Date(gameState.gameStartedAt) : null,
+            finishedAt: new Date(),
+            durationMs: gameState.gameStartedAt ? Date.now() - gameState.gameStartedAt : null,
+        });
+        io.to(gameState.roomname).emit('room-log-append', {
+            _id: logEntry._id,
+            kind: 'game',
+            gameNumber: logEntry.gameNumber,
+            gameType: logEntry.gameType,
+            scoringResult: logEntry.scoringResult,
+            playerDeltas: logEntry.playerDeltas,
+            players: logEntry.players,
+            finishedAt: logEntry.finishedAt,
+        });
+    } catch (logErr) {
+        console.error('[autoNextJudgementRound] GameLog per-round persist error:', logErr.message);
+    }
+
     const nextRound = getNextJudgementRound(gameState);
 
     if (nextRound.done) {
@@ -25,6 +64,31 @@ async function autoNextJudgementRound(io, gameId) {
             }))
             .sort((a, b) => b.score - a.score)
             .map((entry, idx) => ({ ...entry, rank: idx + 1 }));
+
+        // Persist series GameLog row for Judgement
+        try {
+            const game = await Game.findById(gameId).select('code game_type players').lean();
+            const players = (game?.players || []).map((p) => ({
+                userId: p.playerId,
+                name: gameState.playerNames?.[p.playerId?.toString()] || '',
+                avatar: gameState.playerAvatars?.[p.playerId?.toString()] || '',
+            }));
+            await GameLog.create({
+                kind: 'series',
+                roomId: gameId,
+                roomCode: game?.code || '',
+                gameType: gameState.game_type || game?.game_type || 'judgement',
+                seriesId: gameState.seriesId,
+                players,
+                finalRankings: rankings,
+                winnerUserId: rankings[0]?.playerId || null,
+                startedAt: gameState.seriesStartedAt ? new Date(gameState.seriesStartedAt) : null,
+                finishedAt: new Date(),
+                durationMs: gameState.seriesStartedAt ? Date.now() - gameState.seriesStartedAt : null,
+            });
+        } catch (logErr) {
+            console.error('[autoNextJudgementRound] GameLog series persist error:', logErr.message);
+        }
 
         const finalState = { ...gameState, phase: 'series-finished', finalRankings: rankings };
         setGameState(gameId, finalState);
@@ -87,6 +151,12 @@ async function autoNextJudgementRound(io, gameId) {
         currentCardsPerRound: nextRound.cardsPerRound,
         scoringResult: null,
         scores,
+        // Carry series metadata for GameLog
+        game_type: gameState.game_type || 'judgement',
+        seriesId: gameState.seriesId,
+        seriesStartedAt: gameState.seriesStartedAt,
+        scoresAtGameStart: { ...scores },
+        gameStartedAt: Date.now(),
     };
 
     clearJudgementAdvance(gameId);

@@ -288,6 +288,7 @@ export default function GameRoomScreen() {
             roomData={roomData}
             userId={userId}
             currentUserName={user?.user_name || ''}
+            gameRoomId={String(id || '')}
             onLeaveSuccess={() => {
               leavingRef.current = true;
               router.replace('/');

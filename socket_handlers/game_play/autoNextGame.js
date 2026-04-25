@@ -1,4 +1,5 @@
 const Game = require("../../models/Game");
+const GameLog = require("../../models/GameLog");
 const { SHUFFLE_DEALING_CONFIG } = require("../../game_engine/config");
 const { createDeck, removeTwos } = require("../../game_engine/deck");
 const { getGameState, setGameState, persistCheckpoint, deleteGameState } = require("../../game_engine/stateManager");
@@ -17,6 +18,51 @@ function scheduleAutoNextGame(io, gameId) {
         try {
             const gameState = getGameState(gameId);
             if (!gameState || gameState.phase !== "finished") return;
+
+            // Persist a per-game GameLog row
+            try {
+                const game = await Game.findById(gameId).select("code game_type players").lean();
+                const players = (game?.players || []).map((p) => ({
+                    userId: p.playerId,
+                    name: gameState.playerNames?.[p.playerId?.toString()] || "",
+                    avatar: gameState.playerAvatars?.[p.playerId?.toString()] || "",
+                }));
+                // Compute per-game score deltas from snapshot taken at game start
+                const playerDeltas = {};
+                for (const pid of (gameState.seatOrder || [])) {
+                    playerDeltas[pid] =
+                        (gameState.scores?.[pid] || 0) - (gameState.scoresAtGameStart?.[pid] || 0);
+                }
+
+                const logEntry = await GameLog.create({
+                    kind: "game",
+                    roomId: gameId,
+                    roomCode: game?.code || "",
+                    gameType: gameState.game_type || game?.game_type,
+                    seriesId: gameState.seriesId,
+                    gameNumber: gameState.currentGameNumber,
+                    players,
+                    scoringResult: gameState.scoringResult || null,
+                    playerDeltas,
+                    bidTeamSuccess: gameState.scoringResult?.bidTeamSuccess ?? null,
+                    startedAt: gameState.gameStartedAt ? new Date(gameState.gameStartedAt) : null,
+                    finishedAt: new Date(),
+                    durationMs: gameState.gameStartedAt ? Date.now() - gameState.gameStartedAt : null,
+                });
+                io.to(gameState.roomname).emit("room-log-append", {
+                    _id: logEntry._id,
+                    kind: "game",
+                    gameNumber: logEntry.gameNumber,
+                    gameType: logEntry.gameType,
+                    scoringResult: logEntry.scoringResult,
+                    playerDeltas: logEntry.playerDeltas,
+                    bidTeamSuccess: logEntry.bidTeamSuccess,
+                    players: logEntry.players,
+                    finishedAt: logEntry.finishedAt,
+                });
+            } catch (logErr) {
+                console.error("GameLog per-game persist error:", logErr.message);
+            }
 
             if (gameState.currentGameNumber < gameState.totalGames) {
                 await startNextGame(io, gameId, gameState);
@@ -73,6 +119,14 @@ async function startNextGame(io, gameId, existingState) {
         currentGameNumber: existingState.currentGameNumber + 1,
         totalGames: existingState.totalGames,
 
+        // Carry series metadata forward
+        seriesId: existingState.seriesId,
+        seriesStartedAt: existingState.seriesStartedAt,
+        game_type: existingState.game_type,
+        // Snapshot of cumulative scores before this game (for per-game delta computation)
+        scoresAtGameStart: { ...scores },
+        gameStartedAt: Date.now(),
+
         // Fresh game state
         bidding: null,
         leader: null,
@@ -124,6 +178,31 @@ async function finishSeries(io, gameId, existingState) {
     existingState.finalRankings = rankings;
 
     setGameState(gameId, existingState);
+
+    // Persist a per-series GameLog row
+    try {
+        const game = await Game.findById(gameId).select("code game_type players").lean();
+        const players = (game?.players || []).map((p) => ({
+            userId: p.playerId,
+            name: existingState.playerNames?.[p.playerId?.toString()] || "",
+            avatar: existingState.playerAvatars?.[p.playerId?.toString()] || "",
+        }));
+        await GameLog.create({
+            kind: "series",
+            roomId: gameId,
+            roomCode: game?.code || "",
+            gameType: existingState.game_type || game?.game_type,
+            seriesId: existingState.seriesId,
+            players,
+            finalRankings: rankings,
+            winnerUserId: rankings[0]?.playerId || null,
+            startedAt: existingState.seriesStartedAt ? new Date(existingState.seriesStartedAt) : null,
+            finishedAt: new Date(),
+            durationMs: existingState.seriesStartedAt ? Date.now() - existingState.seriesStartedAt : null,
+        });
+    } catch (logErr) {
+        console.error("GameLog series persist error:", logErr.message);
+    }
 
     // Reset ready flags now so players returning to lobby see ready=false immediately
     await Game.findByIdAndUpdate(gameId, {
