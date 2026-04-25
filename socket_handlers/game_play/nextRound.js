@@ -4,6 +4,7 @@ const { getGameState, setGameState, persistCheckpoint } = require("../../game_en
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { autoNextJudgementRound } = require("./helpers/autoNextJudgementRound");
 const { clearJudgementAdvance } = require("./helpers/judgementTimers");
+const { clearMendikotNextRound } = require("./helpers/mendikotTimers");
 const wrapHandler = require('../wrapHandler');
 
 require("../../game_engine/strategies");
@@ -24,7 +25,21 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
             return;
         }
 
-        // Track ready-for-next per player (shared for all game types)
+        const strategy = getStrategy(existingState.game_type);
+
+        // Mendikot: any player clicking Skip cancels the auto-advance and starts immediately
+        if (existingState.game_type === "mendikot") {
+            clearMendikotNextRound(gameId);
+            await strategy.nextRound(io, gameId, existingState, {
+                Game,
+                setGameState,
+                persistCheckpoint,
+                broadcastGameState,
+            });
+            return;
+        }
+
+        // Other game types: require all players ready
         if (!existingState.nextRoundReady) {
             existingState.nextRoundReady = [];
         }
@@ -48,9 +63,6 @@ module.exports = wrapHandler('game-next-round', async (socket, io, data, callbac
         );
 
         if (!allReady) return;
-
-        // --- All players ready, start next round via strategy ---
-        const strategy = getStrategy(existingState.game_type);
 
         await strategy.nextRound(io, gameId, existingState, {
             Game,

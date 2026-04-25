@@ -277,6 +277,17 @@ function afterRoundEnd(io, gameState, finalState, deps) {
     io.to(gameState.roomname).emit("game-round-result", finalState.scoringResult);
 
     if (finalState.phase === "finished") {
+        const { scheduleMendikotNextRound, getGameState, setGameState, persistCheckpoint, broadcastGameState, Game } = deps;
+        scheduleMendikotNextRound(gameState.gameId, 10000, async () => {
+            const currentState = getGameState(gameState.gameId);
+            if (!currentState || currentState.phase !== "finished") return;
+            await nextRound(io, gameState.gameId, currentState, {
+                Game,
+                setGameState,
+                persistCheckpoint,
+                broadcastGameState,
+            });
+        });
         return;
     }
 

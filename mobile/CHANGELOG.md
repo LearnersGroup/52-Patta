@@ -1,5 +1,11 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.19 — 2026-04-25
+
+### Changed
+- **Mendikot round-end: auto-advance after 10s (mobile + web + server)**: rounds now advance automatically after 10 seconds — no need for all players to tap "Next Round". A countdown bar is shown; any player can tap "Skip" to advance early.
+- **Mendikot round-end display: shows in-game scoreboard format (mobile + web)**: after each round ends, the scoreboard now shows the history table (rounds, tricks, tens cards per team, result) matching the format from the in-game HUD. The full session-totals summary is now only shown after the series ends.
+
 ## 1.1.18 — 2026-04-24
 
 ### Changed

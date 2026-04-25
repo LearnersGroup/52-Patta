@@ -354,6 +354,160 @@ $mendikot-b-dim:  rgba(244, 114, 182, 0.18);
 
 .mendikot-reveal-no { font-size: 0.82rem; }
 
+// ── Round history table (used in round-end and series-end scoreboards) ────────
+
+.mhist-table {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.mhist-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    font-family: $font-heading;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: $cream-muted;
+    border-bottom: 1px solid rgba(201, 162, 39, 0.2);
+    padding-bottom: 6px;
+    margin-bottom: 2px;
+}
+
+.mhist-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
+    &--a { background: rgba(56, 189, 248, 0.06); }
+    &--b { background: rgba(244, 114, 182, 0.06); }
+
+    &:last-child { border-bottom: none; }
+}
+
+.mhist-col-num {
+    min-width: 20px;
+    font-size: 0.72rem;
+    color: $cream-muted;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.mhist-col-team {
+    flex: 1;
+}
+
+.mhist-col--a { color: $mendikot-a; }
+.mhist-col--b { color: $mendikot-b; }
+
+.mhist-col-result {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    min-width: 70px;
+    gap: 1px;
+}
+
+.mhist-win-label {
+    font-family: $font-heading;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.mhist-result-type {
+    font-size: 0.68rem;
+    color: $cream-muted;
+}
+
+.mhist-team-cell {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.mhist-team-tricks {
+    font-family: $font-heading;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 22px;
+    flex-shrink: 0;
+}
+
+.mhist-team--a { color: $mendikot-a; }
+.mhist-team--b { color: $mendikot-b; }
+
+.mhist-team-tens {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.mhist-ten-icon {
+    width: 20px !important;
+    height: 28px !important;
+}
+
+.mhist-no-tens {
+    font-size: 0.7rem;
+    color: $cream-muted;
+    font-style: italic;
+}
+
+// ── Auto-advance countdown ─────────────────────────────────────────────────
+
+.mendikot-auto-advance {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 0 4px;
+}
+
+.mendikot-auto-advance-track {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.mendikot-auto-advance-fill {
+    height: 100%;
+    background: $gold;
+    border-radius: 2px;
+    transition: width 1s linear;
+}
+
+.mendikot-auto-advance-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mendikot-auto-advance-text {
+    font-size: 0.75rem;
+    color: $cream-muted;
+}
+
+.mendikot-skip-btn {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+    border-radius: 4px;
+    border: 1px solid $border-gold;
+    background: transparent;
+    color: $gold;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover { background: rgba(201, 162, 39, 0.1); }
+}
+
 // ── End-of-round scoreboard ────────────────────────────────────────────────
 
 .mendikot-scoreboard {

@@ -114,6 +114,8 @@
 .ssb-table-wrap {
   overflow-y: auto;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   flex: 1;
   padding: 16px 20px 0;
 }
