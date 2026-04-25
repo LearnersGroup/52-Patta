@@ -1,4 +1,4 @@
-const { setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
+const { getGameState, setGameState, persistCheckpoint } = require("../../game_engine/stateManager");
 const { findGameForSocket } = require("./helpers/findGameForSocket");
 const { broadcastGameState } = require("./helpers/broadcastState");
 const { pickClosedTrump } = require("../../game_engine/mendikot/bandHukum");
@@ -45,20 +45,34 @@ module.exports = wrapHandler("pick-closed-trump", async (socket, io, data, callb
         return;
     }
 
-    const holderIndex = gameState.seatOrder.indexOf(gameState.closed_trump_holder_id);
-    const firstLeader = gameState.seatOrder[(holderIndex + 1) % gameState.seatOrder.length];
+    const gameId = gameState.gameId;
+    const revealMs = gameState.config?.cardRevealTimeMs ?? 10000;
 
-    gameState.phase = "playing";
-    gameState.leader = firstLeader;
-    gameState.roundLeader = firstLeader;
-    gameState.currentRound = 0;
-    gameState.currentTrick = initTrick(firstLeader, gameState.seatOrder);
-    updatePendingRevealDecision(gameState);
-
-    setGameState(gameState.gameId, gameState);
-    await Game.findByIdAndUpdate(gameState.gameId, { state: "playing" });
-    await persistCheckpoint(gameState.gameId);
-
-    io.to(gameState.roomname).emit("game-phase-change", "playing");
+    gameState.phase = "card-reveal";
+    setGameState(gameId, gameState);
+    await Game.findByIdAndUpdate(gameId, { state: "card-reveal" });
+    await persistCheckpoint(gameId);
+    io.to(gameState.roomname).emit("game-phase-change", "card-reveal");
     await broadcastGameState(io, gameState);
+
+    setTimeout(async () => {
+        const currentState = getGameState(gameId);
+        if (!currentState || currentState.phase !== "card-reveal") return;
+
+        const holderIndex = currentState.seatOrder.indexOf(currentState.closed_trump_holder_id);
+        const firstLeader = currentState.seatOrder[(holderIndex + 1) % currentState.seatOrder.length];
+
+        currentState.phase = "playing";
+        currentState.leader = firstLeader;
+        currentState.roundLeader = firstLeader;
+        currentState.currentRound = 0;
+        currentState.currentTrick = initTrick(firstLeader, currentState.seatOrder);
+        updatePendingRevealDecision(currentState);
+
+        setGameState(gameId, currentState);
+        await Game.findByIdAndUpdate(gameId, { state: "playing" });
+        await persistCheckpoint(gameId);
+        io.to(currentState.roomname).emit("game-phase-change", "playing");
+        await broadcastGameState(io, currentState);
+    }, revealMs);
 });

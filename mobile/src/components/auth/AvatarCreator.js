@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { SvgUri } from 'react-native-svg';
+import { SvgUri, SvgXml } from 'react-native-svg';
 import {
   buttonStyles,
   colors,
@@ -256,7 +256,15 @@ export default function AvatarCreator({ initialAvatar, onAvatarChange, onSeedCha
     <View style={styles.container}>
       {/* Preview */}
       <View style={styles.preview}>
-        <SvgUri uri={previewUri} width="100%" height="100%" />
+        {previewUri?.startsWith('data:image/svg+xml') ? (
+          <SvgXml
+            xml={decodeURIComponent(previewUri.replace(/^data:image\/svg\+xml;utf8,/, ''))}
+            width="100%"
+            height="100%"
+          />
+        ) : (
+          <SvgUri uri={previewUri || ''} width="100%" height="100%" />
+        )}
         {loading && (
           <View style={styles.previewLoading}>
             <ActivityIndicator color={colors.gold} />

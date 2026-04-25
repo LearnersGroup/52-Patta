@@ -59,7 +59,6 @@ const GameBoard = ({ userId, isAdmin }) => {
     const totalRoundsInSeries = useSelector((state) => state.game.totalRoundsInSeries);
     const roundResults = useSelector((state) => state.game.roundResults);
     const trumpMode = useSelector((state) => state.game.trumpMode);
-    const cardRevealTimeMs = useSelector((state) => state.game.cardRevealTimeMs);
 
     // Mendikot-specific selectors
     const isMendikot = gameType === "mendikot";
@@ -122,26 +121,22 @@ const GameBoard = ({ userId, isAdmin }) => {
         }
     }, [phase, isJudgement, trumpDismissedForRound, seriesRoundIndex, trumpCountdown]);
 
-    // Trigger deal reveal when dealing phase completes → bidding begins.
-    // Auto-close the overlay when the reveal window expires (biddingWindowOpensAt).
+    // Show deal-reveal overlay for the duration of the card-reveal phase.
+    // The server owns the timer; the client simply mirrors the phase.
     useEffect(() => {
         const prev = prevPhaseRef.current;
         const curr = phase;
-        if (prev === "dealing" && curr === "bidding") {
-            // Ensure any open scoreboard/modal is closed before card reveal starts.
+        if (curr === "card-reveal" && prev !== "card-reveal") {
             setCloseHudScoreboardSignal((v) => v + 1);
             setShowJdgScoreboard(false);
             dealRevealKeyRef.current += 1;
             setShowDealReveal(true);
-
-            // Auto-close when the reveal window ends (server timestamp or fallback)
-            const opensAt = bidding?.biddingWindowOpensAt;
-            const fallbackMs = cardRevealTimeMs ?? gameConfig.dealRevealFallbackMs;
-            const delayMs = opensAt ? Math.max(0, opensAt - Date.now()) : fallbackMs;
-            setTimeout(() => setShowDealReveal(false), delayMs);
+        }
+        if (prev === "card-reveal" && curr !== "card-reveal") {
+            setShowDealReveal(false);
         }
         prevPhaseRef.current = curr;
-    }, [phase, gameConfig, bidding, cardRevealTimeMs]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleRevealComplete = useCallback(() => setShowDealReveal(false), []);
 

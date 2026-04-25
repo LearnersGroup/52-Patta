@@ -119,25 +119,21 @@ function applyDealExtras(gameState /*, dealResult */) {
     // No extra state changes for Kaliteri after deal
 }
 
-/**
- * Transition from dealing → bidding after the dealing animation completes.
- * Returns an object describing what to do, or null if the handler should skip.
- */
-function transitionToBidding(gameState) {
+function transitionToCardReveal(gameState) {
     const revealMs = gameState.config?.inspectWindowMs
         || SHUFFLE_DEALING_CONFIG.BIDDING_REVEAL_MS;
+    gameState.phase = "card-reveal";
+    gameState.cutCard = null;
+    return { revealMs };
+}
+
+function transitionFromCardReveal(gameState) {
     const windowMs = gameState.config?.biddingWindowMs
         || SHUFFLE_DEALING_CONFIG.BIDDING_WINDOW_MS;
-
     gameState.phase = "bidding";
-    gameState.cutCard = null;
-    gameState.bidding.biddingWindowOpensAt = Date.now() + revealMs;
-    gameState.bidding.biddingExpiresAt = Date.now() + revealMs + windowMs;
-
-    return {
-        type: "kaliteri",
-        timerDelayMs: revealMs + windowMs,
-    };
+    gameState.bidding.biddingWindowOpensAt = Date.now();
+    gameState.bidding.biddingExpiresAt = Date.now() + windowMs;
+    return { type: "kaliteri", nextPhase: "bidding", timerDelayMs: windowMs };
 }
 
 // ── Play card: scoring ──────────────────────────────────────────────────
@@ -319,7 +315,8 @@ registerStrategy("kaliteri", {
     afterStart,
     deal,
     applyDealExtras,
-    transitionToBidding,
+    transitionToCardReveal,
+    transitionFromCardReveal,
     onRoundEnd,
     afterRoundEnd,
     nextRound,

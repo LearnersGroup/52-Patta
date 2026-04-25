@@ -32,7 +32,7 @@ export default memo(function InGameSettings({ visible, onClose }) {
             })}
           </View>
 
-          <Pressable style={styles.closeBtn} onPress={onClose}>
+<Pressable style={styles.closeBtn} onPress={onClose}>
             <Text style={styles.closeBtnText}>Done</Text>
           </Pressable>
         </View>

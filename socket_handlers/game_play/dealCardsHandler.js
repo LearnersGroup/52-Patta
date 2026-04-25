@@ -78,47 +78,56 @@ module.exports = wrapHandler('game-deal', async (socket, io, data, callback) => 
 
         io.to(gameState.roomname).emit("game-phase-change", "dealing");
 
-        // After dealing animation completes, transition to bidding
-        const totalDelay = SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS;
-
+        // Step 1: after dealing animation, transition to card-reveal
         setTimeout(async () => {
-            // Verify we're still in dealing phase (in case of quit/disconnect)
-            const currentState = getGameState(gameId);
-            if (!currentState || currentState.phase !== "dealing") return;
+            const stateAfterDeal = getGameState(gameId);
+            if (!stateAfterDeal || stateAfterDeal.phase !== "dealing") return;
 
-            const currentStrategy = getStrategy(currentState.game_type);
+            const strategy = getStrategy(stateAfterDeal.game_type);
+            const { revealMs } = strategy.transitionToCardReveal(stateAfterDeal);
 
-            // Strategy mutates currentState and returns transition info
-            const transition = currentStrategy.transitionToBidding(currentState);
-
-            setGameState(gameId, currentState);
-
-            const nextDbState = transition.nextPhase || "bidding";
-            await Game.findByIdAndUpdate(gameId, { state: nextDbState });
+            setGameState(gameId, stateAfterDeal);
+            await Game.findByIdAndUpdate(gameId, { state: "card-reveal" });
             await persistCheckpoint(gameId);
+            await broadcastGameState(io, stateAfterDeal);
+            io.to(stateAfterDeal.roomname).emit("game-phase-change", "card-reveal");
 
-            await broadcastGameState(io, currentState);
-            io.to(currentState.roomname).emit("game-phase-change", nextDbState);
+            // Step 2 only applies when the strategy actually entered card-reveal.
+            // Mendikot band-hukum-pick skips this — pickClosedTrump drives card-reveal.
+            if (stateAfterDeal.phase !== "card-reveal") return;
 
-            // Game-specific bidding timer setup
-            if (transition.type === "judgement") {
-                // Start per-player bid timer if configured
-                if (currentState.config?.bidTimeMs) {
-                    const firstBidder = currentState.bidding?.bidOrder?.[0];
-                    if (firstBidder) {
-                        const { applyJudgementBid, getAutoBidAmount } = require('./judgementBid');
-                        scheduleJudgementBidTimeout(gameId, currentState.config.bidTimeMs, async () => {
-                            const { getGameState: gs } = require('../../game_engine/stateManager');
-                            const st = gs(gameId);
-                            if (!st || st.phase !== 'bidding') return;
-                            const autoBid = getAutoBidAmount(st.bidding, st.currentCardsPerRound);
-                            await applyJudgementBid(io, st, firstBidder, autoBid);
-                        });
+            // Step 2: after reveal window, transition to the game-specific next phase
+            setTimeout(async () => {
+                const stateAfterReveal = getGameState(gameId);
+                if (!stateAfterReveal || stateAfterReveal.phase !== "card-reveal") return;
+
+                const currentStrategy = getStrategy(stateAfterReveal.game_type);
+                const transition = currentStrategy.transitionFromCardReveal(stateAfterReveal);
+
+                setGameState(gameId, stateAfterReveal);
+                await Game.findByIdAndUpdate(gameId, { state: transition.nextPhase });
+                await persistCheckpoint(gameId);
+                await broadcastGameState(io, stateAfterReveal);
+                io.to(stateAfterReveal.roomname).emit("game-phase-change", transition.nextPhase);
+
+                // Game-specific timer setup after bidding opens
+                if (transition.type === "judgement") {
+                    if (stateAfterReveal.config?.bidTimeMs) {
+                        const firstBidder = stateAfterReveal.bidding?.bidOrder?.[0];
+                        if (firstBidder) {
+                            const { applyJudgementBid, getAutoBidAmount } = require('./judgementBid');
+                            scheduleJudgementBidTimeout(gameId, stateAfterReveal.config.bidTimeMs, async () => {
+                                const { getGameState: gs } = require('../../game_engine/stateManager');
+                                const st = gs(gameId);
+                                if (!st || st.phase !== 'bidding') return;
+                                const autoBid = getAutoBidAmount(st.bidding, st.currentCardsPerRound);
+                                await applyJudgementBid(io, st, firstBidder, autoBid);
+                            });
+                        }
                     }
+                } else if (transition.type === "kaliteri") {
+                    startBiddingTimer(gameId, transition.timerDelayMs, () => expireBidding(io, gameId));
                 }
-            } else if (transition.type === "kaliteri") {
-                // Kaliteri: start the expiry timer (reveal window + bidding window)
-                startBiddingTimer(gameId, transition.timerDelayMs, () => expireBidding(io, gameId));
-            }
-        }, totalDelay);
+            }, revealMs);
+        }, SHUFFLE_DEALING_CONFIG.DEALING_ANIMATION_MS);
 });
