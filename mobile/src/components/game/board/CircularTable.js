@@ -5,7 +5,7 @@ import { feltStyle, shadows } from '../../../styles/theme';
 const SEAT_SIZE = 76;
 const SEAT_AVATAR_HALF = 34;
 
-export default function CircularTable({ players = [], centerContent, overlayContent }) {
+export default function CircularTable({ players = [], centerContent, overlayContent, tableBackground }) {
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
   const myIndex = useMemo(() => {
@@ -94,9 +94,12 @@ export default function CircularTable({ players = [], centerContent, overlayCont
             position: 'absolute',
             top:      geo.PAD_V_TOP,
             left:     geo.wrapW / 2 - geo.tableW / 2,
+            overflow: 'hidden',
           },
           geo.tableBorderRadius,
-        ]} />
+        ]}>
+          {tableBackground ?? null}
+        </View>
 
         {/* Under-seat overlay — rendered before seats so avatars appear on top */}
         {typeof overlayContent === 'function'

@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-const trumpPlaceholderImg = require('../../../../assets/Icons/52_Patta_Icon_Suits_shadow.png');
+const trumpPlaceholderImg = require('../../../../assets/Backgrounds/play_table/52_Patta_Icon_Suits_shadow.png');
 import Animated, {
   Easing,
   useAnimatedStyle,
@@ -717,6 +717,13 @@ export default function GameBoard({ userId, isAdmin = false }) {
         {showTable ? (
           <CircularTable
             players={tablePlayers}
+            tableBackground={!activeTrump ? (
+              <Image
+                source={trumpPlaceholderImg}
+                style={styles.marketingLogo}
+                resizeMode="contain"
+              />
+            ) : null}
             overlayContent={({ seatPositionMap }) => {
               if (!isMendikot || !closedTrumpPlaceholder || phase !== 'playing' || closedTrumpRevealed) return null;
               const holderSeatPos = seatPositionMap[closedTrumpHolderId];
@@ -1007,6 +1014,14 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  marketingLogo: {
+    position: 'absolute',
+    width: '55%',
+    height: '55%',
+    top: '22.5%',
+    left: '22.5%',
+    opacity: 0.18,
   },
   trumpPlaceholder: {
     position: 'absolute',
