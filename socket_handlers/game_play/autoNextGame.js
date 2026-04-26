@@ -187,7 +187,7 @@ async function finishSeries(io, gameId, existingState) {
             name: existingState.playerNames?.[p.playerId?.toString()] || "",
             avatar: existingState.playerAvatars?.[p.playerId?.toString()] || "",
         }));
-        await GameLog.create({
+        const seriesLogEntry = await GameLog.create({
             kind: "series",
             roomId: gameId,
             roomCode: game?.code || "",
@@ -202,6 +202,19 @@ async function finishSeries(io, gameId, existingState) {
             startedAt: existingState.seriesStartedAt ? new Date(existingState.seriesStartedAt) : null,
             finishedAt: new Date(),
             durationMs: existingState.seriesStartedAt ? Date.now() - existingState.seriesStartedAt : null,
+        });
+        io.to(existingState.roomname).emit("room-series-log-append", {
+            _id: seriesLogEntry._id,
+            kind: "series",
+            seriesId: seriesLogEntry.seriesId?.toString(),
+            gameType: seriesLogEntry.gameType,
+            finalRankings: seriesLogEntry.finalRankings,
+            playerCount: seriesLogEntry.playerCount,
+            deckCount: seriesLogEntry.deckCount,
+            variant: seriesLogEntry.variant,
+            players: seriesLogEntry.players,
+            finishedAt: seriesLogEntry.finishedAt,
+            gameRows: new Array(existingState.currentGameNumber).fill(null),
         });
     } catch (logErr) {
         console.error("GameLog series persist error:", logErr.message);

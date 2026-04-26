@@ -4,7 +4,7 @@ const { dealFromDealer } = require("../shuffle");
 const { computeMendikotConfig } = require("../mendikot/config");
 const { initTrick, updatePendingRevealDecision } = require("../mendikot/tricks");
 const { autoRevealIfNeeded } = require("../mendikot/bandHukum");
-const { classifyRoundResult } = require("../mendikot/scoring");
+const { classifyRoundResult, determineSeriesWinner } = require("../mendikot/scoring");
 const { computeNextDealer } = require("../mendikot/dealerRotation");
 const GameLog = require("../../models/GameLog");
 
@@ -301,6 +301,7 @@ function afterRoundEnd(io, gameState, finalState, deps) {
                 seriesId: finalState.seriesId,
                 gameNumber: roundNumber,
                 players,
+                teams: finalState.teams || null,
                 scoringResult: finalState.scoringResult || null,
                 playerDeltas,
                 startedAt: finalState.gameStartedAt ? new Date(finalState.gameStartedAt) : null,
@@ -312,6 +313,7 @@ function afterRoundEnd(io, gameState, finalState, deps) {
                 kind: "game",
                 gameNumber: logEntry.gameNumber,
                 gameType: "mendikot",
+                teams: logEntry.teams || null,
                 scoringResult: logEntry.scoringResult,
                 playerDeltas: logEntry.playerDeltas,
                 players: logEntry.players,
@@ -346,15 +348,31 @@ function afterRoundEnd(io, gameState, finalState, deps) {
                 name: finalState.playerNames?.[p.playerId?.toString()] || "",
                 avatar: finalState.playerAvatars?.[p.playerId?.toString()] || "",
             }));
-            const rankings = (finalState.seatOrder || [])
-                .map((pid) => ({
+            const winnerTeam = determineSeriesWinner(
+                finalState.session_totals,
+                finalState.round_results
+            );
+            const teamA = new Set(finalState.teams?.A || []);
+            const teamB = new Set(finalState.teams?.B || []);
+            const rankings = (finalState.seatOrder || []).map((pid) => {
+                let rank;
+                if (winnerTeam === null) {
+                    rank = 1; // draw
+                } else if (winnerTeam === 'A') {
+                    rank = teamA.has(pid) ? 1 : 2;
+                } else {
+                    rank = teamB.has(pid) ? 1 : 2;
+                }
+                return {
                     playerId: pid,
                     name: finalState.playerNames?.[pid] || pid,
                     score: finalState.scores?.[pid] || 0,
-                }))
-                .sort((a, b) => b.score - a.score)
-                .map((entry, idx) => ({ ...entry, rank: idx + 1 }));
-            await GameLog.create({
+                    rank,
+                };
+            });
+            const winnerPlayerIds = rankings.filter((r) => r.rank === 1).map((r) => r.playerId);
+            const totalRounds = (finalState.round_results || []).length;
+            const seriesLogEntry = await GameLog.create({
                 kind: "series",
                 roomId: gameState.gameId,
                 roomCode: game?.code || "",
@@ -362,13 +380,30 @@ function afterRoundEnd(io, gameState, finalState, deps) {
                 seriesId: finalState.seriesId,
                 players,
                 finalRankings: rankings,
-                winnerUserId: rankings[0]?.playerId || null,
+                winnerUserId: winnerPlayerIds[0] || null,
+                winnerTeam: winnerTeam || null,
+                teams: finalState.teams || null,
+                session_totals: finalState.session_totals || null,
+                round_results: finalState.round_results || null,
                 playerCount: finalState.seatOrder?.length ?? null,
                 deckCount: finalState.config?.decks ?? null,
                 variant: finalState.config?.trump_mode === "cut" ? "Cut" : null,
                 startedAt: finalState.seriesStartedAt ? new Date(finalState.seriesStartedAt) : null,
                 finishedAt: new Date(),
                 durationMs: finalState.seriesStartedAt ? Date.now() - finalState.seriesStartedAt : null,
+            });
+            io.to(gameState.roomname).emit("room-series-log-append", {
+                _id: seriesLogEntry._id,
+                kind: "series",
+                seriesId: seriesLogEntry.seriesId?.toString(),
+                gameType: "mendikot",
+                finalRankings: seriesLogEntry.finalRankings,
+                playerCount: seriesLogEntry.playerCount,
+                deckCount: seriesLogEntry.deckCount,
+                variant: seriesLogEntry.variant,
+                players: seriesLogEntry.players,
+                finishedAt: seriesLogEntry.finishedAt,
+                gameRows: new Array(totalRounds).fill(null),
             });
         } catch (logErr) {
             console.error("[mendikot] GameLog series persist error:", logErr.message);

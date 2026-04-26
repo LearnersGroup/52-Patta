@@ -73,7 +73,7 @@ async function autoNextJudgementRound(io, gameId) {
                 name: gameState.playerNames?.[p.playerId?.toString()] || '',
                 avatar: gameState.playerAvatars?.[p.playerId?.toString()] || '',
             }));
-            await GameLog.create({
+            const seriesLogEntry = await GameLog.create({
                 kind: 'series',
                 roomId: gameId,
                 roomCode: game?.code || '',
@@ -88,6 +88,19 @@ async function autoNextJudgementRound(io, gameId) {
                 startedAt: gameState.seriesStartedAt ? new Date(gameState.seriesStartedAt) : null,
                 finishedAt: new Date(),
                 durationMs: gameState.seriesStartedAt ? Date.now() - gameState.seriesStartedAt : null,
+            });
+            io.to(gameState.roomname).emit('room-series-log-append', {
+                _id: seriesLogEntry._id,
+                kind: 'series',
+                seriesId: seriesLogEntry.seriesId?.toString(),
+                gameType: seriesLogEntry.gameType,
+                finalRankings: seriesLogEntry.finalRankings,
+                playerCount: seriesLogEntry.playerCount,
+                deckCount: seriesLogEntry.deckCount,
+                variant: seriesLogEntry.variant,
+                players: seriesLogEntry.players,
+                finishedAt: seriesLogEntry.finishedAt,
+                gameRows: new Array((gameState.seriesRoundIndex ?? 0) + 1).fill(null),
             });
         } catch (logErr) {
             console.error('[autoNextJudgementRound] GameLog series persist error:', logErr.message);

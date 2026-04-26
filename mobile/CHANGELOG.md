@@ -1,5 +1,33 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.25 — 2026-04-25
+
+### Changed
+- **In-room game log: grouped by series, not by round**: entries now show one card per completed series (matching the main Log tab), instead of one card per round. Tapping a card navigates to the full log detail screen. The wrapping panel container and "Games This Session" label are removed; cards render directly in the lobby list with identical styling to the main Log tab.
+
+## 1.1.24 — 2026-04-25
+
+### Fixed
+- **Mendikot log detail: round history now matches in-game scoreboard exactly**: tens are now shown as stacked card images with a colored tricks-count badge per team, identical to the `MendikotScoreBoard` layout. Previously showed plain text ("N tens · N tricks").
+
+## 1.1.23 — 2026-04-25
+
+### Changed
+- **In-room game log: entries now match log page style exactly**: icon 72×72 (was 48×48), Win/Loss text size 28pt heading (was 13pt inline), individual card panelStyle border per entry, `alignItems: flex-start` on top row. "Round N" moved to the meta line alongside the result type (e.g. "Round 1  ·  Mendikot!") so the top row layout matches the main log tab.
+
+## 1.1.22 — 2026-04-25
+
+### Changed
+- **In-room game log: standalone panel** (mobile): "Games This Session" is now its own card below the Players panel instead of being nested inside it. Entries use the same icon + result card style as the main Log tab. Tapping a card expands an inline detail view showing the result banner and per-team player breakdown (for Mendikot) or per-player score deltas (for other game types).
+- **In-room game log: teams persisted per round** (server): each per-round `GameLog` entry for Mendikot now stores `teams` (A/B player lists) so the in-room log can display Win/Loss correctly for each player.
+
+## 1.1.21 — 2026-04-25
+
+### Changed
+- **Mendikot game log detail: replaced sections 2 & 3**: the "Final Rankings" and "Game Breakdown" sections are replaced with a **Win Type Breakdown** table (52 Patta / Mendikot / Tens / Tricks counts per team) and a **Round History** table (per-round tens + tricks per team with result), matching the in-game scoreboard layout.
+- **Mendikot series winner: tiebreaker chain** (server): the series winner is now determined by a 6-step tiebreaker — most 52-Card Mendikots → most Mendikots → most total tens → most rounds won → most total tricks → draw. Previously it fell back to raw score.
+- **Mendikot series log: persist session_totals, round_results, teams** (server): the series `GameLog` entry now stores the full session totals and per-round results so the log detail screen can display them.
+
 ## 1.1.20 — 2026-04-25
 
 ### Changed

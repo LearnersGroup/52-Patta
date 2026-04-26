@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import CardFace from '../../src/components/game/CardFace';
+import { cardKey } from '../../src/components/game/utils/cardMapper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import apiClient from '../../src/api/apiClient';
 import { useAuth } from '../../src/hooks/useAuth';
@@ -23,6 +25,29 @@ const GAME_TYPE_ICON = {
   kaliteri: require('../../assets/Icons/Kaliteri_Icon.png'),
   judgement: require('../../assets/Icons/Judgement_Icon.png'),
   mendikot: require('../../assets/Icons/Mendi_Icon.png'),
+};
+
+const TEAM_A_COLOR = '#38bdf8';
+const TEAM_B_COLOR = '#f472b6';
+
+const HIST_CARD_W = 18;
+const HIST_CARD_H = Math.round(HIST_CARD_W * 1.4);
+const HIST_STACK_OFFSET = Math.round(HIST_CARD_W * 0.22);
+
+const WIN_TYPE_LABELS = {
+  'win-by-tricks':    'Won by Tricks',
+  'win-by-mendi':     'Won by Tens (Mendi)',
+  mendikot:           'Mendikot! (All 4 Tens)',
+  '52-card mendikot': '52-Card Mendikot! (All Tricks)',
+};
+
+const WIN_TYPE_KEYS = ['52-card mendikot', 'mendikot', 'win-by-mendi', 'win-by-tricks'];
+
+const RESULT_SHORT = {
+  'win-by-tricks':    'Tricks',
+  'win-by-mendi':     'Tens',
+  mendikot:           'Mendikot!',
+  '52-card mendikot': '52 Patta!',
 };
 
 const RANK_COLOR = { 1: colors.gold, 2: '#A8A9AD', 3: '#CD7F32' };
@@ -105,21 +130,98 @@ function SeriesInfoHeader({ series, gameRows, userId }) {
 
 // ── Mendikot detail ───────────────────────────────────────────────────────────
 
-function GameRow({ game }) {
+function WinTypeBreakdown({ sessionTotals }) {
+  const totals = sessionTotals || { A: {}, B: {} };
   return (
-    <View style={styles.gameRow}>
-      <Text style={styles.gameRowNum}>Game {game.gameNumber}</Text>
-      <View style={styles.gameRowScores}>
-        {(game.players || []).map((p, i) => {
-          const delta = game.playerDeltas?.[p.userId?.toString() ?? p.userId] ?? null;
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Win Type Breakdown</Text>
+      <View style={styles.winTable}>
+        <View style={styles.winTableHeader}>
+          <Text style={[styles.winTableCell, styles.winTableLabel]} />
+          <Text style={[styles.winTableCell, styles.winTableTeam, { color: TEAM_A_COLOR }]}>Team A</Text>
+          <Text style={[styles.winTableCell, styles.winTableTeam, { color: TEAM_B_COLOR }]}>Team B</Text>
+        </View>
+        {WIN_TYPE_KEYS.map((key) => {
+          const aVal = totals.A?.[key] || 0;
+          const bVal = totals.B?.[key] || 0;
+          const aWins = aVal > bVal;
+          const bWins = bVal > aVal;
           return (
-            <View key={i} style={styles.gameRowPlayer}>
-              <Text style={styles.gameRowName}>{p.name}</Text>
-              {delta !== null && (
-                <Text style={[styles.gameRowDelta, delta > 0 ? styles.deltaPos : styles.deltaNeg]}>
-                  {delta > 0 ? `+${delta}` : delta}
+            <View key={key} style={styles.winTableRow}>
+              <Text style={[styles.winTableCell, styles.winTableLabel]} numberOfLines={1}>
+                {WIN_TYPE_LABELS[key]}
+              </Text>
+              <Text style={[styles.winTableCell, styles.winTableVal, aWins && styles.winHighlight, { color: TEAM_A_COLOR }]}>
+                {aVal}
+              </Text>
+              <Text style={[styles.winTableCell, styles.winTableVal, bWins && styles.winHighlight, { color: TEAM_B_COLOR }]}>
+                {bVal}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+const TeamHistCell = memo(function TeamHistCell({ team, roundData }) {
+  const tensCards = roundData.tens_cards_by_team?.[team] || [];
+  const tricks = roundData.tricks_by_team?.[team] || 0;
+  const color = team === 'A' ? TEAM_A_COLOR : TEAM_B_COLOR;
+  const n = tensCards.length;
+  const stackWidth = n > 0 ? HIST_CARD_W + (n - 1) * HIST_STACK_OFFSET : HIST_CARD_W;
+
+  return (
+    <View style={histStyles.teamCell}>
+      {n > 0 ? (
+        <View style={[histStyles.tensStack, { width: stackWidth, height: HIST_CARD_H }]}>
+          {tensCards.map((card, i) => (
+            <View key={cardKey(card) + i} style={[histStyles.tensCard, { left: i * HIST_STACK_OFFSET, zIndex: i + 1 }]}>
+              <CardFace card={card} width={HIST_CARD_W} square />
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={histStyles.noTens}>–</Text>
+      )}
+      <View style={[histStyles.tricksBadge, { backgroundColor: color }]}>
+        <Text style={histStyles.tricksBadgeText}>{tricks}</Text>
+      </View>
+    </View>
+  );
+});
+
+function RoundHistoryTable({ roundResults }) {
+  if (!roundResults || roundResults.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>Round History</Text>
+      <View style={histStyles.table}>
+        <View style={histStyles.headerRow}>
+          <Text style={[histStyles.th, histStyles.thNum]}>#</Text>
+          <Text style={[histStyles.th, histStyles.thTeam, { color: TEAM_A_COLOR }]}>Team A</Text>
+          <Text style={[histStyles.th, histStyles.thTeam, { color: TEAM_B_COLOR }]}>Team B</Text>
+          <Text style={[histStyles.th, histStyles.thResult]}>Result</Text>
+        </View>
+        {roundResults.map((r) => {
+          const winColor = r.winningTeam === 'A' ? TEAM_A_COLOR : TEAM_B_COLOR;
+          const rowBg = r.winningTeam === 'A' ? 'rgba(56,189,248,0.08)' : 'rgba(244,114,182,0.08)';
+          return (
+            <View key={r.roundNumber} style={[histStyles.row, { backgroundColor: rowBg }]}>
+              <Text style={histStyles.numCell}>{r.roundNumber}</Text>
+              <View style={histStyles.teamCellWrap}>
+                <TeamHistCell team="A" roundData={r} />
+              </View>
+              <View style={histStyles.teamCellWrap}>
+                <TeamHistCell team="B" roundData={r} />
+              </View>
+              <View style={histStyles.resultCellWrap}>
+                <Text style={[histStyles.resultWinner, { color: winColor }]}>{r.winningTeam}</Text>
+                <Text style={histStyles.resultType} numberOfLines={1}>
+                  {RESULT_SHORT[r.type] || r.type}
                 </Text>
-              )}
+              </View>
             </View>
           );
         })}
@@ -129,25 +231,14 @@ function GameRow({ game }) {
 }
 
 function MendikotDetail({ data, userId }) {
+  const roundResults = data.series.round_results ||
+    data.gameRows.map((g, i) => ({ roundNumber: i + 1, ...g.scoringResult })).filter((r) => r.type);
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <SeriesInfoHeader series={data.series} gameRows={data.gameRows} userId={userId} />
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Final Rankings</Text>
-        {(data.series.finalRankings || []).map((r, i) => (
-          <View key={i} style={[styles.rankRow, r.rank === 1 && styles.rankRowFirst]}>
-            <Text style={[styles.rankNumSmall, r.rank === 1 && styles.rankNumFirstStyle]}>#{r.rank}</Text>
-            <Text style={[styles.rankName, r.rank === 1 && styles.rankNameFirst]}>{r.name}</Text>
-            <Text style={[styles.rankScore, r.rank === 1 && styles.rankScoreFirst]}>{r.score}</Text>
-          </View>
-        ))}
-      </View>
-      {data.gameRows.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Game Breakdown</Text>
-          {data.gameRows.map((g, i) => <GameRow key={i} game={g} />)}
-        </View>
-      )}
+      <WinTypeBreakdown sessionTotals={data.series.session_totals} />
+      <RoundHistoryTable roundResults={roundResults} />
     </ScrollView>
   );
 }
@@ -337,25 +428,85 @@ const styles = StyleSheet.create({
     letterSpacing: 1.8,
     marginBottom: spacing.xs,
   },
-  rankRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs, gap: spacing.sm },
-  rankRowFirst: { backgroundColor: 'rgba(201,162,39,0.08)', borderRadius: 6, paddingHorizontal: spacing.sm },
-  rankNumSmall: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.creamMuted, width: 28 },
-  rankNumFirstStyle: { color: colors.gold },
-  rankName: { fontFamily: fonts.body, fontSize: 14, color: colors.cream, flex: 1 },
-  rankNameFirst: { fontFamily: fonts.bodyBold, color: colors.goldLight },
-  rankScore: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.cream },
-  rankScoreFirst: { color: colors.goldLight },
-  gameRow: {
+
+  // Win type breakdown table
+  winTable: { gap: 2 },
+  winTableHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  winTableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
+  winTableCell: { fontSize: 13, fontFamily: fonts.body },
+  winTableLabel: { flex: 1, color: colors.creamMuted, paddingRight: spacing.xs },
+  winTableTeam: { width: 58, textAlign: 'center', fontFamily: fonts.bodyBold, fontSize: 12 },
+  winTableVal: { width: 58, textAlign: 'center', fontFamily: fonts.bodyBold },
+  winHighlight: { fontFamily: fonts.bodyBold, textDecorationLine: 'underline' },
+
+});
+
+const histStyles = StyleSheet.create({
+  table: { gap: 2 },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    paddingVertical: 5,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(201,162,39,0.1)',
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
+    borderBottomColor: 'rgba(201,162,39,0.18)',
   },
-  gameRowNum: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.gold, textTransform: 'uppercase', letterSpacing: 1 },
-  gameRowScores: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  gameRowPlayer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  gameRowName: { fontFamily: fonts.body, fontSize: 13, color: colors.cream },
-  gameRowDelta: { fontFamily: fonts.bodyBold, fontSize: 13 },
-  deltaPos: { color: colors.ready },
-  deltaNeg: { color: colors.redSuit },
+  th: {
+    fontFamily: fonts.bodyBold,
+    fontWeight: '700',
+    fontSize: 10,
+    color: colors.creamMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  thNum: { width: 22, textAlign: 'center' },
+  thTeam: { flex: 1, textAlign: 'center' },
+  thResult: { flex: 1, textAlign: 'center' },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+    paddingVertical: 5,
+    paddingHorizontal: 2,
+    borderRadius: 4,
+  },
+  numCell: {
+    width: 22,
+    textAlign: 'center',
+    fontSize: 11,
+    color: colors.creamMuted,
+    fontFamily: fonts.body,
+  },
+  teamCellWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  teamCell: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  tensStack: { position: 'relative', overflow: 'visible' },
+  tensCard: { position: 'absolute', top: 0 },
+  noTens: {
+    fontFamily: fonts.body,
+    fontSize: 11,
+    color: colors.creamMuted,
+    fontStyle: 'italic',
+    width: HIST_CARD_W,
+    textAlign: 'center',
+  },
+  tricksBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0.5,
+    borderColor: 'rgba(0,0,0,0.25)',
+  },
+  tricksBadgeText: {
+    fontSize: 9,
+    fontFamily: fonts.bodyBold,
+    fontWeight: '900',
+    color: '#000',
+    lineHeight: 11,
+  },
+  resultCellWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 1 },
+  resultWinner: { fontFamily: fonts.bodyBold, fontSize: 13, fontWeight: '700' },
+  resultType: { fontFamily: fonts.body, fontSize: 10, color: colors.creamMuted },
 });

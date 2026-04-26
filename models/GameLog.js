@@ -51,6 +51,10 @@ const GameLogSchema = new mongoose.Schema(
             },
         ],
         winnerUserId: { type: String },
+        winnerTeam: { type: String }, // mendikot: 'A', 'B', or null (draw)
+        teams: { type: mongoose.Schema.Types.Mixed }, // mendikot: { A: [userId], B: [userId] }
+        session_totals: { type: mongoose.Schema.Types.Mixed }, // mendikot series totals by win type
+        round_results: { type: mongoose.Schema.Types.Mixed }, // mendikot per-round results array
         // Common
         startedAt: { type: Date },
         finishedAt: { type: Date, default: Date.now },

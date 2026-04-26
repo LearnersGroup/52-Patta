@@ -234,7 +234,8 @@ function afterRoundEnd(io, gameState, finalState, { scheduleJudgementAdvance, au
                     .sort((a, b) => b.score - a.score)
                     .map((entry, idx) => ({ ...entry, rank: idx + 1 }));
 
-                await GameLog.create({
+                const totalRounds = (finalState.roundResults || []).length;
+                const seriesLogEntry = await GameLog.create({
                     kind: "series",
                     roomId: gameState.gameId,
                     roomCode: game?.code || "",
@@ -249,6 +250,19 @@ function afterRoundEnd(io, gameState, finalState, { scheduleJudgementAdvance, au
                     startedAt: finalState.seriesStartedAt ? new Date(finalState.seriesStartedAt) : null,
                     finishedAt: new Date(),
                     durationMs: finalState.seriesStartedAt ? Date.now() - finalState.seriesStartedAt : null,
+                });
+                io.to(gameState.roomname).emit("room-series-log-append", {
+                    _id: seriesLogEntry._id,
+                    kind: "series",
+                    seriesId: seriesLogEntry.seriesId?.toString(),
+                    gameType: seriesLogEntry.gameType,
+                    finalRankings: seriesLogEntry.finalRankings,
+                    playerCount: seriesLogEntry.playerCount,
+                    deckCount: seriesLogEntry.deckCount,
+                    variant: seriesLogEntry.variant,
+                    players: seriesLogEntry.players,
+                    finishedAt: seriesLogEntry.finishedAt,
+                    gameRows: new Array(totalRounds).fill(null),
                 });
             } catch (logErr) {
                 console.error("[judgement] GameLog series-finished persist error:", logErr.message);

@@ -247,8 +247,10 @@ export default function LobbyView({
           teamBIds={teamBIds}
           onSwitchTeam={onSwitchTeam}
         />
-        {gameRoomId ? <RoomLog roomId={gameRoomId} /> : null}
       </View>
+
+      {/* ── Games This Session ── */}
+      {gameRoomId ? <RoomLog roomId={gameRoomId} userId={userId} /> : null}
 
     </View>
   );

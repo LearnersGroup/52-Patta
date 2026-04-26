@@ -114,12 +114,37 @@ router.get("/room/:roomId", [auth], async (req, res) => {
             return res.status(403).json({ errors: [{ msg: "Not a member of this room" }] });
         }
 
+        const kind = req.query.kind || "game";
+
         const logs = await GameLog.find({
-            kind: "game",
+            kind,
             roomId: req.params.roomId,
         })
             .sort({ finishedAt: 1 })
             .lean();
+
+        if (kind === "series") {
+            const seriesIds = logs.map((s) => s.seriesId);
+            const games = await GameLog.find({
+                kind: "game",
+                seriesId: { $in: seriesIds },
+            })
+                .sort({ gameNumber: 1 })
+                .lean();
+
+            const gamesBySeries = {};
+            for (const g of games) {
+                const key = g.seriesId.toString();
+                if (!gamesBySeries[key]) gamesBySeries[key] = [];
+                gamesBySeries[key].push(g);
+            }
+
+            const result = logs.map((s) => ({
+                ...s,
+                gameRows: gamesBySeries[s.seriesId.toString()] || [],
+            }));
+            return res.json({ logs: result });
+        }
 
         res.json({ logs });
     } catch (error) {
