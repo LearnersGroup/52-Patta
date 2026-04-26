@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { WsDeal, WsShuffleAction, WsUndoShuffle } from '../../../api/wsEmitters';
-import { buttonStyles, colors, fonts, pillStyle, spacing, typography } from '../../../styles/theme';
+import { buttonStyles, colors, fonts, pillStyle, shadows, spacing, typography } from '../../../styles/theme';
 
 const MAX_SHUFFLE_OPS = 5;
 
@@ -100,9 +100,20 @@ export default function ShufflingPanel({
 
 const styles = StyleSheet.create({
   wrap: {
-    width: '80%',
+    width: '90%',
     alignItems: 'center',
     gap: spacing.sm,
+    backgroundColor: colors.bgDeep,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 162, 39, 0.18)',
+    padding: spacing.md,
+    ...shadows.deep,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.75,
+    shadowRadius: 24,
+    elevation: 16,
   },
   title: {
     ...typography.subtitle,
@@ -129,7 +140,7 @@ const styles = StyleSheet.create({
     ...buttonStyles.base,
     ...buttonStyles.secondary,
     paddingVertical: 8,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: '#2a2a2a',
   },
   actionBtnText: {
     ...buttonStyles.secondaryText,
@@ -154,7 +165,7 @@ const styles = StyleSheet.create({
     ...buttonStyles.base,
     ...buttonStyles.secondary,
     ...buttonStyles.small,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: colors.bgDeep,
   },
   undoBtnText: {
     ...buttonStyles.secondaryText,

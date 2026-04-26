@@ -1,5 +1,17 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.34 — 2026-04-26
+
+### Changed
+- **Dealing animation: deck now originates near the dealer's seat** — instead of always appearing at the table center, the deck shifts ~72% of the way toward whichever player is the current dealer, so flying cards visually emanate from their side of the table.
+- **Dealing animation: cards now land on each player's seat** — each flying card travels the exact vector from the shifted deck position to the target seat (using the elliptical orbit radii), replacing the old fixed-distance approximation that fell short.
+- **Dealing animation: progress bar moved to lower half** — the "Dealing…" label and gold progress bar are now pinned to the bottom of the table's center area rather than sitting in the middle, keeping the deck visually clear.
+
+## 1.1.33 — 2026-04-26
+
+### Changed
+- **Judgement bidding: more space between counter and Bid button** — added 8px margin above the "Bid N" button so it no longer sits flush against the −/amount/+ counter, reducing accidental taps.
+
 ## 1.1.32 — 2026-04-26
 
 ### Fixed

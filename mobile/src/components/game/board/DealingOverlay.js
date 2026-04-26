@@ -10,12 +10,11 @@ import { colors, fonts, spacing, typography } from '../../../styles/theme';
 import CardBack from '../CardBack';
 
 /**
- * A single flying card that animates from the center toward a player's seat.
+ * A single flying card that animates from the deck toward a player's seat.
+ * dx/dy are the exact pixel displacement to the target seat in deckArea space.
  */
-function FlyingCard({ angle, distance, durationMs }) {
+function FlyingCard({ dx, dy, durationMs }) {
   const progress = useSharedValue(0);
-  const dx = Math.cos(angle) * distance;
-  const dy = Math.sin(angle) * distance;
 
   useEffect(() => {
     progress.value = 0;
@@ -58,6 +57,7 @@ export default function DealingOverlay({
   userId = '',
   seatPositionMap = {},
   tableSize = 300,
+  tableHeight = 500,
 }) {
   const durationMs = dealingConfig?.animationDurationMs || 5000;
   const [elapsed, setElapsed] = useState(0);
@@ -79,8 +79,19 @@ export default function DealingOverlay({
   const userIdRef = useRef(userId);
   userIdRef.current = userId;
 
-  // Distance cards travel toward seats
-  const travelDist = tableSize * 0.64;
+  // Shift deck origin toward dealer's seat
+  const dealerId = seatOrder[dealerIndex] ?? seatOrder[0];
+  const dealerAngle = seatPositionMap[dealerId]?.angle;
+  const deckOffsetX = dealerAngle != null ? Math.cos(dealerAngle) * tableSize / 2 * 0.72 : 0;
+  const deckOffsetY = dealerAngle != null ? Math.sin(dealerAngle) * tableHeight / 2 * 0.72 : 0;
+
+  // Refs so the interval closure always reads the latest values
+  const tableSizeRef = useRef(tableSize);
+  tableSizeRef.current = tableSize;
+  const tableHeightRef = useRef(tableHeight);
+  tableHeightRef.current = tableHeight;
+  const deckOffsetRef = useRef({ x: deckOffsetX, y: deckOffsetY });
+  deckOffsetRef.current = { x: deckOffsetX, y: deckOffsetY };
 
   // Spawn flying cards
   useEffect(() => {
@@ -99,12 +110,21 @@ export default function DealingOverlay({
       const playerIdx = idx % N;
       const targetId = dealOrderRef.current[playerIdx];
       const isMe = targetId === userIdRef.current;
-      const angle = isMe
+      // Parametric angle on the ellipse — me is always at π/2 (bottom)
+      const playerAngle = isMe
         ? Math.PI / 2
         : (seatPosRef.current[targetId]?.angle ?? 0);
 
+      // Exact seat position relative to table centre (elliptical orbit)
+      const ts = tableSizeRef.current;
+      const th = tableHeightRef.current;
+      const { x: ox, y: oy } = deckOffsetRef.current;
+      // Travel from deck origin (0,0 of deckArea ≈ table centre + deckOffset) to seat
+      const dx = Math.cos(playerAngle) * ts / 2 - ox;
+      const dy = Math.sin(playerAngle) * th / 2 - oy;
+
       const id = Date.now() + Math.random();
-      setFlyingCards((prev) => [...prev, { id, angle, flyMs }]);
+      setFlyingCards((prev) => [...prev, { id, dx, dy, flyMs }]);
       setTimeout(() => {
         setFlyingCards((prev) => prev.filter((c) => c.id !== id));
       }, flyMs + 50);
@@ -134,34 +154,35 @@ export default function DealingOverlay({
 
   return (
     <View style={styles.wrap}>
-      {/* Deck + flying cards */}
-      <View style={styles.deckArea}>
-        {/* Stacked deck */}
-        <View style={[styles.stack, { transform: [{ translateX: -4 }, { translateY: -3 }] }]}>
-          <CardBack width={34} />
+      {/* Deck + flying cards — centred in flex area, shifted toward dealer */}
+      <View style={styles.deckWrapper}>
+        <View style={[styles.deckArea, { transform: [{ translateX: deckOffsetX }, { translateY: deckOffsetY }] }]}>
+          <View style={[styles.stack, { transform: [{ translateX: -4 }, { translateY: -3 }] }]}>
+            <CardBack width={34} />
+          </View>
+          <View style={[styles.stack, { transform: [{ translateX: -2 }, { translateY: -1.5 }] }]}>
+            <CardBack width={34} />
+          </View>
+          <View style={styles.stackTop}>
+            <CardBack width={34} />
+          </View>
+          {flyingCards.map((card) => (
+            <FlyingCard
+              key={card.id}
+              dx={card.dx}
+              dy={card.dy}
+              durationMs={card.flyMs}
+            />
+          ))}
         </View>
-        <View style={[styles.stack, { transform: [{ translateX: -2 }, { translateY: -1.5 }] }]}>
-          <CardBack width={34} />
-        </View>
-        <View style={styles.stackTop}>
-          <CardBack width={34} />
-        </View>
-
-        {/* Flying cards */}
-        {flyingCards.map((card) => (
-          <FlyingCard
-            key={card.id}
-            angle={card.angle}
-            distance={travelDist}
-            durationMs={card.flyMs}
-          />
-        ))}
       </View>
 
-      <Text style={styles.title}>Dealing...</Text>
-
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+      {/* Progress bar pinned to lower half of the table */}
+      <View style={styles.progressSection}>
+        <Text style={styles.title}>Dealing...</Text>
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
+        </View>
       </View>
     </View>
   );
@@ -169,15 +190,24 @@ export default function DealingOverlay({
 
 const styles = StyleSheet.create({
   wrap: {
-    width: '80%',
+    flex: 1,
+    alignSelf: 'stretch',
+  },
+  deckWrapper: {
+    flex: 1,
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'center',
   },
   deckArea: {
     width: 80,
     height: 60,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  progressSection: {
+    alignItems: 'center',
+    paddingBottom: 12,
+    gap: spacing.xs,
   },
   stack: {
     position: 'absolute',

@@ -758,7 +758,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
                 />
               );
             }}
-            centerContent={({ seatPositionMap, tableSize }) => {
+            centerContent={({ seatPositionMap, tableSize, tableHeight }) => {
               if (phase === 'band-hukum-pick') {
                 const isMyPickTurn = userId === closedTrumpHolderId;
                 const pickerName = getName(closedTrumpHolderId);
@@ -831,6 +831,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
                     userId={userId}
                     seatPositionMap={seatPositionMap}
                     tableSize={tableSize}
+                    tableHeight={tableHeight}
                   />
                 );
               }

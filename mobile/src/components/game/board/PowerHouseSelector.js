@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { WsSelectPartners, WsSelectPowerHouse } from '../../../api/wsEmitters';
-import { buttonStyles, colors, fonts, spacing, typography } from '../../../styles/theme';
+import { buttonStyles, colors, fonts, shadows, spacing, typography } from '../../../styles/theme';
 import CardFace from '../CardFace';
 import { isRedSuit, suitSymbol } from '../utils/cardMapper';
 
@@ -444,14 +444,36 @@ export default function PowerHouseSelector({
 
 const styles = StyleSheet.create({
   wrap: {
-    width: '80%',
+    width: '90%',
     alignItems: 'center',
     gap: spacing.sm,
+    backgroundColor: colors.bgDeep,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 162, 39, 0.18)',
+    padding: spacing.md,
+    ...shadows.deep,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.75,
+    shadowRadius: 24,
+    elevation: 16,
   },
   wrapTall: {
-    width: '80%',
+    width: '90%',
     gap: spacing.sm,
     maxHeight: 340,
+    backgroundColor: colors.bgDeep,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 162, 39, 0.18)',
+    padding: spacing.md,
+    ...shadows.deep,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.75,
+    shadowRadius: 24,
+    elevation: 16,
   },
   title: {
     ...typography.subtitle,
@@ -512,7 +534,7 @@ const styles = StyleSheet.create({
   },
   suitBtn: {
     width: 68,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: '#2a2a2a',
     borderWidth: 1,
     borderColor: colors.gold,
     borderRadius: 10,

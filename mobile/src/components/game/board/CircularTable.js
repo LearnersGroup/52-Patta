@@ -140,7 +140,7 @@ export default function CircularTable({ players = [], centerContent, overlayCont
           ]}
         >
           {typeof centerContent === 'function'
-            ? centerContent({ seatPositionMap, tableSize: geo.tableW })
+            ? centerContent({ seatPositionMap, tableSize: geo.tableW, tableHeight: geo.tableH })
             : centerContent}
         </View>
 

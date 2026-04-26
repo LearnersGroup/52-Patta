@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { WsPassBid, WsPlaceBid } from '../../../api/wsEmitters';
-import { buttonStyles, colors, fonts, pillStyle, spacing, typography } from '../../../styles/theme';
+import { buttonStyles, colors, fonts, pillStyle, shadows, spacing, typography } from '../../../styles/theme';
 
 function toSeconds(targetMs) {
   if (!targetMs) return null;
@@ -115,9 +115,20 @@ export default function BiddingPanel({ bidding, userId, getName }) {
 
 const styles = StyleSheet.create({
   wrap: {
-    width: '80%',
+    width: '90%',
     gap: spacing.xs,
     alignItems: 'center',
+    backgroundColor: colors.bgDeep,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(201, 162, 39, 0.18)',
+    padding: spacing.md,
+    ...shadows.deep,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.75,
+    shadowRadius: 24,
+    elevation: 16,
   },
   title: {
     ...typography.subtitle,

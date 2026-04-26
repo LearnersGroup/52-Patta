@@ -240,6 +240,7 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: spacing.md,
     alignSelf: 'stretch',
+    marginTop: 8,
   },
   bidBtnText: {
     ...buttonStyles.primaryText,
