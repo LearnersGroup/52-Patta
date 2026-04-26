@@ -725,6 +725,7 @@ export default function GameBoard({ userId, isAdmin = false }) {
             roundResults={roundResults || []}
             tricksWon={tricksWon || {}}
             gameHistory={gameHistory || []}
+            cardsInRound={currentCardsPerRound || 0}
           />
         )
       ) : null}

@@ -126,7 +126,10 @@ const RoomConfigForm = ({
         if (gameType !== "mendikot") return;
         const valid = [4, 6, 8, 10, 12];
         if (!valid.includes(playerCount)) {
-            setPlayerCount(mendikotPlayerStep(playerCount, 0));
+            const next = playerCount % 2 === 1
+                ? Math.min(playerCount + 1, 12)
+                : Math.max(4, Math.min(playerCount, 12));
+            setPlayerCount(next);
         }
     }, [gameType, playerCount, setPlayerCount]);
 

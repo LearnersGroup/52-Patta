@@ -150,10 +150,13 @@ export default function RoomLog({ roomId, userId }) {
   if (logs.length === 0) return null;
 
   return (
-    <View style={styles.list}>
-      {logs.map((entry, i) => (
-        <SeriesCard key={entry._id || i} item={entry} userId={userId} onPress={openSeries} />
-      ))}
+    <View style={styles.container}>
+      <Text style={styles.sectionTitle}>Past Games</Text>
+      <View style={styles.list}>
+        {logs.map((entry, i) => (
+          <SeriesCard key={entry._id || i} item={entry} userId={userId} onPress={openSeries} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -161,6 +164,16 @@ export default function RoomLog({ roomId, userId }) {
 // ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  container: {
+    gap: spacing.sm,
+  },
+  sectionTitle: {
+    fontFamily: fonts.heading,
+    fontSize: 11,
+    color: colors.gold,
+    textTransform: 'uppercase',
+    letterSpacing: 1.8,
+  },
   list: {
     gap: spacing.sm,
   },

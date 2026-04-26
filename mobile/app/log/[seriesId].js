@@ -230,14 +230,26 @@ function RoundHistoryTable({ roundResults }) {
   );
 }
 
+function deriveSessionTotals(rounds) {
+  const totals = { A: {}, B: {} };
+  for (const r of rounds || []) {
+    if (r.winningTeam && r.type) {
+      totals[r.winningTeam][r.type] = (totals[r.winningTeam][r.type] || 0) + 1;
+    }
+  }
+  return totals;
+}
+
 function MendikotDetail({ data, userId }) {
   const roundResults = data.series.round_results ||
     data.gameRows.map((g, i) => ({ roundNumber: i + 1, ...g.scoringResult })).filter((r) => r.type);
 
+  const sessionTotals = data.series.session_totals || deriveSessionTotals(roundResults);
+
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <SeriesInfoHeader series={data.series} gameRows={data.gameRows} userId={userId} />
-      <WinTypeBreakdown sessionTotals={data.series.session_totals} />
+      <WinTypeBreakdown sessionTotals={sessionTotals} />
       <RoundHistoryTable roundResults={roundResults} />
     </ScrollView>
   );

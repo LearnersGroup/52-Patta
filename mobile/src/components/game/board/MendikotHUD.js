@@ -393,27 +393,22 @@ const MendikotHUD = memo(({ phase, onShowSettings, isAdmin, onQuit }) => {
 
         {/* Centre pill */}
         <View style={styles.pill}>
-          {isPlaying ? (
-            <View style={styles.trumpChip}>
-              {trump_suit ? (
-                <Text style={[styles.trumpSymbol, isRedSuit(trump_suit) && styles.trumpRed]}>
-                  {suitSymbol(trump_suit)}{trump_card?.rank ?? ''}
-                </Text>
-              ) : (
-                <Text style={styles.trumpUnknown}>?</Text>
-              )}
-            </View>
-          ) : null}
+          <Pressable style={styles.menuZone} onPress={() => setShowMenu(true)}>
+            {isPlaying ? (
+              <View style={styles.trumpChip}>
+                {trump_suit ? (
+                  <Text style={[styles.trumpSymbol, isRedSuit(trump_suit) && styles.trumpRed]}>
+                    {suitSymbol(trump_suit)}{trump_card?.rank ?? ''}
+                  </Text>
+                ) : (
+                  <Text style={styles.trumpUnknown}>?</Text>
+                )}
+              </View>
+            ) : null}
 
-          {isPlaying ? <View style={styles.divider} /> : null}
+            {isPlaying ? <View style={styles.divider} /> : null}
 
-          <Text style={styles.roundText}>Rd {currentRoundNumber}/{totalRounds}</Text>
-
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => setShowMenu(true)}
-            hitSlop={8}
-          >
+            <Text style={styles.roundText}>Rd {currentRoundNumber}/{totalRounds}</Text>
             <Text style={styles.iconText}>☰</Text>
           </Pressable>
 
@@ -579,6 +574,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.creamMuted,
     fontFamily: fonts.body,
+  },
+  menuZone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 3,
   },
   iconBtn: {
     paddingHorizontal: 3,

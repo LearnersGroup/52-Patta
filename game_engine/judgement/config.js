@@ -11,9 +11,7 @@ function validateJudgementConfig(playerCount, deckCount) {
         throw new Error("For Judgement, 1 deck supports up to 6 players. Use 2 decks for 7+ players.");
     }
 
-    if (deckCount === 2 && playerCount < 7) {
-        throw new Error("For Judgement, 2 decks are intended for 7+ players.");
-    }
+
 }
 
 function computeJudgementConfig(playerCount, deckCount, maxCardsPerRound = null, reverseOrder = false, trumpMode = "random", scoreboardTime = null, bidTime = null, cardRevealTime = null) {

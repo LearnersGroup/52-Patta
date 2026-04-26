@@ -42,7 +42,7 @@ const GameSchema = new mongoose.Schema({
     },
     reverse_order: {
         type: Boolean,
-        default: false,
+        default: true,
     },
     trump_mode: {
         type: String,

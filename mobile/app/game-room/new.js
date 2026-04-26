@@ -218,7 +218,7 @@ export default function NewGameRoomScreen() {
     if (value === 'kaliteri'  && playerCount < 4) setPlayerCount(4);
     if (value === 'mendikot') {
       // Mendikot requires even player count >= 4
-      const next = playerCount < 4 ? 4 : playerCount % 2 === 1 ? playerCount + 1 : playerCount;
+      const next = playerCount < 4 ? 4 : playerCount % 2 === 1 ? Math.min(playerCount + 1, 12) : playerCount;
       setPlayerCount(next);
     }
   };

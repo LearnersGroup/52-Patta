@@ -1,5 +1,42 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.31 — 2026-04-26
+
+### Fixed
+- **Rules screen: fixed broken import** — a stray prefix on the import line (`bawawdaimport`) caused the rules screen to crash on load; now correctly reads `import`.
+
+### Changed
+- **Mendikot HUD: enlarged menu tap area** — the entire HUD pill (trump card, round counter, and hamburger icon) is now one tappable zone, making it easier to open the in-game menu.
+- **Web lobby: Mendikot odd player count** — switching to Mendikot on the web create-room form now nudges an odd count to the next even number (capped at 12) instead of potentially jumping to 14.
+
+## 1.1.30 — 2026-04-26
+
+### Fixed
+- **Judgement: 2 decks now allowed for any player count** — previously the server rejected 2-deck games with fewer than 7 players; restriction removed. Hosts can now choose 2 decks for 3–6 player Judgement rooms (e.g. 26 cards each for 4 players).
+
+### Changed
+- **Judgement: round order defaults to "Up & Down"** — new Judgement rooms now default to ascending-then-descending card counts instead of ascending-only.
+
+## 1.1.29 — 2026-04-26
+
+### Added
+- **Judgement HUD: total bids shown after bidding ends** — a "Bids x/y" widget appears top-left (in the HUD row's left slot) once bidding is done, where x (larger) is the sum of all bids and y is the cards in the round. The centred pill is unaffected.
+
+## 1.1.28 — 2026-04-26
+
+### Fixed
+- **Switching to Mendikot with an odd player count now does +1** (e.g. 5 → 6, 11 → 12) instead of jumping to 14 when the count was 13; 13 is capped down to 12.
+
+## 1.1.27 — 2026-04-26
+
+### Changed
+- **In-room game log: added "Past Games" section title** above the log list in the lobby.
+
+## 1.1.26 — 2026-04-26
+
+### Fixed
+- **Mendikot log detail: Win Type Breakdown now correct for all games**: counts (52 Patta!, Mendikot!, Tens, Tricks) are now derived from per-round results when the series log pre-dates persistent `session_totals` storage, so older games no longer show all-zero rows.
+
 ## 1.1.25 — 2026-04-25
 
 ### Changed

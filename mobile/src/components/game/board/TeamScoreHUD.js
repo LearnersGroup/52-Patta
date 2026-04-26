@@ -97,6 +97,7 @@ export default function TeamScoreHUD({
   tricksWon = {},
   gameHistory = [],
   closeMenuSignal = 0,
+  cardsInRound = 0,
 }) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -130,7 +131,7 @@ export default function TeamScoreHUD({
   return (
     <View style={styles.outerRow}>
 
-      {/* ── Left: team score ── */}
+      {/* ── Left: team score (Kaliteri) or total bids (Judgement) ── */}
       <View style={styles.sideLeft}>
         {isKaliteriPlaying ? (
           <View style={styles.scoreStack}>
@@ -149,23 +150,31 @@ export default function TeamScoreHUD({
               </Text>
             </View>
           </View>
+        ) : gameType === 'judgement' && phase !== 'bidding' && bidding?.totalBids != null ? (
+          <View style={styles.jdgBidBox}>
+            <Text style={styles.jdgBidLabel}>Bids</Text>
+            <View style={styles.jdgBidRow}>
+              <Text style={styles.jdgBidX}>{bidding.totalBids}</Text>
+              <Text style={styles.jdgBidSlash}>/{cardsInRound}</Text>
+            </View>
+          </View>
         ) : null}
       </View>
 
       {/* ── Centre: HUD pill — absolutely centred so it never shifts ── */}
       <View style={styles.pillCenter} pointerEvents="box-none">
         <View style={styles.pill}>
-          {trumpSuit ? (
-            <View style={styles.trumpChip}>
-              <Text style={[styles.trumpSymbol, isRedSuit(trumpSuit) && styles.trumpRed]}>
-                {suitSymbol(trumpSuit)}
-              </Text>
-            </View>
-          ) : null}
-
-          {trumpSuit ? <View style={styles.divider} /> : null}
-
           <Pressable style={styles.menuZone} onPress={() => setShowMenu(true)}>
+            {trumpSuit ? (
+              <View style={styles.trumpChip}>
+                <Text style={[styles.trumpSymbol, isRedSuit(trumpSuit) && styles.trumpRed]}>
+                  {suitSymbol(trumpSuit)}
+                </Text>
+              </View>
+            ) : null}
+
+            {trumpSuit ? <View style={styles.divider} /> : null}
+
             {roundText ? <Text style={styles.roundText}>{roundText}</Text> : null}
             <Text style={styles.iconText}>☰</Text>
           </Pressable>
@@ -279,6 +288,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.gold,
     lineHeight: 16,
+  },
+
+  // ── Total bids (Judgement) ───────────────────────────────────────────────
+  jdgBidBox: {
+    alignItems: 'flex-start',
+  },
+  jdgBidLabel: {
+    fontFamily: fonts.body,
+    fontSize: 9,
+    color: colors.creamMuted,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    lineHeight: 12,
+  },
+  jdgBidRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  jdgBidX: {
+    fontFamily: fonts.heading,
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.cream,
+    lineHeight: 22,
+    includeFontPadding: false,
+  },
+  jdgBidSlash: {
+    fontFamily: fonts.heading,
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.creamMuted,
+    lineHeight: 15,
+    includeFontPadding: false,
   },
 
   // ── Team score stack (Kaliteri) ─────────────────────────────────────────
