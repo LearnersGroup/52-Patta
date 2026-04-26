@@ -19,19 +19,22 @@
  *   upgrade xlink:href → href throughout.
  */
 
-import { createRequire } from 'module';
 import { writeFileSync } from 'fs';
-import { fileURLToPath } from 'url';
+import { fileURLToPath, pathToFileURL } from 'url';
 import path from 'path';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { createElement } from 'react';
 
-const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_PATH = path.join(__dirname, '../src/components/game/utils/cardSvgs.js');
 
-// Load from the web client's node_modules (the package lives there)
-const deck = require(path.join(__dirname, '../../client/node_modules/@letele/playing-cards'));
+// All three imports must come from the same React instance (the client's) so that
+// elements created by @letele/playing-cards and the renderer share the same React.
+const clientModules = path.join(__dirname, '../../client/node_modules');
+const { createElement } = await import(pathToFileURL(path.join(clientModules, 'react/index.js')).href);
+const { renderToStaticMarkup } = await import(pathToFileURL(path.join(clientModules, 'react-dom/server.js')).href);
+
+// Load from the web client's node_modules (the package lives there, ESM-only)
+const deckPath = path.join(clientModules, '@letele/playing-cards/dist/index.esm.js');
+const deck = await import(pathToFileURL(deckPath).href);
 
 const SUITS = ['S', 'H', 'D', 'C'];
 const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'j', 'q', 'k', 'a'];
@@ -39,17 +42,20 @@ const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'j', 'q', 'k', 'a']
 /**
  * Fix SVG string for react-native-svg compatibility:
  * 1. Wrap <use x=... y=...> in <g transform="translate(x,y)">
- * 2. Upgrade xlink:href → href
+ * 2. Move transform attribute from <use> to a wrapping <g> (react-native-svg
+ *    ignores transform on <use> just like x/y — affects face card mirror halves)
+ * 3. Upgrade xlink:href → href
  */
 function fixSvg(svg) {
   return svg.replace(/<use\b([^>]*)><\/use>/g, (full, attrs) => {
     const xM = attrs.match(/\s+x="([^"]*)"/);
     const yM = attrs.match(/\s+y="([^"]*)"/);
+    const tM = attrs.match(/\s+transform="([^"]*)"/);
 
     // Upgrade xlink:href → href in all cases
     let cleanAttrs = attrs.replace(/xlink:href/g, 'href');
 
-    if (!xM && !yM) {
+    if (!xM && !yM && !tM) {
       return `<use${cleanAttrs}></use>`;
     }
 
@@ -58,9 +64,15 @@ function fixSvg(svg) {
 
     if (xM) cleanAttrs = cleanAttrs.replace(xM[0], '');
     if (yM) cleanAttrs = cleanAttrs.replace(yM[0], '');
+    if (tM) cleanAttrs = cleanAttrs.replace(tM[0], '');
     cleanAttrs = cleanAttrs.replace(/  +/g, ' ');
 
-    return `<g transform="translate(${x},${y})"><use${cleanAttrs}></use></g>`;
+    // Build nested wrappers: translate outermost, then original transform
+    const inner = tM ? `<g transform="${tM[1]}"><use${cleanAttrs}></use></g>` : `<use${cleanAttrs}></use>`;
+    if (xM || yM) {
+      return `<g transform="translate(${x},${y})">${inner}</g>`;
+    }
+    return inner;
   });
 }
 

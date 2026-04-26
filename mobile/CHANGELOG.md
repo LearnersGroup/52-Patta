@@ -1,5 +1,10 @@
 # Changelog — 52 Patta Mobile
 
+## 1.1.32 — 2026-04-26
+
+### Fixed
+- **Face cards: missing mirror half restored** — the bottom (rotated) half of Jack/Queen/King illustrations was invisible because react-native-svg silently ignores `transform` on `<use>` elements, the same bug as the pip misplacement fix. The `transform="rotate(180)"` is now moved to a wrapping `<g>` so the mirrored half renders correctly. `genCardSvgs.mjs` updated to handle all transforms on `<use>` automatically.
+
 ## 1.1.31 — 2026-04-26
 
 ### Fixed
