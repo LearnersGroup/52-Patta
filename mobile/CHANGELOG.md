@@ -7,6 +7,7 @@
 
 ### Added
 - **Game Log (mobile + web + server)**: completed game history is now persisted to a new `GameLog` collection in MongoDB. A bottom tab navigator appears on the home screen with a **Game Log** tab listing all past series (mode, date, final rankings, score). Tapping a series opens a detail screen showing per-game score deltas. The lobby now shows a **Games This Session** section under the Players card, populated from the backend and updated live via socket as each game in a room finishes.
+- **Game Log card redesign**: each series card now shows the game-mode icon on the left spanning both rows; subtitle shows player count · deck count · optional variant (e.g. "Fixed Trump"); for Kaliteri and Judgement, the player's finish rank is displayed as a large `x` / small `/n`.
 
 ## 1.1.19 — 2026-04-25
 

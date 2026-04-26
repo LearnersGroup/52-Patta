@@ -27,6 +27,8 @@ export default function SeriesFinishedPanel({
   bidding = {},
   phase,
   onReturnToLobby,
+  isLogView = false,
+  renderHeader = null,
 }) {
   const rankings = (finalRankings || []).length
     ? finalRankings
@@ -71,9 +73,10 @@ export default function SeriesFinishedPanel({
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {renderHeader ? renderHeader() : null}
       {/* ── Series Complete card (podium + runners-up + lobby button) ── */}
       <View style={styles.wrap}>
-        <Text style={styles.title}>Series Complete</Text>
+        {!isLogView && <Text style={styles.title}>Series Complete</Text>}
 
         {/* ── Podium: 2nd | 1st | 3rd ── */}
         <View style={styles.podiumRow}>
@@ -134,9 +137,11 @@ export default function SeriesFinishedPanel({
           </View>
         ) : null}
 
-        <Pressable style={styles.lobbyBtn} onPress={onReturnToLobby}>
-          <Text style={styles.lobbyBtnText}>Return to Lobby</Text>
-        </Pressable>
+        {!isLogView && (
+          <Pressable style={styles.lobbyBtn} onPress={onReturnToLobby}>
+            <Text style={styles.lobbyBtnText}>Return to Lobby</Text>
+          </Pressable>
+        )}
       </View>
 
       {/* ── Scoreboard — outside the card ── */}
@@ -164,8 +169,9 @@ export default function SeriesFinishedPanel({
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     padding: spacing.md,
+    paddingBottom: spacing.xl,
     gap: spacing.md,
   },
   wrap: {

@@ -33,6 +33,10 @@ const GameLogSchema = new mongoose.Schema(
                 avatar: { type: String },
             },
         ],
+        // Series config snapshot
+        playerCount: { type: Number },
+        deckCount: { type: Number },
+        variant: { type: String }, // e.g. "Fixed Trump", "Cut" — null for default
         // Per-game fields
         scoringResult: { type: mongoose.Schema.Types.Mixed },
         playerDeltas: { type: mongoose.Schema.Types.Mixed },
